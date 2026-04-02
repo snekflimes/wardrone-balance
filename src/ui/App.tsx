@@ -558,7 +558,9 @@ export const App: React.FC = () => {
     return host === 'localhost' || host === '127.0.0.1' || host === '::1';
   }, []);
 
-  const SAME_ORIGIN_API_URL = 'api/storage/balance/index.php';
+  // На localhost используем Vite middleware (локальный файл .balance-db.json),
+  // на проде — PHP endpoint внутри /wardrone.
+  const SAME_ORIGIN_API_URL = isLocalhost ? '/api/storage/balance' : 'api/storage/balance/index.php';
   const REMOTE_API_URL = 'https://snek.su/wardrone/api/storage/balance/index.php';
 
   const loadFromDb = async () => {
