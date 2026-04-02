@@ -554,6 +554,8 @@ export const App: React.FC = () => {
 
   const loadFromDb = async () => {
     const defaults = getDefaultReferenceWavesConfig();
+    // Относительный путь: гарантирует попадание в подпапку хоста (например /wardrone/api/...).
+    const apiUrl = 'api/storage/balance/index.php';
 
     const applyLoaded = (
       balanceRaw: Partial<BalanceConstants> | undefined,
@@ -593,7 +595,7 @@ export const App: React.FC = () => {
 
     try {
       // Prefer server-side storage when available (static hosting + PHP endpoint).
-      const response = await fetch('/api/storage/balance');
+      const response = await fetch(apiUrl);
       if (!response.ok) {
         const local = readLocalPersistenceSnapshot();
         applyLoaded(local?.balance, local?.referenceWavesConfig, local?.uiState);
@@ -624,12 +626,14 @@ export const App: React.FC = () => {
     setIsSaving(true);
     setSaveMessage('');
     try {
+      // Относительный путь: гарантирует попадание в подпапку хоста (например /wardrone/api/...).
+      const apiUrl = 'api/storage/balance/index.php';
       const snapshot = buildPersistenceSnapshot(balance, referenceWavesConfig, {
         activeForecastPresetName,
         forecastSegmentId,
         forecastUiState,
       });
-      const response = await fetch('/api/storage/balance', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(snapshot),
