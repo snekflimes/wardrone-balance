@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { BalanceConstants, EnemyId } from '../balance/model';
+import { getEnemyIncomingThreatPerUnit } from '../balance/simulator';
 import type { ReferenceWavesConfig, ReferenceWaveEnemies } from '../balance/referenceWaves';
 import { getDefaultReferenceWavesConfig } from '../balance/referenceWaves';
 import { simulateProgressionForecast } from '../progression/progressionSimulator';
@@ -516,12 +517,19 @@ export const LevelsConstructorPanel: React.FC<{
                   <th style={thStyle}>Здоровье</th>
                   <th style={thStyle}>Урон</th>
                   <th style={thStyle}>Скорострельность (в мин)</th>
+                  <th
+                    style={thStyle}
+                    title="DPS угрозы на одного врага (учёт виндапа выстрела), как в сводке волны"
+                  >
+                    Мощь
+                  </th>
                   <th style={thStyle}>Награда за юнита</th>
                 </tr>
               </thead>
               <tbody>
                 {enemyIds.map((enemyId) => {
                   const enemy = balance.enemies[enemyId];
+                  const threatPerUnit = getEnemyIncomingThreatPerUnit(enemy);
                   return (
                     <tr key={enemyId}>
                       <td style={tdStyle}>{enemy.displayName}</td>
@@ -551,6 +559,17 @@ export const LevelsConstructorPanel: React.FC<{
                           value={enemy.baseFireRatePerMin ?? 60}
                           onChange={(e) => setEnemyField(enemyId, 'baseFireRatePerMin', Number(e.target.value) || 60)}
                         />
+                      </td>
+                      <td
+                        style={{
+                          ...tdStyle,
+                          textAlign: 'right',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: '#a7f3d0',
+                        }}
+                        title="DPS угрозы на одного врага"
+                      >
+                        {threatPerUnit.toFixed(2)}
                       </td>
                       <td style={tdStyle}>
                         <input
