@@ -25,6 +25,8 @@ export interface ProgressionState {
     slots: number;
     lifetimeSoftSpent: number;
   };
+  /** Софт, потраченный на покупку ракетниц (Hydra/Hellfire) за весь прогон. */
+  lifetimeRocketUnlockSoftSpent?: number;
   /** Софт, потраченный на апгрейд оружия за весь прогон (сумма по `weaponOnlyUpgradePolicy`). */
   lifetimeWeaponUpgradeSoftSpent?: number;
   // Support-cards сейчас не влияют на combat-симуляцию (она weapon-only),
@@ -81,6 +83,14 @@ export interface ProgressionLevelForecast {
   weaponUpgradeSoftSpentOnLevel: number;
   /** Накопленные траты на оружие после этого уровня. */
   weaponUpgradeSoftSpentCumulative: number;
+  /** Покупка ракетниц (софт) на этом уровне (может быть 0). */
+  rocketUnlockSoftSpentOnLevel?: number;
+  /** Накопленные траты софта на покупку ракетниц. */
+  rocketUnlockSoftSpentCumulative?: number;
+  /** Покупка слотов деки (софт), которая произошла к моменту завершения уровня (может быть 0). */
+  deckSlotsSoftSpentOnLevel?: number;
+  /** Накопленные траты софта на слоты деки. */
+  deckSlotsSoftSpentCumulative?: number;
   /**
    * Календарный день прогноза: номер дня по лимиту meta.forecastMaxAttemptsPerDay попыток в день (по умолч. 10).
    * Не совпадает с ⌊часов/24⌋, если смотреть только ожидание энергии.

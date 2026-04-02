@@ -145,6 +145,7 @@ export function simulateProgressionForecast(
     hydra70: false,
     hellfire: false,
   };
+  let lifetimeRocketUnlockSoftSpent = 0;
   let deckSlots = {
     slots: Math.max(1, Math.floor(constants.economy.startingCardSlots ?? 4)),
     lifetimeSoftSpent: 0,
@@ -271,6 +272,8 @@ export function simulateProgressionForecast(
     }
 
     const weaponSpendAtLevelStart = lifetimeWeaponUpgradeSoftSpent;
+    const rocketUnlockSpendAtLevelStart = lifetimeRocketUnlockSoftSpent;
+    const deckSlotsSpendAtLevelStart = deckSlots.lifetimeSoftSpent;
 
     let attemptsTotal = 0;
     let rewardTotal = 0;
@@ -350,10 +353,12 @@ export function simulateProgressionForecast(
         if (unlock?.hydra70Soft != null && !unlockedWeapons.hydra70 && softBalance >= unlock.hydra70Soft) {
           softBalance -= unlock.hydra70Soft;
           unlockedWeapons = { ...unlockedWeapons, hydra70: true };
+          lifetimeRocketUnlockSoftSpent += unlock.hydra70Soft;
         }
         if (unlock?.hellfireSoft != null && !unlockedWeapons.hellfire && softBalance >= unlock.hellfireSoft) {
           softBalance -= unlock.hellfireSoft;
           unlockedWeapons = { ...unlockedWeapons, hellfire: true };
+          lifetimeRocketUnlockSoftSpent += unlock.hellfireSoft;
         }
       }
 
@@ -368,6 +373,7 @@ export function simulateProgressionForecast(
         weaponLevels,
         unlockedWeapons,
         deckSlots,
+        lifetimeRocketUnlockSoftSpent,
         lifetimeWeaponUpgradeSoftSpent,
         supportCardLevels,
         supportCardBlueprints,
@@ -399,6 +405,8 @@ export function simulateProgressionForecast(
         deckSlots = nextState.deckSlots ?? deckSlots;
         supportCardLevels = nextState.supportCardLevels;
         supportCardBlueprints = nextState.supportCardBlueprints;
+        lifetimeRocketUnlockSoftSpent =
+          nextState.lifetimeRocketUnlockSoftSpent ?? lifetimeRocketUnlockSoftSpent;
         lifetimeWeaponUpgradeSoftSpent = nextState.lifetimeWeaponUpgradeSoftSpent ?? lifetimeWeaponUpgradeSoftSpent;
       }
 
@@ -470,6 +478,7 @@ export function simulateProgressionForecast(
           softBalance,
           playerLevel: options.playerLevel,
           weaponLevels,
+          lifetimeRocketUnlockSoftSpent,
           lifetimeWeaponUpgradeSoftSpent,
           supportCardLevels,
           supportCardBlueprints,
@@ -554,6 +563,10 @@ export function simulateProgressionForecast(
       endingSoftBalance: softBalance,
       weaponUpgradeSoftSpentOnLevel: lifetimeWeaponUpgradeSoftSpent - weaponSpendAtLevelStart,
       weaponUpgradeSoftSpentCumulative: lifetimeWeaponUpgradeSoftSpent,
+      rocketUnlockSoftSpentOnLevel: lifetimeRocketUnlockSoftSpent - rocketUnlockSpendAtLevelStart,
+      rocketUnlockSoftSpentCumulative: lifetimeRocketUnlockSoftSpent,
+      deckSlotsSoftSpentOnLevel: deckSlots.lifetimeSoftSpent - deckSlotsSpendAtLevelStart,
+      deckSlotsSoftSpentCumulative: deckSlots.lifetimeSoftSpent,
       dayReached: passed ? forecastCalendarDay : null,
       finalWeaponLevels: weaponLevels,
       passed,
@@ -569,6 +582,9 @@ export function simulateProgressionForecast(
       softBalance,
       playerLevel: options.playerLevel,
       weaponLevels,
+      unlockedWeapons,
+      deckSlots,
+      lifetimeRocketUnlockSoftSpent,
       lifetimeWeaponUpgradeSoftSpent,
       supportCardLevels,
       supportCardBlueprints,

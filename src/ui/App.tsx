@@ -352,6 +352,18 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
     ...defaultFreeChests.filter((c) => !freeChestIds.has(c.id)),
   ];
 
+  // Миграция: новые блоки экономики могли "пропасть", если когда-то сохранённый economy
+  // целиком перезаписал дефолты. Подмешиваем дефолты точечно.
+  if (!merged.economy.rocketUnlock && BALANCE_CONSTANTS.economy.rocketUnlock) {
+    merged.economy.rocketUnlock = { ...BALANCE_CONSTANTS.economy.rocketUnlock };
+  }
+  if ((!merged.economy.loginRewards || merged.economy.loginRewards.length === 0) && BALANCE_CONSTANTS.economy.loginRewards) {
+    merged.economy.loginRewards = [...BALANCE_CONSTANTS.economy.loginRewards];
+  }
+  if (merged.economy.startingCardSlots == null && BALANCE_CONSTANTS.economy.startingCardSlots != null) {
+    merged.economy.startingCardSlots = BALANCE_CONSTANTS.economy.startingCardSlots;
+  }
+
   if (BALANCE_CONSTANTS.economy.referencePacks) {
     merged.economy.referencePacks = {
       ...(merged.economy.referencePacks ?? {}),

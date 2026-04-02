@@ -662,6 +662,10 @@ export const ProgressionForecastPanel: React.FC<{
           endingSoftBalance: row.endingSoftBalance,
           weaponUpgradeSoftSpentOnLevel: row.weaponUpgradeSoftSpentOnLevel,
           weaponUpgradeSoftSpentCumulative: row.weaponUpgradeSoftSpentCumulative,
+          rocketUnlockSoftSpentOnLevel: row.rocketUnlockSoftSpentOnLevel ?? 0,
+          rocketUnlockSoftSpentCumulative: row.rocketUnlockSoftSpentCumulative ?? 0,
+          deckSlotsSoftSpentOnLevel: row.deckSlotsSoftSpentOnLevel ?? 0,
+          deckSlotsSoftSpentCumulative: row.deckSlotsSoftSpentCumulative ?? 0,
           dayReached: row.dayReached,
           mg: row.finalWeaponLevels.machineGunLevel,
           hydra: row.finalWeaponLevels.hydraLevel,
@@ -967,6 +971,34 @@ export const ProgressionForecastPanel: React.FC<{
 
       <div
         style={{
+          marginTop: 10,
+          padding: 12,
+          borderRadius: 10,
+          border: '1px solid rgba(148, 163, 184, 0.28)',
+          background: 'rgba(30, 41, 59, 0.35)',
+          color: '#cbd5e1',
+          fontSize: 12,
+          lineHeight: 1.5,
+        }}
+      >
+        <div style={{ fontWeight: 700, color: '#e2e8f0', marginBottom: 6 }}>Что влияет на прогноз (где редактировать)</div>
+        <div>
+          - Покупка ракетниц: Hydra = <strong>{balance.economy.rocketUnlock?.hydra70Soft ?? 0}</strong> soft, Hellfire ={' '}
+          <strong>{balance.economy.rocketUnlock?.hellfireSoft ?? 0}</strong> soft (вкладка <strong>«Экономика»</strong>).
+        </div>
+        <div>
+          - Слоты деки: старт = <strong>{balance.economy.startingCardSlots ?? 4}</strong>, цена слота ={' '}
+          <strong>{balance.economy.cardSlotCost ?? 0}</strong> soft, максимум = <strong>{balance.economy.maxCardSlots ?? 0}</strong> (вкладка{' '}
+          <strong>«Формулы»</strong> или <strong>«Экономика»</strong>).
+        </div>
+        <div>
+          - Ежедневные награды (login): дней в календаре = <strong>{(balance.economy.loginRewards ?? []).length}</strong> (вкладка{' '}
+          <strong>«Экономика»</strong>).
+        </div>
+      </div>
+
+      <div
+        style={{
           marginTop: 14,
           padding: 14,
           borderRadius: 10,
@@ -1084,6 +1116,14 @@ export const ProgressionForecastPanel: React.FC<{
           </div>
           <div>Софт на балансе: {Math.round(finalSoftBalance)} монет</div>
           <div>Траты софта на апгрейд оружия (весь прогон): {Math.round(finalWeaponUpgradeSoftSpent)} монет</div>
+          <div>
+            Траты софта на покупку ракетниц (весь прогон):{' '}
+            {Math.round(forecast.finalState.lifetimeRocketUnlockSoftSpent ?? 0)} монет
+          </div>
+          <div>
+            Траты софта на слоты деки (весь прогон):{' '}
+            {Math.round(forecast.finalState.deckSlots?.lifetimeSoftSpent ?? 0)} монет · слотов: {forecast.finalState.deckSlots?.slots ?? 0}
+          </div>
           {topSupportCards.length > 0 && (
             <div>
               Поддержка (топ): {topSupportCardsText}
@@ -1895,6 +1935,10 @@ export const ProgressionForecastPanel: React.FC<{
                   <th style={thStyle}>Сумма награды</th>
                   <th style={thStyle}>Траты на оружие (уровень)</th>
                   <th style={thStyle}>Траты на оружие (кум.)</th>
+                  <th style={thStyle}>Покупка ракет (ур.)</th>
+                  <th style={thStyle}>Покупка ракет (кум.)</th>
+                  <th style={thStyle}>Слоты деки (ур.)</th>
+                  <th style={thStyle}>Слоты деки (кум.)</th>
                   <th style={thStyle}>Остаток софта</th>
                   <th
                     style={thStyle}
@@ -1942,6 +1986,10 @@ export const ProgressionForecastPanel: React.FC<{
                     <td style={tdStyle}>{r.unitsTotal > 0 ? Math.round(r.totalRewardSoft) : '—'}</td>
                     <td style={tdStyle}>{r.unitsTotal > 0 ? Math.round(r.weaponUpgradeSoftSpentOnLevel) : '—'}</td>
                     <td style={tdStyle}>{Math.round(r.weaponUpgradeSoftSpentCumulative)}</td>
+                    <td style={tdStyle}>{r.unitsTotal > 0 ? Math.round(r.rocketUnlockSoftSpentOnLevel) : '—'}</td>
+                    <td style={tdStyle}>{Math.round(r.rocketUnlockSoftSpentCumulative)}</td>
+                    <td style={tdStyle}>{r.unitsTotal > 0 ? Math.round(r.deckSlotsSoftSpentOnLevel) : '—'}</td>
+                    <td style={tdStyle}>{Math.round(r.deckSlotsSoftSpentCumulative)}</td>
                     <td style={tdStyle}>{Math.round(r.endingSoftBalance)}</td>
                     <td style={tdStyle}>{r.dayReached ?? '—'}</td>
                     <td style={tdStyle} title="Ракеты не участвуют в бою на ур. 1 — уровни Гидры/Hellfire показываются как «—».">
