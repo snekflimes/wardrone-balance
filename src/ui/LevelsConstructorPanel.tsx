@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { BalanceConstants, EnemyId } from '../balance/model';
-import { getEnemyIncomingThreatPerUnit } from '../balance/simulator';
+import { getEnemyLevelPowerBreakdownPerUnit } from '../balance/simulator';
 import type { ReferenceWavesConfig, ReferenceWaveEnemies } from '../balance/referenceWaves';
 import { getDefaultReferenceWavesConfig } from '../balance/referenceWaves';
 import { simulateProgressionForecast } from '../progression/progressionSimulator';
@@ -519,7 +519,7 @@ export const LevelsConstructorPanel: React.FC<{
                   <th style={thStyle}>Скорострельность (в мин)</th>
                   <th
                     style={thStyle}
-                    title="DPS угрозы на одного врага (учёт виндапа выстрела), как в сводке волны"
+                    title="Как «Сложность уровня» в прогнозе: 0,7 × (HP / T волны) + 0,3 × DPS угрозы. Подсказка в ячейке — разложение."
                   >
                     Мощь
                   </th>
@@ -529,7 +529,10 @@ export const LevelsConstructorPanel: React.FC<{
               <tbody>
                 {enemyIds.map((enemyId) => {
                   const enemy = balance.enemies[enemyId];
-                  const threatPerUnit = getEnemyIncomingThreatPerUnit(enemy);
+                  const { survivabilityPressure, threat, power } = getEnemyLevelPowerBreakdownPerUnit(
+                    balance,
+                    enemy
+                  );
                   return (
                     <tr key={enemyId}>
                       <td style={tdStyle}>{enemy.displayName}</td>
@@ -567,9 +570,9 @@ export const LevelsConstructorPanel: React.FC<{
                           fontVariantNumeric: 'tabular-nums',
                           color: '#a7f3d0',
                         }}
-                        title="DPS угрозы на одного врага"
+                        title={`Выжив.: ${survivabilityPressure.toFixed(2)} (HP/T волны), угроза: ${threat.toFixed(2)}`}
                       >
-                        {threatPerUnit.toFixed(2)}
+                        {power.toFixed(2)}
                       </td>
                       <td style={tdStyle}>
                         <input

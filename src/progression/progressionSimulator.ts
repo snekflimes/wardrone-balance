@@ -15,7 +15,13 @@ import {
   getUnitsPerLevelFromBalance,
   getUnitsPerLevelFromConfig,
 } from '../balance/referenceWaves';
-import { getOutgoingSkillDamageMultiplier, getWaveStats, getWeaponLevelStats, simulateCombat } from '../balance/simulator';
+import {
+  getOutgoingSkillDamageMultiplier,
+  getWaveLevelPowerContribution,
+  getWaveStats,
+  getWeaponLevelStats,
+  simulateCombat,
+} from '../balance/simulator';
 import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import {
   getExpectedBlueprintCopiesOfSingleCardPerFreeChest,
@@ -323,8 +329,7 @@ export function simulateProgressionForecast(
 
     const levelEnemyPower = levelWaves.reduce((acc, w) => {
       const ws = getWaveStats(constants, w);
-      // Сложность уровня: требования к DPS + входящая угроза.
-      return acc + (ws.requiredDps * 0.7 + ws.totalEnemyDps * 0.3);
+      return acc + getWaveLevelPowerContribution(ws);
     }, 0);
 
     while (!levelPassed) {

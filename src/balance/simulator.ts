@@ -117,6 +117,34 @@ export function getEnemyIncomingThreatPerUnit(enemy: EnemyConfig): number {
 }
 
 /**
+ * Вклад волны в «Сложность уровня» на графике прогноза: 0,7×требуемый DPS + 0,3×входящая угроза.
+ */
+export function getWaveLevelPowerContribution(ws: WaveStats): number {
+  return ws.requiredDps * 0.7 + ws.totalEnemyDps * 0.3;
+}
+
+/**
+ * Вклад одного юнита в ту же метрику: «рейтинг выживаемости» (HP / длительность волны → нужный DPS)
+ * и «рейтинг угрозы» (getEnemyIncomingThreatPerUnit).
+ */
+export function getEnemyLevelPowerBreakdownPerUnit(
+  constants: BalanceConstants,
+  enemy: EnemyConfig
+): { survivabilityPressure: number; threat: number; power: number } {
+  const waveSec = constants.meta.baseWaveTimeSec;
+  const threat = getEnemyIncomingThreatPerUnit(enemy);
+  if (!Number.isFinite(waveSec) || waveSec <= 0) {
+    return { survivabilityPressure: 0, threat, power: threat * 0.3 };
+  }
+  const survivabilityPressure = enemy.baseHp / waveSec;
+  return {
+    survivabilityPressure,
+    threat,
+    power: survivabilityPressure * 0.7 + threat * 0.3,
+  };
+}
+
+/**
  * Ожидаемый множитель исходящего урона при «промах / слабое попадание».
  * miss% — полный ноль урона; среди оставшихся попыток partial% наносят partialDmg% от полного.
  */
