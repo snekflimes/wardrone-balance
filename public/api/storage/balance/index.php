@@ -36,7 +36,9 @@ function respond(int $code, array $payload): void {
 if ($method === 'GET') {
   $data = readJsonFile($dataFile);
   if ($data === null) {
-    respond(404, ['error' => 'not_found']);
+    // Treat missing data as an empty state (first launch).
+    // Returning 200 avoids the client falling back to unrelated local snapshots.
+    respond(200, []);
   }
   respond(200, $data);
 }
