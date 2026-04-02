@@ -6,6 +6,16 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+// Allow local dev (localhost) to use the same server storage.
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+
+if ($method === 'OPTIONS') {
+  http_response_code(204);
+  exit;
+}
+
 // Store data outside the API directory to avoid accidental deploy overwrites.
 // This path is inside /wardrone on the server, so it stays with the site.
 $dataDir = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'data';

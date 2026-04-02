@@ -554,8 +554,12 @@ export const App: React.FC = () => {
 
   const loadFromDb = async () => {
     const defaults = getDefaultReferenceWavesConfig();
-    // Относительный путь: гарантирует попадание в подпапку хоста (например /wardrone/api/...).
-    const apiUrl = 'api/storage/balance/index.php';
+    const apiCandidates = [
+      // same-origin (prod)
+      'api/storage/balance/index.php',
+      // remote server storage (for local dev)
+      'https://snek.su/wardrone/api/storage/balance/index.php',
+    ];
 
     const applyLoaded = (
       balanceRaw: Partial<BalanceConstants> | undefined,
@@ -594,14 +598,24 @@ export const App: React.FC = () => {
     };
 
     try {
-      // Prefer server-side storage when available (static hosting + PHP endpoint).
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
+      let response: Response | null = null;
+      for (const url of apiCandidates) {
+        try {
+          const r = await fetch(url, { method: 'GET' });
+          if (r.ok) {
+            response = r;
+            break;
+          }
+        } catch {
+          // try next candidate
+        }
+      }
+      if (!response) {
         const local = readLocalPersistenceSnapshot();
         applyLoaded(local?.balance, local?.referenceWavesConfig, local?.uiState);
         return;
       }
-      const json = await response.json() as {
+      const json = (await response.json()) as {
         balance?: Partial<BalanceConstants>;
         referenceWavesConfig?: ReferenceWavesConfig;
         uiState?: {
@@ -626,19 +640,32 @@ export const App: React.FC = () => {
     setIsSaving(true);
     setSaveMessage('');
     try {
-      // Относительный путь: гарантирует попадание в подпапку хоста (например /wardrone/api/...).
-      const apiUrl = 'api/storage/balance/index.php';
+      const apiCandidates = [
+        'api/storage/balance/index.php',
+        'https://snek.su/wardrone/api/storage/balance/index.php',
+      ];
       const snapshot = buildPersistenceSnapshot(balance, referenceWavesConfig, {
         activeForecastPresetName,
         forecastSegmentId,
         forecastUiState,
       });
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(snapshot),
-      });
-      if (!response.ok) throw new Error('save_failed');
+      let saved = false;
+      for (const url of apiCandidates) {
+        try {
+          const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(snapshot),
+          });
+          if (r.ok) {
+            saved = true;
+            break;
+          }
+        } catch {
+          // try next
+        }
+      }
+      if (!saved) throw new Error('save_failed');
       // Дублируем в localStorage на случай статического хостинга/падения API.
       writeLocalPersistenceSnapshot(snapshot);
       // После сохранения перечитываем из БД, чтобы клиент всегда жил от неё.
