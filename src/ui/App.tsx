@@ -552,14 +552,18 @@ export const App: React.FC = () => {
     });
   }, [balance.meta.gameLevels]);
 
+  const isLocalhost = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const host = window.location.hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  }, []);
+
+  const SAME_ORIGIN_API_URL = 'api/storage/balance/index.php';
+  const REMOTE_API_URL = 'https://snek.su/wardrone/api/storage/balance/index.php';
+
   const loadFromDb = async () => {
     const defaults = getDefaultReferenceWavesConfig();
-    const apiCandidates = [
-      // same-origin (prod)
-      'api/storage/balance/index.php',
-      // remote server storage (for local dev)
-      'https://snek.su/wardrone/api/storage/balance/index.php',
-    ];
+    const apiCandidates = [SAME_ORIGIN_API_URL];
 
     const applyLoaded = (
       balanceRaw: Partial<BalanceConstants> | undefined,
@@ -635,37 +639,89 @@ export const App: React.FC = () => {
     void loadFromDb();
   }, []);
 
-  const saveToDb = async () => {
+  const loadFromRemoteServer = async () => {
+    const defaults = getDefaultReferenceWavesConfig();
+    try {
+      const response = await fetch(REMOTE_API_URL, { method: 'GET' });
+      if (!response.ok) throw new Error('remote_load_failed');
+      const json = (await response.json()) as {
+        balance?: Partial<BalanceConstants>;
+        referenceWavesConfig?: ReferenceWavesConfig;
+        uiState?: {
+          activeForecastPresetName?: string;
+          forecastSegmentId?: SegmentId;
+          forecastUiState?: ForecastUiState;
+        };
+      };
+      const balanceNext = hydrateBalance(json.balance);
+      const wavesNext = migrateReferenceWavesConfig(json.referenceWavesConfig ?? defaults);
+      const nameNext = json.uiState?.activeForecastPresetName ?? '';
+      const segmentNext = json.uiState?.forecastSegmentId ?? 'free';
+      const forecastNext = forecastUiStateFromDb(json.uiState?.forecastUiState, balanceNext.meta.gameLevels);
+      setBalance(balanceNext);
+      setReferenceWavesConfig(wavesNext);
+      setActiveForecastPresetName(nameNext);
+      setForecastSegmentId(segmentNext);
+      setForecastUiState(forecastNext);
+      setLastSavedSerialized(
+        stableStringify(
+          buildPersistenceSnapshot(balanceNext, wavesNext, {
+            activeForecastPresetName: nameNext,
+            forecastSegmentId: segmentNext,
+            forecastUiState: forecastNext,
+          })
+        )
+      );
+      setSaveMessage('Загружено с сервера');
+      window.setTimeout(() => setSaveMessage(''), 1800);
+    } catch {
+      setSaveMessage('Не удалось загрузить с сервера');
+      window.setTimeout(() => setSaveMessage(''), 2200);
+    }
+  };
+
+  const publishToRemoteServer = async () => {
     if (!storageReady) return;
     setIsSaving(true);
     setSaveMessage('');
     try {
-      const apiCandidates = [
-        'api/storage/balance/index.php',
-        'https://snek.su/wardrone/api/storage/balance/index.php',
-      ];
       const snapshot = buildPersistenceSnapshot(balance, referenceWavesConfig, {
         activeForecastPresetName,
         forecastSegmentId,
         forecastUiState,
       });
-      let saved = false;
-      for (const url of apiCandidates) {
-        try {
-          const r = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(snapshot),
-          });
-          if (r.ok) {
-            saved = true;
-            break;
-          }
-        } catch {
-          // try next
-        }
-      }
-      if (!saved) throw new Error('save_failed');
+      const response = await fetch(REMOTE_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(snapshot),
+      });
+      if (!response.ok) throw new Error('remote_save_failed');
+      setSaveMessage('Опубликовано на сервер');
+      window.setTimeout(() => setSaveMessage(''), 1800);
+    } catch {
+      setSaveMessage('Не удалось опубликовать на сервер');
+      window.setTimeout(() => setSaveMessage(''), 2200);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveToDb = async () => {
+    if (!storageReady) return;
+    setIsSaving(true);
+    setSaveMessage('');
+    try {
+      const snapshot = buildPersistenceSnapshot(balance, referenceWavesConfig, {
+        activeForecastPresetName,
+        forecastSegmentId,
+        forecastUiState,
+      });
+      const response = await fetch(SAME_ORIGIN_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(snapshot),
+      });
+      if (!response.ok) throw new Error('save_failed');
       // Дублируем в localStorage на случай статического хостинга/падения API.
       writeLocalPersistenceSnapshot(snapshot);
       // После сохранения перечитываем из БД, чтобы клиент всегда жил от неё.
@@ -832,6 +888,16 @@ export const App: React.FC = () => {
             <button type="button" onClick={saveToDb} disabled={!storageReady || isSaving}>
               {isSaving ? 'Сохранение...' : 'Сохранить'}
             </button>
+            {isLocalhost && (
+              <>
+                <button type="button" onClick={loadFromRemoteServer} disabled={isSaving}>
+                  Загрузить с сервера
+                </button>
+                <button type="button" onClick={publishToRemoteServer} disabled={!storageReady || isSaving}>
+                  Отправить на сервер
+                </button>
+              </>
+            )}
             <button type="button" onClick={exportBalanceBackup}>Экспорт бэкапа</button>
             <button type="button" onClick={importBalanceBackup}>Импорт бэкапа</button>
             {saveMessage && <span style={{ alignSelf: 'center', fontSize: 12, color: '#94a3b8' }}>{saveMessage}</span>}
