@@ -93,6 +93,7 @@ function normalizeForecastUiState(
 
 /** Раньше пресеты автотюна жили только в localStorage — подмешиваем к данным из БД (ключи из БД перекрывают legacy). */
 const LEGACY_TUNE_PRESETS_STORAGE_KEY = 'war-drone-tune-presets-v1';
+const LOCAL_PERSISTENCE_STORAGE_KEY = 'war-drone-balance-snapshot-v1';
 
 function readLegacyTunePresetsFromLocalStorage(): Record<string, SavedTunePreset> | null {
   if (typeof window === 'undefined') return null;
@@ -104,6 +105,38 @@ function readLegacyTunePresetsFromLocalStorage(): Record<string, SavedTunePreset
     return parsed as Record<string, SavedTunePreset>;
   } catch {
     return null;
+  }
+}
+
+function readLocalPersistenceSnapshot():
+  | {
+      balance?: Partial<BalanceConstants>;
+      referenceWavesConfig?: ReferenceWavesConfig;
+      uiState?: {
+        activeForecastPresetName?: string;
+        forecastSegmentId?: SegmentId;
+        forecastUiState?: ForecastUiState;
+      };
+    }
+  | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(LOCAL_PERSISTENCE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed as any;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalPersistenceSnapshot(snapshot: unknown): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(LOCAL_PERSISTENCE_STORAGE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // ignore quota / privacy mode
   }
 }
 
@@ -561,7 +594,8 @@ export const App: React.FC = () => {
     try {
       const response = await fetch('/api/storage/balance');
       if (!response.ok) {
-        applyLoaded(undefined, undefined, undefined);
+        const local = readLocalPersistenceSnapshot();
+        applyLoaded(local?.balance, local?.referenceWavesConfig, local?.uiState);
         return;
       }
       const json = await response.json() as {
@@ -575,7 +609,8 @@ export const App: React.FC = () => {
       };
       applyLoaded(json.balance, json.referenceWavesConfig, json.uiState);
     } catch {
-      applyLoaded(undefined, undefined, undefined);
+      const local = readLocalPersistenceSnapshot();
+      applyLoaded(local?.balance, local?.referenceWavesConfig, local?.uiState);
     }
   };
 
@@ -588,25 +623,34 @@ export const App: React.FC = () => {
     setIsSaving(true);
     setSaveMessage('');
     try {
+      const snapshot = buildPersistenceSnapshot(balance, referenceWavesConfig, {
+        activeForecastPresetName,
+        forecastSegmentId,
+        forecastUiState,
+      });
       const response = await fetch('/api/storage/balance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          buildPersistenceSnapshot(balance, referenceWavesConfig, {
-            activeForecastPresetName,
-            forecastSegmentId,
-            forecastUiState,
-          })
-        ),
+        body: JSON.stringify(snapshot),
       });
       if (!response.ok) throw new Error('save_failed');
+      // Дублируем в localStorage на случай статического хостинга/падения API.
+      writeLocalPersistenceSnapshot(snapshot);
       // После сохранения перечитываем из БД, чтобы клиент всегда жил от неё.
       await loadFromDb();
       setSaveMessage('Сохранено в БД');
       window.setTimeout(() => setSaveMessage(''), 1800);
     } catch {
-      setSaveMessage('Ошибка сохранения');
-      window.setTimeout(() => setSaveMessage(''), 2200);
+      // Если API недоступен (статический хостинг) — сохраняем локально в браузере.
+      const snapshot = buildPersistenceSnapshot(balance, referenceWavesConfig, {
+        activeForecastPresetName,
+        forecastSegmentId,
+        forecastUiState,
+      });
+      writeLocalPersistenceSnapshot(snapshot);
+      setLastSavedSerialized(stableStringify(snapshot));
+      setSaveMessage('Сохранено локально (в браузере)');
+      window.setTimeout(() => setSaveMessage(''), 2400);
     } finally {
       setIsSaving(false);
     }
