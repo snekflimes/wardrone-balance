@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# local tooling output
+vite-dev.log
+
+# docs binaries (keep locally, don't push to GitHub)
+Docs/*.docx

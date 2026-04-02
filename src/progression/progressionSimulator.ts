@@ -1,0 +1,583 @@
+import type { BalanceConstants } from '../balance/model';
+import type { EnemyId } from '../balance/model';
+import type {
+  CombatOutcome,
+  ProgressionAttemptPowerPoint,
+  ProgressionForecastResult,
+  ProgressionSimulatorOptions,
+  WeaponLevels,
+} from './types';
+import type { WaveDefinition } from '../balance/schema';
+import {
+  aggregateWaveEnemyCounts,
+  getReferenceWave,
+  getReferenceWaveFromConfig,
+  getUnitsPerLevelFromBalance,
+  getUnitsPerLevelFromConfig,
+} from '../balance/referenceWaves';
+import { getOutgoingSkillDamageMultiplier, getWaveStats, getWeaponLevelStats, simulateCombat } from '../balance/simulator';
+import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
+import {
+  getExpectedBlueprintCopiesOfSingleCardPerFreeChest,
+  getExpectedFreeChestCurrencyPerOpen,
+} from './iapAndChestsModel';
+import { getSoftIncomeFromSegmentPerWeek } from './iapAndChestsModel';
+
+function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
+
+function sumRewards(stateRewardSoft: number, rewardSoft: number): number {
+  const next = stateRewardSoft + rewardSoft;
+  if (!Number.isFinite(next)) return stateRewardSoft;
+  return next;
+}
+
+function sumEditorUnitsRow(row: Record<EnemyId, number> | null | undefined): number | undefined {
+  if (!row) return undefined;
+  let s = 0;
+  for (const v of Object.values(row)) {
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) s += v;
+  }
+  return s > 0 ? s : undefined;
+}
+
+function sameWeaponLevels(
+  a: WeaponLevels,
+  b: WeaponLevels
+): boolean {
+  return (
+    a.machineGunLevel === b.machineGunLevel &&
+    a.hydraLevel === b.hydraLevel &&
+    a.hellfireLevel === b.hellfireLevel
+  );
+}
+
+function sameNumberRecord(
+  a: Record<number, number>,
+  b: Record<number, number>
+): boolean {
+  const keys = new Set<number>([
+    ...Object.keys(a).map((k) => Number(k)),
+    ...Object.keys(b).map((k) => Number(k)),
+  ]);
+  for (const key of keys) {
+    if ((a[key] ?? 0) !== (b[key] ?? 0)) return false;
+  }
+  return true;
+}
+
+function defaultInitialWeaponLevels(): WeaponLevels {
+  return {
+    machineGunLevel: 1,
+    hydraLevel: 1,
+    hellfireLevel: 1,
+  };
+}
+
+function calcPlayerPowerForAttempt(
+  constants: BalanceConstants,
+  args: {
+    levelIndex: number;
+    playerLevel: number;
+    weaponLevels: WeaponLevels;
+    unlockedWeapons?: { machineGun: boolean; hydra70: boolean; hellfire: boolean };
+    supportCardLevels: Record<number, number>;
+    retryPowerMultiplier: number;
+  }
+): number {
+  const mg = getWeaponLevelStats(constants, 'machineGun', args.weaponLevels.machineGunLevel);
+  const hydra = getWeaponLevelStats(constants, 'hydra70', args.weaponLevels.hydraLevel);
+  const hellfire = getWeaponLevelStats(constants, 'hellfire', args.weaponLevels.hellfireLevel);
+  const unlocked = args.unlockedWeapons ?? { machineGun: true, hydra70: args.levelIndex >= 2, hellfire: args.levelIndex >= 2 };
+  const totalSustainedDps =
+    (unlocked.machineGun ? mg.sustainedDps : 0) +
+    (unlocked.hydra70 ? hydra.sustainedDps : 0) +
+    (unlocked.hellfire ? hellfire.sustainedDps : 0);
+  const skillMult = getOutgoingSkillDamageMultiplier(constants.economy);
+  const sumSupportLvls = Object.values(args.supportCardLevels).reduce((s, v) => s + Math.max(0, v || 0), 0);
+  const supportMult = 1 + Math.log1p(sumSupportLvls) * 0.12;
+  const playerLvlMult = 1 + Math.log1p(Math.max(1, args.playerLevel)) * 0.06;
+  const raw = totalSustainedDps * skillMult * supportMult * playerLvlMult * Math.max(0.01, args.retryPowerMultiplier);
+  return Number.isFinite(raw) ? Math.max(0, raw) : 0;
+}
+
+export function simulateProgressionForecast(
+  constants: BalanceConstants,
+  options: ProgressionSimulatorOptions
+): ProgressionForecastResult {
+  const wavesPerLevel = constants.economy.wavesPerLevel ?? 2;
+  // В референсе/таблицах сейчас есть только 2 волны на уровень.
+  // Поэтому если wavesPerLevel отличается (из-за localStorage/настроек),
+  // мы не падём: ограничим симуляцию двумя волнами и пустые волны будут "не состоятся".
+  const wavesToSimulate = Math.max(1, Math.min(2, wavesPerLevel));
+
+  const lastSimulatedLevel = Math.min(
+    constants.meta.gameLevels,
+    Math.max(1, options.maxLevelIndex ?? constants.meta.gameLevels)
+  );
+
+  const unitsPerLevel = getUnitsPerLevelFromBalance(constants);
+  const unitsPerLevelFromCfg = options.referenceWavesConfig
+    ? getUnitsPerLevelFromConfig(options.referenceWavesConfig, constants.meta.gameLevels)
+    : null;
+  const initialWeaponLevels = {
+    ...defaultInitialWeaponLevels(),
+    ...(options.initialWeaponLevels ?? {}),
+  };
+
+  let softBalance = options.initialSoft ?? 0;
+  let weaponLevels: WeaponLevels = {
+    machineGunLevel: clamp(
+      initialWeaponLevels.machineGunLevel,
+      1,
+      getMaxWeaponLevelForWeapon(constants, 'machineGun')
+    ),
+    hydraLevel: clamp(initialWeaponLevels.hydraLevel, 1, getMaxWeaponLevelForWeapon(constants, 'hydra70')),
+    hellfireLevel: clamp(
+      initialWeaponLevels.hellfireLevel,
+      1,
+      getMaxWeaponLevelForWeapon(constants, 'hellfire')
+    ),
+  };
+  let unlockedWeapons = {
+    machineGun: true,
+    hydra70: false,
+    hellfire: false,
+  };
+  let deckSlots = {
+    slots: Math.max(1, Math.floor(constants.economy.startingCardSlots ?? 4)),
+    lifetimeSoftSpent: 0,
+  };
+
+  // Support cards: expected blueprints and current levels.
+  let supportCardLevels: Record<number, number> = {};
+  let supportCardBlueprints: Record<number, number> = {};
+  for (const card of constants.supportCards) {
+    supportCardLevels[card.id] = 0;
+    supportCardBlueprints[card.id] = 0;
+  }
+
+  let lifetimeWeaponUpgradeSoftSpent = 0;
+
+  const progressionLevels: ProgressionForecastResult['levels'] = [];
+  const attemptsTimeline: ProgressionAttemptPowerPoint[] = [];
+  let globalAttemptOrdinal = 0;
+
+  const energyCap = Math.max(0, options.energyPerLevel ?? 100);
+  const energyPerAttempt = Math.max(1, options.energyPerAttempt ?? 1);
+  const energyRegenPerHour = Math.max(0, options.energyRegenPerHour ?? 0);
+  let energy = Math.max(0, Math.min(energyCap, options.energyStart ?? energyCap));
+  /** Суммарное ожидание регенера энергии (бесплатные сундуки в прогнозе не от него). */
+  let elapsedEnergyWaitHours = 0;
+  /** Ожидание энергии + номинально 24 ч при смене календарного дня из‑за лимита попыток (без сундуков). */
+  let elapsedCalendarHours = 0;
+  const maxAttemptsPerForecastDay =
+    constants.meta.forecastMaxAttemptsPerDay != null &&
+    Number.isFinite(constants.meta.forecastMaxAttemptsPerDay)
+      ? Math.max(1, Math.floor(constants.meta.forecastMaxAttemptsPerDay))
+      : 10;
+  /** День для колонки «День прохода» (лимит попыток/день). */
+  let forecastCalendarDay = 1;
+  let forecastAttemptsToday = 0;
+  let starterCardsGranted = false;
+
+  const segmentSoftPerWeek = getSoftIncomeFromSegmentPerWeek(constants, options.segmentId);
+  const segmentSoftPerDay = segmentSoftPerWeek > 0 ? segmentSoftPerWeek / 7 : 0;
+
+  const freeChestsPerForecastDay =
+    constants.meta.forecastFreeChestsPerDay != null &&
+    Number.isFinite(constants.meta.forecastFreeChestsPerDay)
+      ? Math.max(1, Math.min(20, Math.floor(constants.meta.forecastFreeChestsPerDay)))
+      : 3;
+
+  const freeChestOpensById: Record<string, number> = {};
+  const paidChestOpensById: Record<string, number> = {};
+
+  const recordPaidChestOpens = (chestId: string, count: number) => {
+    if (count <= 0 || !chestId) return;
+    paidChestOpensById[chestId] = (paidChestOpensById[chestId] ?? 0) + count;
+  };
+
+  const applySingleFreeChestOpen = (chestId: string) => {
+    const chestList = constants.economy.freeChests ?? [];
+    if (!chestList.some((c) => c.id === chestId)) return;
+    freeChestOpensById[chestId] = (freeChestOpensById[chestId] ?? 0) + 1;
+    const expectedCurrency = getExpectedFreeChestCurrencyPerOpen(constants, chestId);
+    softBalance += expectedCurrency.soft;
+    for (const card of constants.supportCards) {
+      const perOpen = getExpectedBlueprintCopiesOfSingleCardPerFreeChest(constants, chestId, card.rarity);
+      if (perOpen <= 0) continue;
+      supportCardBlueprints[card.id] = (supportCardBlueprints[card.id] ?? 0) + perOpen;
+    }
+  };
+
+  const applyLoginRewardForDay = (day: number) => {
+    const rewards = constants.economy.loginRewards ?? [];
+    const row = rewards.find((r) => r.day === day);
+    if (!row) return;
+    if ((row.soft ?? 0) > 0) softBalance += row.soft;
+    // hard пока не моделируем как тратим; но показываем в UI/балансе и можно потом расширить.
+  };
+
+  /** За календарный день прогноза: по одному открытию первых K записей economy.freeChests (K = freeChestsPerForecastDay). */
+  const grantForecastDailyFreeChests = () => {
+    if (segmentSoftPerDay > 0) {
+      softBalance += segmentSoftPerDay;
+    }
+    applyLoginRewardForDay(forecastCalendarDay);
+    const list = constants.economy.freeChests ?? [];
+    const n = Math.min(freeChestsPerForecastDay, list.length);
+    for (let i = 0; i < n; i += 1) {
+      applySingleFreeChestOpen(list[i].id);
+    }
+  };
+
+  const tryBuyDeckSlots = () => {
+    const maxSlots = Math.max(1, constants.economy.maxCardSlots);
+    const cost = Math.max(0, constants.economy.cardSlotCost);
+    if (!Number.isFinite(cost) || cost <= 0) return;
+    while (deckSlots.slots < maxSlots && softBalance + 1e-9 >= cost) {
+      softBalance -= cost;
+      deckSlots = { slots: deckSlots.slots + 1, lifetimeSoftSpent: deckSlots.lifetimeSoftSpent + cost };
+    }
+  };
+
+  const filterSupportCardsByDeckSlots = (levels: Record<number, number>): Record<number, number> => {
+    const entries = Object.entries(levels)
+      .map(([k, v]) => ({ id: Number(k), lvl: Number(v ?? 0) }))
+      .filter((x) => x.id > 0 && x.lvl > 0)
+      .sort((a, b) => (b.lvl - a.lvl) || (a.id - b.id));
+    const keep = new Set(entries.slice(0, Math.max(0, deckSlots.slots)).map((x) => x.id));
+    const out: Record<number, number> = {};
+    for (const [k, v] of Object.entries(levels)) {
+      const id = Number(k);
+      if (keep.has(id)) out[id] = Number(v ?? 0);
+    }
+    return out;
+  };
+
+  grantForecastDailyFreeChests();
+  tryBuyDeckSlots();
+
+  for (let levelIndex = 1; levelIndex <= lastSimulatedLevel; levelIndex += 1) {
+    if (levelIndex >= 3 && !starterCardsGranted) {
+      // На 3-м уровне игрок получает стартовый набор карт:
+      // рой дронов (1), мины (2), патроны пулемёта (10), десант пехоты (7).
+      for (const cardId of [1, 2, 10, 7]) {
+        supportCardLevels[cardId] = Math.max(1, supportCardLevels[cardId] ?? 0);
+      }
+      starterCardsGranted = true;
+    }
+
+    const weaponSpendAtLevelStart = lifetimeWeaponUpgradeSoftSpent;
+
+    let attemptsTotal = 0;
+    let rewardTotal = 0;
+    let levelPassed = false;
+    let noProgressAttemptsInLevel = 0;
+    let retryPowerMultiplier = 1;
+    const retryPowerGain = Math.max(0, options.retryPowerGainPerAttempt ?? 0.1);
+    const maxAttemptsPerLevel = options.maxAttemptsPerLevel ?? options.maxAttemptsPerWave ?? 200;
+    const deadlockRetryCap = Math.max(1, options.deadlockRetryCapPerWave ?? 5);
+    const levelWaves: WaveDefinition[] = [];
+
+    // Строгая проверка уровня перед первой попыткой:
+    // если хотя бы одна волна пустая, уровень несимулируем (0 попыток).
+    for (let waveIndex = 1; waveIndex <= wavesToSimulate; waveIndex += 1) {
+      const rawWave: WaveDefinition = options.referenceWavesConfig
+        ? getReferenceWaveFromConfig(options.referenceWavesConfig, levelIndex, waveIndex)
+        : getReferenceWave(levelIndex, waveIndex);
+      const wave = rawWave;
+      if (wave.enemies.length === 0) {
+        levelWaves.length = 0;
+        break;
+      }
+      levelWaves.push(wave);
+    }
+
+    const rawUnitsSum = sumEditorUnitsRow(unitsPerLevelFromCfg?.[levelIndex]);
+
+    if (levelWaves.length !== wavesToSimulate) {
+      progressionLevels.push({
+        levelIndex,
+        unitsByEnemyId: (unitsPerLevelFromCfg?.[levelIndex] ?? unitsPerLevel[levelIndex]) as Record<EnemyId, number>,
+        unitsRawSumFromEditor: rawUnitsSum,
+        totalEnemyHpScaled: undefined,
+        totalEnemyThreatScaled: undefined,
+        attemptsTotal: 0,
+        avgRewardPerAttempt: 0,
+        totalRewardSoft: 0,
+        endingSoftBalance: softBalance,
+        weaponUpgradeSoftSpentOnLevel: 0,
+        weaponUpgradeSoftSpentCumulative: lifetimeWeaponUpgradeSoftSpent,
+        dayReached: null,
+        finalWeaponLevels: weaponLevels,
+        passed: false,
+      });
+      continue;
+    }
+
+    const levelEnemyPower = levelWaves.reduce((acc, w) => {
+      const ws = getWaveStats(constants, w);
+      // Сложность уровня: требования к DPS + входящая угроза.
+      return acc + (ws.requiredDps * 0.7 + ws.totalEnemyDps * 0.3);
+    }, 0);
+
+    while (!levelPassed) {
+      if (attemptsTotal >= maxAttemptsPerLevel) break;
+
+      if (energy < energyPerAttempt) {
+        if (energyRegenPerHour <= 0) break;
+        const missing = energyPerAttempt - energy;
+        const waitHours = missing / energyRegenPerHour;
+        elapsedEnergyWaitHours += waitHours;
+        elapsedCalendarHours += waitHours;
+        energy = Math.min(energyCap, energy + waitHours * energyRegenPerHour);
+      }
+
+      if (forecastAttemptsToday >= maxAttemptsPerForecastDay) {
+        forecastCalendarDay += 1;
+        forecastAttemptsToday = 0;
+        elapsedCalendarHours += 24;
+        grantForecastDailyFreeChests();
+        tryBuyDeckSlots();
+      }
+
+      // Покупка ракетниц (если дошли до ур.2 и есть деньги).
+      if (levelIndex >= 2) {
+        const unlock = constants.economy.rocketUnlock;
+        if (unlock?.hydra70Soft != null && !unlockedWeapons.hydra70 && softBalance >= unlock.hydra70Soft) {
+          softBalance -= unlock.hydra70Soft;
+          unlockedWeapons = { ...unlockedWeapons, hydra70: true };
+        }
+        if (unlock?.hellfireSoft != null && !unlockedWeapons.hellfire && softBalance >= unlock.hellfireSoft) {
+          softBalance -= unlock.hellfireSoft;
+          unlockedWeapons = { ...unlockedWeapons, hellfire: true };
+        }
+      }
+
+      attemptsTotal += 1;
+      forecastAttemptsToday += 1;
+      energy = Math.max(0, energy - energyPerAttempt);
+
+      const stateBeforeAttempt = {
+        segmentId: options.segmentId,
+        softBalance,
+        playerLevel: options.playerLevel,
+        weaponLevels,
+        unlockedWeapons,
+        deckSlots,
+        lifetimeWeaponUpgradeSoftSpent,
+        supportCardLevels,
+        supportCardBlueprints,
+      };
+
+      // Pre-upgrade перед попыткой уровня.
+      {
+        const preOutcome: CombatOutcome = {
+          victory: false,
+          stars: 0,
+          rewardSoft: 0,
+        };
+        const nextState = options.upgradePolicy({
+          constants,
+          state: stateBeforeAttempt,
+          outcome: preOutcome,
+          ctx: {
+            segmentId: options.segmentId,
+            levelIndex,
+            waveIndex: 0,
+            wave: { levelIndex, waveIndex: 0, enemies: [] },
+            attemptIndex: attemptsTotal,
+            recordPaidChestOpens,
+          },
+        });
+        softBalance = nextState.softBalance;
+        weaponLevels = nextState.weaponLevels;
+        unlockedWeapons = nextState.unlockedWeapons ?? unlockedWeapons;
+        deckSlots = nextState.deckSlots ?? deckSlots;
+        supportCardLevels = nextState.supportCardLevels;
+        supportCardBlueprints = nextState.supportCardBlueprints;
+        lifetimeWeaponUpgradeSoftSpent = nextState.lifetimeWeaponUpgradeSoftSpent ?? lifetimeWeaponUpgradeSoftSpent;
+      }
+
+      globalAttemptOrdinal += 1;
+      const playerPower = calcPlayerPowerForAttempt(constants, {
+        levelIndex,
+        playerLevel: options.playerLevel,
+        weaponLevels,
+        unlockedWeapons,
+        supportCardLevels,
+        retryPowerMultiplier,
+      });
+      const enemyPower = Math.max(0, levelEnemyPower);
+      attemptsTimeline.push({
+        attemptOrdinal: globalAttemptOrdinal,
+        levelIndex,
+        attemptInLevel: attemptsTotal,
+        forecastDay: forecastCalendarDay,
+        playerPower,
+        enemyPower,
+        powerDelta: playerPower - enemyPower,
+        powerRatio: enemyPower > 0 ? playerPower / enemyPower : 0,
+      });
+
+      let attemptVictory = true;
+      let defeatRewardGrantedInAttempt = false;
+      let attemptReward = 0;
+
+      for (const wave of levelWaves) {
+        const waveIndex = wave.waveIndex;
+
+        const combat = simulateCombat(constants, {
+          loadout: {
+            playerLevel: options.playerLevel,
+            machineGunLevel: weaponLevels.machineGunLevel,
+            hydraLevel: weaponLevels.hydraLevel,
+            hellfireLevel: weaponLevels.hellfireLevel,
+            unlockedWeapons: {
+              machineGun: true,
+              hydra70: unlockedWeapons.hydra70,
+              hellfire: unlockedWeapons.hellfire,
+            },
+            supportCardLevels: filterSupportCardsByDeckSlots(supportCardLevels),
+            combatPowerMultiplier: retryPowerMultiplier,
+          },
+          wave,
+          starRewardPolicy: options.starRewardPolicy,
+        });
+
+        const effectiveRewardSoft = combat.victory
+          ? combat.rewardSoft
+          : (defeatRewardGrantedInAttempt ? 0 : combat.rewardSoft);
+        if (!combat.victory && !defeatRewardGrantedInAttempt) {
+          defeatRewardGrantedInAttempt = true;
+        }
+
+        const outcome: CombatOutcome = {
+          victory: combat.victory,
+          stars: combat.stars,
+          rewardSoft: effectiveRewardSoft,
+        };
+
+        attemptReward = sumRewards(attemptReward, effectiveRewardSoft);
+        rewardTotal = sumRewards(rewardTotal, effectiveRewardSoft);
+        softBalance = sumRewards(softBalance, effectiveRewardSoft);
+
+        const prevState = {
+          segmentId: options.segmentId,
+          softBalance,
+          playerLevel: options.playerLevel,
+          weaponLevels,
+          lifetimeWeaponUpgradeSoftSpent,
+          supportCardLevels,
+          supportCardBlueprints,
+        };
+
+        const nextState = options.upgradePolicy({
+          constants,
+          state: prevState,
+          outcome,
+          ctx: {
+            segmentId: options.segmentId,
+            levelIndex,
+            waveIndex,
+            wave,
+            attemptIndex: attemptsTotal,
+            recordPaidChestOpens,
+          },
+        });
+
+        softBalance = nextState.softBalance;
+        weaponLevels = nextState.weaponLevels;
+        supportCardLevels = nextState.supportCardLevels;
+        supportCardBlueprints = nextState.supportCardBlueprints;
+        lifetimeWeaponUpgradeSoftSpent = nextState.lifetimeWeaponUpgradeSoftSpent ?? lifetimeWeaponUpgradeSoftSpent;
+
+        if (!combat.victory) {
+          attemptVictory = false;
+          break;
+        }
+      }
+
+      if (attemptVictory) {
+        levelPassed = true;
+        break;
+      }
+
+      const stateAfterAttempt = {
+        softBalance,
+        weaponLevels,
+        supportCardLevels,
+        supportCardBlueprints,
+      };
+      const noSoftChange = stateAfterAttempt.softBalance === stateBeforeAttempt.softBalance;
+      const noWeaponChange = sameWeaponLevels(stateAfterAttempt.weaponLevels, stateBeforeAttempt.weaponLevels);
+      const noCardLevelChange = sameNumberRecord(stateAfterAttempt.supportCardLevels, stateBeforeAttempt.supportCardLevels);
+      const noBlueprintChange = sameNumberRecord(stateAfterAttempt.supportCardBlueprints, stateBeforeAttempt.supportCardBlueprints);
+      if (attemptReward <= 0 && noSoftChange && noWeaponChange && noCardLevelChange && noBlueprintChange) {
+        noProgressAttemptsInLevel += 1;
+      } else {
+        noProgressAttemptsInLevel = 0;
+      }
+
+      if (retryPowerGain <= 0 && noProgressAttemptsInLevel >= deadlockRetryCap) break;
+      retryPowerMultiplier *= (1 + retryPowerGain);
+    }
+
+    const passed = levelPassed;
+    const avgRewardPerAttempt = attemptsTotal > 0 ? rewardTotal / attemptsTotal : 0;
+
+    const unitsForTable: Record<EnemyId, number> =
+      levelWaves.length === wavesToSimulate
+        ? aggregateWaveEnemyCounts(levelWaves)
+        : ((unitsPerLevelFromCfg?.[levelIndex] ?? unitsPerLevel[levelIndex]) as Record<EnemyId, number>);
+
+    let totalEnemyHpScaled = 0;
+    let totalEnemyThreatScaled = 0;
+    for (const w of levelWaves) {
+      const ws = getWaveStats(constants, w);
+      totalEnemyHpScaled += ws.totalEnemyHp;
+      totalEnemyThreatScaled += ws.totalEnemyDps;
+    }
+
+    progressionLevels.push({
+      levelIndex,
+      unitsByEnemyId: unitsForTable,
+      unitsRawSumFromEditor: rawUnitsSum,
+      totalEnemyHpScaled,
+      totalEnemyThreatScaled,
+      attemptsTotal,
+      avgRewardPerAttempt,
+      totalRewardSoft: rewardTotal,
+      endingSoftBalance: softBalance,
+      weaponUpgradeSoftSpentOnLevel: lifetimeWeaponUpgradeSoftSpent - weaponSpendAtLevelStart,
+      weaponUpgradeSoftSpentCumulative: lifetimeWeaponUpgradeSoftSpent,
+      dayReached: passed ? forecastCalendarDay : null,
+      finalWeaponLevels: weaponLevels,
+      passed,
+    });
+
+  }
+
+  return {
+    levels: progressionLevels,
+    attemptsTimeline,
+    finalState: {
+      segmentId: options.segmentId,
+      softBalance,
+      playerLevel: options.playerLevel,
+      weaponLevels,
+      lifetimeWeaponUpgradeSoftSpent,
+      supportCardLevels,
+      supportCardBlueprints,
+    },
+    expectedFreeChestOpensById: { ...freeChestOpensById },
+    expectedPaidChestOpensById: { ...paidChestOpensById },
+    progressionElapsedHours: elapsedEnergyWaitHours,
+    progressionElapsedCalendarHours: elapsedCalendarHours,
+    segmentSoftIncomePerDay: segmentSoftPerDay,
+  };
+}
+

@@ -1,0 +1,21 @@
+#,product_id,product_name,product_type,product_category,currency_type,value (base),bonus_currency,price,label,order_index,,CHEST,,,,,,,,,
+GOLD,,,,,,,,,,,,#,product_id,product_name,product_type,product_category,currency_type,chest_rarity,count,price (gold),order_index
+1,-,gold_free_ad,currency,gold,ad_reward,50,-,free,-,0,,1,-,bronze_supply_single,chest,chest,gold,bronze,1x,50,10
+2,gold_pack_900,gold_900,currency,gold,real,900,1 800,$4.99,-,10,,1,-,bronze_supply_kit,chest,chest,gold,bronze,10x,500,11
+3,gold_pack_1900,gold_1900,currency,gold,real,1 900,3 800,$10.99,-,20,,2,-,silver_supply_single,chest,chest,gold,silver,2x,200,20
+4,gold_pack_4300,gold_4300,currency,gold,real,4 300,8 600,$21.99,ЛИДЕР ПРОДАЖ,30,,2,-,silver_supply_kit,chest,chest,gold,silver,20x,2000,21
+5,gold_pack_11000,gold_11000,currency,gold,real,11 000,22 000,$54.99,-,40,,3,-,gold_supply_single,chest,chest,gold,gold,5x,600,30
+6,gold_pack_24000,gold_24000,currency,gold,real,24 000,48 000,$109.99,ЛУЧШАЯ ЦЕНА,50,,3,-,gold_supply_kit,chest,chest,gold,gold,50x,6000,31
+CASH,,,,,,,,,,,,VIP Subscription,,,,,,,,,
+1,-,cash_free_ad,currency,bucks,ad_reward,1 000,-,free,-,0,,#,product_id,product_name,product_type,product_category,currency_type,price,trial_days,price,order_index
+2,cash_pack_16000,cash_16000,currency,bucks,real,16 000,32 000,$4.99,-,10,,1,vip_club_weekly,vip_weekly,subscription,vip,real,$X / week,3,,1
+3,cash_pack_35000,cash_35000,currency,bucks,real,35 000,70 000,$10.99,-,20,,,,,,,,,,,
+4,cash_pack_80000,cash_80000,currency,bucks,real,80 000,160 000,$21.99,ЛИДЕР ПРОДАЖ,30,,,,,,,,,,,
+5,cash_pack_210000,cash_210000,currency,bucks,real,210 000,420 000,$54.99,,40,,,,,,,,,,,
+6,cash_pack_450000,cash_450000,currency,bucks,real,450 000,900 000,$109.99,ЛУЧШАЯ ЦЕНА,50,,,,,,,,,,,
+CASH PACK POPUP,,,,,,,,,,,,,,,,,,,,,
+2,cash_popup_pack_16000,cash_16000,currency,bucks,real,16 000,32 000,$4.99,-,10,,,,,,,,,,,
+3,cash_popup_pack_35000,cash_35000,currency,bucks,real,35 000,70 000,$10.99,-,20,,,,,,,,,,,
+6,cash_popup_pack_450000,cash_450000,currency,bucks,real,450 000,900 000,$109.99,-,50,,,,,,,,,,,
+OFFERS,,,,,,,,,,,,,,,,,,,,,
+1,offer_starter_pack,starter_pack,offer,offer,real,1 000 gold,12 000 bucks,$21.99,-72%,1,,,,,,,,,,,

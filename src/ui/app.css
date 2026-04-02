@@ -1,0 +1,199 @@
+/* Базовые стили для симулятора */
+.root {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  color: #e2e8f0;
+  background: radial-gradient(circle at top, #0f172a 0, #020617 40%, #020617 100%);
+  min-height: 100vh;
+}
+
+.root h2 {
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: #e5e7eb;
+}
+
+.root h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #e5e7eb;
+}
+
+.root h4 {
+  color: #e5e7eb;
+}
+
+.root p {
+  color: #9ca3af;
+}
+
+/* Липкая шапка: заголовок, сохранение, табы — одним блоком */
+.root .app-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  margin: -16px -16px 16px -16px;
+  padding: 12px 16px 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(2, 6, 23, 0.98) 0%,
+    rgba(15, 23, 42, 0.96) 55%,
+    rgba(15, 23, 42, 0.92) 100%
+  );
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+
+.root .app-sticky-header__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.root .app-sticky-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.root .app-sticky-header__unsaved {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fbbf24;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.1);
+  white-space: nowrap;
+}
+
+/* Верхняя панель табов (внутри липкой шапки) */
+.root .app-sticky-header nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 6px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(to right, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88));
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.65);
+}
+
+.root nav button {
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease,
+    box-shadow 0.18s ease;
+}
+
+.root nav button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.7);
+}
+
+/* Карточки секций */
+.root section {
+  scroll-margin-top: 120px;
+  background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.85));
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow:
+    0 20px 50px rgba(15, 23, 42, 0.85),
+    0 0 0 1px rgba(15, 23, 42, 0.8);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.root section table {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.root section th {
+  background: linear-gradient(to right, #0f172a, #020617);
+  color: #e5e7eb;
+}
+
+.root section td {
+  color: #cbd5f5;
+}
+
+/* Поля ввода */
+.root input[type="number"],
+.root input[type="text"],
+.root select,
+.root textarea {
+  width: 5rem;
+  padding: 4px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.7);
+  color: #e5e7eb;
+  font-size: 13px;
+}
+
+.root textarea {
+  width: 100%;
+}
+
+.root input::placeholder,
+.root textarea::placeholder {
+  color: #6b7280;
+}
+
+.root input:focus,
+.root select:focus,
+.root textarea:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow:
+    0 0 0 1px #38bdf8,
+    0 0 0 6px rgba(56, 189, 248, 0.2);
+}
+
+.root button {
+  cursor: pointer;
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.55);
+  border-radius: 8px;
+}
+
+.root button:hover {
+  opacity: 0.95;
+}
+
+.root label,
+.root span,
+.root div,
+.root strong {
+  color: inherit;
+}
+
+/* Подсказки */
+.root [title] {
+  cursor: help;
+}
+
+/* Графики */
+.root .recharts-default-tooltip {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(148, 163, 184, 0.6) !important;
+}
+
+.root .recharts-cartesian-grid-horizontal line,
+.root .recharts-cartesian-grid-vertical line {
+  stroke: rgba(148, 163, 184, 0.3);
+}

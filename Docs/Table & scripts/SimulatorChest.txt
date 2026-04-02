@@ -1,0 +1,190 @@
+function calculateChests() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var dataSheet = ss.getSheetByName("Данные");
+  var controlSheet = ss.getSheetByName("Управление");
+  var resultSheet = ss.getSheetByName("Результаты");
+
+  if (!dataSheet || !controlSheet || !resultSheet) {
+    Browser.msgBox("Ошибка", "Не найдены листы 'Данные', 'Управление' или 'Результаты'.", Browser.Buttons.OK);
+    return;
+  }
+
+  // ========== 1. Чтение редкостей (A3:B...) ==========
+  var rarityLastRow = dataSheet.getLastRow();
+  var rarityData = dataSheet.getRange(3, 1, rarityLastRow - 2, 2).getValues();
+  var rarityMap = {};      // название редкости -> вес
+  var rarityOrder = [];    // порядок редкостей (для заголовков сундуков)
+  rarityData.forEach(function(row) {
+    var name = row[0] ? row[0].toString().trim() : "";
+    var weight = parseFloat(row[1]);
+    if (name && !isNaN(weight) && weight > 0) {
+      rarityMap[name] = weight;
+      rarityOrder.push(name);
+    }
+  });
+
+  if (rarityOrder.length === 0) {
+    Browser.msgBox("Ошибка", "Не найдено ни одной редкости в столбцах A–B.", Browser.Buttons.OK);
+    return;
+  }
+
+  // ========== 2. Чтение предметов (D3:G...) ==========
+  var itemsLastRow = dataSheet.getLastRow();
+  var itemsData = dataSheet.getRange(3, 4, itemsLastRow - 2, 4).getValues(); // D:G
+  var items = [];
+  itemsData.forEach(function(row) {
+    var id = row[0];
+    var name = row[1] ? row[1].toString().trim() : "";
+    var baseWeight = parseFloat(row[2]);
+    var rarity = row[3] ? row[3].toString().trim() : "";
+    if (id && name && !isNaN(baseWeight) && baseWeight > 0 && rarity && rarityMap.hasOwnProperty(rarity)) {
+      items.push({
+        id: id,
+        name: name,
+        baseWeight: baseWeight,
+        rarity: rarity
+      });
+    }
+  });
+
+  if (items.length === 0) {
+    Browser.msgBox("Ошибка", "Нет предметов для расчёта. Проверьте столбцы D–G.", Browser.Buttons.OK);
+    return;
+  }
+
+  // ========== 3. Чтение сундуков (I3:P...) ==========
+  var chestsLastRow = dataSheet.getLastRow();
+  // Теперь 8 столбцов: I – тип, J – Обычный, K – Необычный, L – Редкий, M – Эпический, N – Легендарный, O – цена, P – предметов за сундук
+  var chestsData = dataSheet.getRange(3, 9, chestsLastRow - 2, 8).getValues(); // I:P
+  var chests = [];
+  // Заголовки из строки 2 для определения соответствия редкостей
+  var headerRow = dataSheet.getRange(2, 9, 1, 8).getValues()[0]; // I2:P2
+  // headerRow[0] = "Тип сундука", headerRow[1] = "Обычный", headerRow[2] = "Необычный", headerRow[3] = "Редкий", headerRow[4] = "Эпический", headerRow[5] = "Легендарный", headerRow[6] = "Цена", headerRow[7] = "Предметов за сундук"
+
+  chestsData.forEach(function(row) {
+    var type = row[0] ? row[0].toString().trim() : "";
+    if (!type) return;
+    var multipliers = {};
+    // Заполняем коэффициенты для всех редкостей, которые есть в заголовках (индексы 1..5)
+    for (var i = 1; i <= 5; i++) {
+      var rarityName = headerRow[i] ? headerRow[i].toString().trim() : "";
+      if (rarityName) {
+        var mult = parseFloat(row[i]);
+        if (!isNaN(mult)) multipliers[rarityName] = mult;
+      }
+    }
+    var price = parseFloat(row[6]); // цена (столбец O)
+    if (isNaN(price)) price = 0;
+    var itemsPerChest = parseInt(row[7]); // предметов за сундук (столбец P)
+    if (isNaN(itemsPerChest) || itemsPerChest < 1) itemsPerChest = 1;
+
+    chests.push({
+      type: type,
+      multipliers: multipliers,
+      price: price,
+      itemsPerChest: itemsPerChest
+    });
+  });
+
+  if (chests.length === 0) {
+    Browser.msgBox("Ошибка", "Нет данных о сундуках. Проверьте столбцы I–P.", Browser.Buttons.OK);
+    return;
+  }
+
+  // ========== 4. Чтение выбранного сундука и количества из листа Управление ==========
+  var selectedTypeCell = controlSheet.getRange(2, 3); // C2
+  var selectedType = selectedTypeCell.getValue().toString().trim();
+  var quantityCell = controlSheet.getRange(4, 3); // C4
+  var quantity = parseInt(quantityCell.getValue());
+  if (isNaN(quantity) || quantity < 1) quantity = 1;
+
+  // Находим выбранный сундук
+  var selectedChest = chests.find(c => c.type === selectedType);
+  if (!selectedChest) {
+    // Если не найден, берём первый и обновляем ячейку
+    selectedChest = chests[0];
+    selectedTypeCell.setValue(selectedChest.type);
+  }
+
+  // ========== 5. Расчёт итоговых весов ==========
+  var itemResults = [];
+  var totalWeight = 0;
+  items.forEach(function(item) {
+    var rarityWeight = rarityMap[item.rarity] || 1;
+    var chestMult = selectedChest.multipliers[item.rarity] || 1;
+    var finalWeight = item.baseWeight * rarityWeight * chestMult;
+    itemResults.push({
+      name: item.name,
+      finalWeight: finalWeight
+    });
+    totalWeight += finalWeight;
+  });
+
+  if (totalWeight <= 0) {
+    Browser.msgBox("Ошибка", "Суммарный итоговый вес равен нулю. Проверьте веса предметов и коэффициенты.", Browser.Buttons.OK);
+    return;
+  }
+
+  // ========== 6. Вероятности и ожидаемое количество ==========
+  var totalRolls = quantity * selectedChest.itemsPerChest;
+  var output = [];
+  itemResults.forEach(function(res) {
+    var prob = res.finalWeight / totalWeight;
+    var expected = prob * totalRolls;
+    output.push({
+      name: res.name,
+      finalWeight: res.finalWeight,
+      prob: prob,
+      expected: expected,
+      dropped: 0
+    });
+  });
+
+  // ========== 7. Симуляция массового открытия ==========
+  var cumWeights = [];
+  var cum = 0;
+  itemResults.forEach(function(res) {
+    cum += res.finalWeight;
+    cumWeights.push(cum);
+  });
+
+  for (var roll = 0; roll < totalRolls; roll++) {
+    var r = Math.random() * totalWeight;
+    for (var j = 0; j < cumWeights.length; j++) {
+      if (r < cumWeights[j]) {
+        output[j].dropped++;
+        break;
+      }
+    }
+  }
+
+  // ========== 8. Запись в лист Результаты ==========
+  var lastRow = resultSheet.getLastRow();
+  if (lastRow >= 4) {
+    resultSheet.getRange(4, 1, lastRow - 3, 5).clearContent();
+  }
+
+  var outputRows = [];
+  output.forEach(function(row) {
+    outputRows.push([
+      row.name,
+      row.finalWeight,
+      row.prob,
+      row.expected,
+      row.dropped
+    ]);
+  });
+
+  if (outputRows.length > 0) {
+    resultSheet.getRange(4, 1, outputRows.length, 5).setValues(outputRows);
+    resultSheet.getRange(4, 3, outputRows.length, 1).setNumberFormat("0.00%");
+    resultSheet.getRange(4, 4, outputRows.length, 1).setNumberFormat("0.00");
+  }
+
+  // Обновляем общее количество полученных предметов в H6
+  var totalDropped = output.reduce(function(acc, row) { return acc + row.dropped; }, 0);
+  resultSheet.getRange(6, 8).setValue(totalDropped);
+
+  SpreadsheetApp.flush();
+  Browser.msgBox("Расчёт завершён! Результаты обновлены.");
+}

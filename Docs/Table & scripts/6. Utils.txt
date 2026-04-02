@@ -1,0 +1,510 @@
+var Formatting = {};
+
+Formatting.setupFormatting = function(spreadsheet) {
+  var sheets = spreadsheet.getSheets();
+  sheets.forEach(function(sheet) {
+    if (sheet.getLastRow() > 0) {
+      var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn());
+      headers.setBackground('#1a73e8').setFontWeight('bold').setFontColor('#FFFFFF');
+      
+      var secondRow = sheet.getRange(2, 1, 1, sheet.getLastColumn());
+      if (sheet.getRange(2, 1).getValue() !== '') {
+        secondRow.setBackground('#e8f0fe').setFontWeight('bold');
+      }
+      
+      if (sheet.getName() === 'Constants') {
+        sheet.setColumnWidth(1, 300);
+        sheet.setColumnWidth(2, 120);
+        sheet.setColumnWidth(3, 400);
+      }
+    }
+    sheet.autoResizeColumns(1, sheet.getLastColumn());
+  });
+};
+
+var Buttons = {};
+
+Buttons.addButtonsToSheet = function() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var combatSheet = spreadsheet.getSheetByName('Combat_Simulator');
+  if (!combatSheet) return;
+  
+  combatSheet.getRange('E3:F11').setValues([
+    ['🚀 Запустить симуляцию', ''],
+    ['⚡ Улучшить пулемёт', ''],
+    ['💥 Улучшить Hydra-70', ''],
+    ['🎯 Улучшить Hellfire', ''],
+    ['❤️ Улучшить вертолёт', ''],
+    ['🃏 Купить ячейку карточки', ''],
+    ['📊 Обновить формулы', ''],
+    ['📈 Показать статистику', ''],
+    ['🛒 Показать магазин', '']
+  ]);
+};
+
+var DataRefresh = {};
+
+DataRefresh.fillConstants = function() {
+  try {
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    var constantsSheet = spreadsheet.getSheetByName('Constants');
+    
+    if (!constantsSheet) {
+      SpreadsheetApp.getUi().alert('❌ Лист Constants не найден!');
+      return;
+    }
+    
+    var allConstants = [
+      ['Базовое здоровье союзника', 1000, 'Стартовое ХП союзного юнита'],
+      ['Базовый урон пулемёта', 15, 'Урон за пулю пулемёта'],
+      ['Базовый урон ракет Hydra-70', 80, 'Урон за ракету Hydra-70'],
+      ['Базовый урон ракет Hellfire', 150, 'Урон за самонаводящуюся ракету Hellfire'],
+      ['Множитель роста урона оружия', 1.2, 'Рост урона за уровень оружия'],
+      ['Множитель стоимости улучшения', 1.8, 'Рост стоимости улучшения за уровень'],
+      ['Базовая награда за миссию', 200, 'Монеты за первую миссию'],
+      ['Множитель сложности миссии', 1.3, 'Рост сложности за миссию'],
+      ['Время волны (сек)', 45, 'Длительность одной волны'],
+      ['Максимальный уровень оружия', 10, 'Максимальный уровень прокачки оружия'],
+      ['Штраф за проигрыш (%)', 15, '% награды отнимаемый при поражении'],
+      ['Множитель рекламы', 2, 'Во сколько раз умножается награда за рекламу'],
+      ['Миссий на уровень', 6, 'Количество миссий на каждом уровне'],
+      ['Активных миссий одновременно', 3, 'Одновременно активных миссий'],
+      ['Квестов на уровень', 5, 'Количество квестов на уровне'],
+      ['Награда за квест', 25, 'Монет за выполнение квеста'],
+      ['Стоимость обычной карточки', 500, 'Цена карточки улучшения'],
+      ['Бонус обычной карточки (%)', 20, '% бонуса от обычной карточки'],
+      ['Слотов карт за уровень', 1, 'Слотов открывается каждые N ур.'],
+      ['Начальная скорость стрельбы пулемёта', 600, 'Выстрелов/мин пулемёта'],
+      ['Рост скорости стрельбы пулемёта', 1.05, 'Множитель скорости за уровень'],
+      ['Начальная скорость стрельбы ракет Hydra', 60, 'Выстрелов/мин ракет Hydra-70'],
+      ['Рост скорости ракет Hydra', 1.05, 'Множитель скорости за уровень'],
+      ['Начальная скорость Hellfire ракет', 30, 'Выстрелов/мин Hellfire'],
+      ['Рост скорости Hellfire', 1.05, 'Множитель скорости за уровень'],
+      ['Базовый боезапас пулемёта', 200, 'Патронов на уровне'],
+      ['Рост боезапаса пулемёта', 1.1, 'Множитель боезапаса за уровень'],
+      ['Базовый боезапас Hydra ракет', 12, 'Ракет на уровне'],
+      ['Рост боезапаса Hydra', 1.1, 'Множитель боезапаса за уровень'],
+      ['Базовый боезапас Hellfire', 6, 'Самонаводящихся ракет на уровне'],
+      ['Рост боезапаса Hellfire', 1.1, 'Множитель боезапаса за уровень'],
+      ['Базовое здоровье пехотинца', 20, 'Здоровье пехотинца'],
+      ['Базовый урон пехотинца', 5, 'Урон пехотинца'],
+      ['Дальность стрельбы пехотинца', 50, 'Дальность стрельбы пехотинца'],
+      ['Скорость бега пехотинца', 70, 'Скорость передвижения пехотинца'],
+      ['Базовое здоровье джипа', 80, 'Здоровье джипа'],
+      ['Базовый урон джипа', 15, 'Урон джипа'],
+      ['Дальность стрельбы джипа', 60, 'Дальность стрельбы джипа'],
+      ['Скорость джипа', 90, 'Скорость джипа'],
+      ['Базовое здоровье БТР', 150, 'Здоровье БТР'],
+      ['Базовый урон БТР', 25, 'Урон БТР'],
+      ['Дальность стрельбы БТР', 70, 'Дальность стрельбы БТР'],
+      ['Скорость БТР', 50, 'Скорость БТР'],
+      ['Базовое здоровье танка', 300, 'Здоровье танка'],
+      ['Базовый урон танка', 40, 'Урон танка'],
+      ['Дальность стрельбы танка', 80, 'Дальность стрельбы танка'],
+      ['Скорость танка', 35, 'Скорость танка'],
+      ['Базовое здоровье вражеского вертолёта', 120, 'Здоровье вражеского вертолёта'],
+      ['Базовый урон вражеского вертолёта', 35, 'Урон вражеского вертолёта'],
+      ['Дальность стрельбы вертолёта', 100, 'Дальность стрельбы вертолёта'],
+      ['Скорость вертолёта', 80, 'Скорость вертолёта'],
+      ['Базовое здоровье самолёта', 250, 'Здоровье самолёта'],
+      ['Базовый урон самолёта', 45, 'Урон самолёта'],
+      ['Дальность стрельбы самолёта', 120, 'Дальность стрельбы самолёта'],
+      ['Скорость самолёта', 120, 'Скорость самолёта'],
+      ['Базовое здоровье тяжелого пехотинца', 150, 'Здоровье тяжелого пехотинца'],
+      ['Базовый урон тяжелого пехотинца', 20, 'Урон тяжелого пехотинца'],
+      ['Базовая награда пехотинца', 10, 'Награда за убийство пехотинца'],
+      ['Базовая награда джипа', 30, 'Награда за убийство джипа'],
+      ['Базовая награда БТР', 50, 'Награда за убийство БТР'],
+      ['Базовая награда танка', 100, 'Награда за убийство танка'],
+      ['Базовая награда вражеского вертолёта', 80, 'Награда за убийство вражеского вертолёта'],
+      ['Базовая награда самолёта', 120, 'Награда за убийство самолёта'],
+      ['Базовая награда тяжелого пехотинца', 40, 'Награда за тяжелого пехотинца'],
+      ['Базовые звёзды за победу', 3, 'Максимум звёзд за уровень'],
+      ['Максимальный уровень игрока', 50, 'Максимальный уровень игрока'],
+      ['Количество уровней игры', 7, 'Всего уровней в игре'],
+      ['Количество типов врагов', 7, 'Всего типов вражеских юнитов'],
+      ['Базовый множитель награды за уровень', 1.1, 'Рост награды за уровень'],
+      ['Стоимость сундука обычного', 1000, 'Цена обычного сундука'],
+      ['Стоимость сундука редкого', 2500, 'Цена редкого сундука'],
+      ['Стоимость сундука эпического', 5000, 'Цена эпического сундука'],
+      ['Стоимость сундука легендарного', 10000, 'Цена легендарного сундука'],
+      ['Шанс выпадения обычной карточки (%)', 70, 'Шанс выпадения обычной карточки'],
+      ['Шанс выпадения редкой карточки (%)', 25, 'Шанс выпадения редкой карточки'],
+      ['Шанс выпадения эпической карточки (%)', 4.5, 'Шанс выпадения эпической карточки'],
+      ['Шанс выпадения легендарной карточки (%)', 0.5, 'Шанс выпадения легендарной карточки'],
+      ['Количество карточек в обычном сундуке', 3, 'Карточек в обычном сундуке'],
+      ['Количество карточек в редком сундуке', 5, 'Карточек в редком сундуке'],
+      ['Количество карточек в эпическом сундуке', 8, 'Карточек в эпическом сундуке'],
+      ['Количество карточек в легендарном сундуке', 12, 'Карточек в легендарном сундуке'],
+      ['Стоимость ячейки карточки', 200, 'Цена ячейки для карточки'],
+      ['Максимальное количество ячеек карточек', 24, 'Максимум ячеек для карточек'],
+      ['Модификатор урона пулемёта к пехотинцу', 1.0, 'Пулемёт vs пехотинец'],
+      ['Модификатор урона пулемёта к джипу', 0.8, 'Пулемёт vs джип'],
+      ['Модификатор урона пулемёта к БТР', 0.5, 'Пулемёт vs БТР'],
+      ['Модификатор урона пулемёта к танку', 0.3, 'Пулемёт vs танк'],
+      ['Модификатор урона пулемёта к вертолёту', 0.7, 'Пулемёт vs вертолёт'],
+      ['Модификатор урона пулемёта к самолёту', 0.6, 'Пулемёт vs самолёт'],
+      ['Модификатор урона пулемёта к тяж.пехоте', 0.9, 'Пулемёт vs тяж.пехота'],
+      ['Модификатор урона Hydra к пехотинцу', 1.5, 'Hydra vs пехотинец'],
+      ['Модификатор урона Hydra к джипу', 1.2, 'Hydra vs джип'],
+      ['Модификатор урона Hydra к БТР', 1.0, 'Hydra vs БТР'],
+      ['Модификатор урона Hydra к танку', 0.8, 'Hydra vs танк'],
+      ['Модификатор урона Hydra к вертолёту', 1.3, 'Hydra vs вертолёт'],
+      ['Модификатор урона Hydra к самолёту', 1.1, 'Hydra vs самолёт'],
+      ['Модификатор урона Hydra к тяж.пехоте', 1.4, 'Hydra vs тяж.пехота'],
+      ['Модификатор урона Hellfire к пехотинцу', 2.0, 'Hellfire vs пехотинец'],
+      ['Модификатор урона Hellfire к джипу', 1.8, 'Hellfire vs джип'],
+      ['Модификатор урона Hellfire к БТР', 1.5, 'Hellfire vs БТР'],
+      ['Модификатор урона Hellfire к танку', 1.2, 'Hellfire vs танк'],
+      ['Модификатор урона Hellfire к вертолёту', 1.7, 'Hellfire vs вертолёт'],
+      ['Модификатор урона Hellfire к самолёту', 1.6, 'Hellfire vs самолёт'],
+      ['Модификатор урона Hellfire к тяж.пехоте', 1.9, 'Hellfire vs тяж.пехота'],
+      ['Максимальная дистанция стрельбы врага', 100, 'Макс. дистанция стрельбы врагов'],
+      ['Минимальная дистанция стрельбы врага', 20, 'Мин. дистанция стрельбы врагов'],
+      ['Базовое здоровье союзного пехотинца', 100, 'Здоровье союзного пехотинца'],
+      ['Базовый урон союзного пехотинца', 10, 'Урон союзного пехотинца'],
+      ['Стоимость VIP подписки (7 дней)', 500, 'Цена VIP подписки'],
+      ['Стоимость Battle Pass', 1000, 'Цена Battle Pass'],
+      ['Награда за Battle Pass уровень', 150, 'Награда за уровень Battle Pass'],
+      ['Количество уровней Battle Pass', 30, 'Уровней в Battle Pass']
+    ];
+    
+    var existingData = constantsSheet.getRange('A1:C' + constantsSheet.getLastRow()).getValues();
+    var existingConstants = {};
+    
+    for (var i = 1; i < existingData.length; i++) {
+      var param = existingData[i][0];
+      if (param) {
+        existingConstants[param] = i + 1;
+      }
+    }
+    
+    var rowsToUpdate = [];
+    
+    for (var i = 0; i < allConstants.length; i++) {
+      var param = allConstants[i][0];
+      var value = allConstants[i][1];
+      var desc = allConstants[i][2];
+      
+      if (existingConstants[param]) {
+        var row = existingConstants[param];
+        constantsSheet.getRange(row, 2).setValue(value);
+        constantsSheet.getRange(row, 3).setValue(desc);
+      } else {
+        rowsToUpdate.push([param, value, desc]);
+      }
+    }
+    
+    if (rowsToUpdate.length > 0) {
+      var startRow = constantsSheet.getLastRow() + 1;
+      constantsSheet.getRange(startRow, 1, rowsToUpdate.length, 3).setValues(rowsToUpdate);
+    }
+    
+    SpreadsheetApp.getUi().alert('✅ Константы успешно заполнены!');
+    return true;
+  } catch (error) {
+    SpreadsheetApp.getUi().alert('❌ Ошибка при заполнении констант: ' + error.toString());
+    return false;
+  }
+};
+
+DataRefresh.refreshAllData = function() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  
+  try {
+    spreadsheet.toast('Начинаю обновление данных...', 'Обновление', 3);
+    
+    this.fillConstants();
+    
+    this.refreshWeaponsFormulas();
+    this.refreshEnemiesFormulas();
+    this.refreshWavesFormulas();
+    this.refreshCombatSimulatorFormulas();
+    this.refreshProgressionFormulas();
+    this.refreshCardsFormulas();
+    this.refreshMissionsFormulas();
+    this.refreshQuestsFormulas();
+    this.refreshStatisticsFormulas();
+    this.refreshChestsFormulas();
+    this.refreshShopFormulas();
+    this.refreshBattlePassFormulas();
+    this.refreshWeaponModifiersFormulas();
+    
+    spreadsheet.toast('Все данные успешно обновлены!', 'Готово', 5);
+    SpreadsheetApp.getUi().alert('✅ Все формулы успешно обновлены на всех листах!');
+  } catch (error) {
+    SpreadsheetApp.getUi().alert('❌ Ошибка при обновлении: ' + error.toString());
+  }
+};
+
+DataRefresh.refreshWeaponsFormulas = function() {
+  var weaponsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Weapons');
+  if (!weaponsSheet) return;
+  
+  var maxLevel = 10;
+  
+  for (var level = 1; level <= maxLevel; level++) {
+    var row = level + 1;
+    
+    weaponsSheet.getRange('C' + row).setFormula('=Constants!$B$3*POWER(Constants!$B$6,' + (level-1) + ')');
+    weaponsSheet.getRange('D' + row).setFormula('=Constants!$B$21*POWER(Constants!$B$22,' + (level-1) + ')');
+    weaponsSheet.getRange('E' + row).setFormula('=C' + row + '*D' + row + '/60');
+    weaponsSheet.getRange('F' + row).setFormula('=Constants!$B$27*POWER(Constants!$B$28,' + (level-1) + ')');
+    weaponsSheet.getRange('G' + row).setFormula('=Constants!$B$7*300*POWER(Constants!$B$7,' + (level-1) + ')');
+  }
+  
+  var rocketStartRow = maxLevel + 3;
+  for (var level = 1; level <= maxLevel; level++) {
+    var row = rocketStartRow + level - 1;
+    
+    weaponsSheet.getRange('C' + row).setFormula('=Constants!$B$4*POWER(Constants!$B$6,' + (level-1) + ')');
+    weaponsSheet.getRange('D' + row).setFormula('=Constants!$B$23*POWER(Constants!$B$24,' + (level-1) + ')');
+    weaponsSheet.getRange('E' + row).setFormula('=C' + row + '*D' + row + '/60');
+    weaponsSheet.getRange('F' + row).setFormula('=Constants!$B$29*POWER(Constants!$B$30,' + (level-1) + ')');
+    weaponsSheet.getRange('G' + row).setFormula('=Constants!$B$7*500*POWER(Constants!$B$7,' + (level-1) + ')');
+  }
+  
+  var guidedStartRow = maxLevel * 2 + 4;
+  for (var level = 1; level <= maxLevel; level++) {
+    var row = guidedStartRow + level - 1;
+    
+    weaponsSheet.getRange('C' + row).setFormula('=Constants!$B$5*POWER(Constants!$B$6,' + (level-1) + ')');
+    weaponsSheet.getRange('D' + row).setFormula('=Constants!$B$25*POWER(Constants!$B$26,' + (level-1) + ')');
+    weaponsSheet.getRange('E' + row).setFormula('=C' + row + '*D' + row + '/60');
+    weaponsSheet.getRange('F' + row).setFormula('=Constants!$B$31*POWER(Constants!$B$32,' + (level-1) + ')');
+    weaponsSheet.getRange('G' + row).setFormula('=Constants!$B$7*800*POWER(Constants!$B$7,' + (level-1) + ')');
+  }
+};
+
+DataRefresh.refreshEnemiesFormulas = function() {
+  var enemiesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Enemies');
+  if (!enemiesSheet) return;
+  
+  enemiesSheet.getRange('B3').setFormula('=Constants!$B$33');
+  enemiesSheet.getRange('C3').setFormula('=Constants!$B$34');
+  enemiesSheet.getRange('D3').setFormula('=Constants!$B$35');
+  enemiesSheet.getRange('E3').setFormula('=Constants!$B$36');
+  enemiesSheet.getRange('G3').setFormula('=Constants!$B$57');
+  
+  enemiesSheet.getRange('B4').setFormula('=Constants!$B$37');
+  enemiesSheet.getRange('C4').setFormula('=Constants!$B$38');
+  enemiesSheet.getRange('D4').setFormula('=Constants!$B$39');
+  enemiesSheet.getRange('E4').setFormula('=Constants!$B$40');
+  enemiesSheet.getRange('G4').setFormula('=Constants!$B$58');
+  
+  enemiesSheet.getRange('B5').setFormula('=Constants!$B$41');
+  enemiesSheet.getRange('C5').setFormula('=Constants!$B$42');
+  enemiesSheet.getRange('D5').setFormula('=Constants!$B$43');
+  enemiesSheet.getRange('E5').setFormula('=Constants!$B$44');
+  enemiesSheet.getRange('G5').setFormula('=Constants!$B$59');
+  
+  enemiesSheet.getRange('B6').setFormula('=Constants!$B$45');
+  enemiesSheet.getRange('C6').setFormula('=Constants!$B$46');
+  enemiesSheet.getRange('D6').setFormula('=Constants!$B$47');
+  enemiesSheet.getRange('E6').setFormula('=Constants!$B$48');
+  enemiesSheet.getRange('G6').setFormula('=Constants!$B$60');
+  
+  enemiesSheet.getRange('B7').setFormula('=Constants!$B$49');
+  enemiesSheet.getRange('C7').setFormula('=Constants!$B$50');
+  enemiesSheet.getRange('D7').setFormula('=Constants!$B$51');
+  enemiesSheet.getRange('E7').setFormula('=Constants!$B$52');
+  enemiesSheet.getRange('G7').setFormula('=Constants!$B$61');
+  
+  enemiesSheet.getRange('B8').setFormula('=Constants!$B$53');
+  enemiesSheet.getRange('C8').setFormula('=Constants!$B$54');
+  enemiesSheet.getRange('D8').setFormula('=Constants!$B$55');
+  enemiesSheet.getRange('E8').setFormula('=Constants!$B$56');
+  enemiesSheet.getRange('G8').setFormula('=Constants!$B$62');
+  
+  enemiesSheet.getRange('B9').setFormula('=Constants!$B$63');
+  enemiesSheet.getRange('C9').setFormula('=Constants!$B$64');
+  enemiesSheet.getRange('G9').setFormula('=Constants!$B$63');
+};
+
+DataRefresh.refreshWavesFormulas = function() {
+  var wavesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Waves');
+  if (!wavesSheet) return;
+  
+  for (var row = 3; row <= 16; row++) {
+    wavesSheet.getRange('J' + row).setFormula('=C' + row + '*Constants!$B$33+D' + row + '*Constants!$B$37+E' + row + '*Constants!$B$41+F' + row + '*Constants!$B$45+G' + row + '*Constants!$B$49+H' + row + '*Constants!$B$53+I' + row + '*Constants!$B$63');
+    wavesSheet.getRange('K' + row).setFormula('=C' + row + '*Constants!$B$34+D' + row + '*Constants!$B$38+E' + row + '*Constants!$B$42+F' + row + '*Constants!$B$46+G' + row + '*Constants!$B$50+H' + row + '*Constants!$B$54+I' + row + '*Constants!$B$64');
+    
+    if (row === 3) {
+      wavesSheet.getRange('L' + row).setFormula('=Constants!$B$8');
+    } else {
+      wavesSheet.getRange('L' + row).setFormula('=L' + (row-1) + '*Constants!$B$9');
+    }
+    
+    wavesSheet.getRange('N' + row).setFormula('=J' + row + '/45');
+    wavesSheet.getRange('O' + row).setFormula('=K' + row + '/45');
+  }
+};
+
+DataRefresh.refreshCombatSimulatorFormulas = function() {
+  var combatSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Combat_Simulator');
+  if (!combatSheet) return;
+  
+  combatSheet.getRange('B8').setFormula('=IFERROR(VLOOKUP(B5, Weapons!$B$2:$F$11, 4, FALSE), 0)');
+  combatSheet.getRange('B9').setFormula('=IFERROR(VLOOKUP(B6, Weapons!$B$13:$F$22, 4, FALSE), 0)');
+  combatSheet.getRange('B10').setFormula('=IFERROR(VLOOKUP(B7, Weapons!$B$24:$F$33, 4, FALSE), 0)');
+  combatSheet.getRange('B11').setFormula('=SUM(B8:B10)');
+  combatSheet.getRange('B12').setFormula('=Player_Profile!$B$4');
+  combatSheet.getRange('B13').setFormula('=(B3-1)*2+B4+1');
+  combatSheet.getRange('B14').setFormula('=IFERROR(INDEX(Waves!$J$3:$J$16, B13), 0)');
+  combatSheet.getRange('B15').setFormula('=IFERROR(INDEX(Waves!$K$3:$K$16, B13), 0)');
+  combatSheet.getRange('B16').setFormula('=IF(B11>0, B14/B11, 999)');
+  combatSheet.getRange('B17').setFormula('=IFERROR(INDEX(Waves!$L$3:$L$16, B13), 0)');
+  combatSheet.getRange('B19').setFormula('=B17*B18');
+  combatSheet.getRange('B20').setFormula('=IF(OR(B15>B12, B16>45), "ПОРАЖЕНИЕ", "ПОБЕДА")');
+  combatSheet.getRange('B21').setFormula('=IF(B20="ПОБЕДА", B19, B19*(1-Constants!$B$12/100))');
+  combatSheet.getRange('B22').setFormula('=IF(B20="ПОБЕДА", TRUE, FALSE)');
+  combatSheet.getRange('B23').setFormula('=IF(B20="ПОБЕДА", IF(B16<=15, 3, IF(B16<=30, 2, 1)), 0)');
+};
+
+DataRefresh.refreshProgressionFormulas = function() {
+  var progressionSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Progression_Calculator');
+  if (!progressionSheet) return;
+};
+
+DataRefresh.refreshCardsFormulas = function() {
+  var cardsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Cards');
+  if (!cardsSheet) return;
+  
+  cardsSheet.getRange('C3').setFormula('=Constants!$B$19');
+  cardsSheet.getRange('D3').setFormula('=Constants!$B$18');
+  
+  cardsSheet.getRange('C4').setFormula('=Constants!$B$19');
+  cardsSheet.getRange('D4').setFormula('=Constants!$B$18');
+  
+  cardsSheet.getRange('C5').setFormula('=Constants!$B$19');
+  cardsSheet.getRange('D5').setFormula('=Constants!$B$18');
+  
+  cardsSheet.getRange('C6').setFormula('=Constants!$B$19*1.5');
+  cardsSheet.getRange('D6').setFormula('=Constants!$B$18*2');
+  
+  cardsSheet.getRange('C7').setFormula('=Constants!$B$19*1.3');
+  cardsSheet.getRange('D7').setFormula('=Constants!$B$18*1.5');
+  
+  cardsSheet.getRange('C8').setFormula('=Constants!$B$19*1.4');
+  cardsSheet.getRange('D8').setFormula('=Constants!$B$18*1.8');
+  
+  cardsSheet.getRange('C9').setFormula('=Constants!$B$19*0.8');
+  cardsSheet.getRange('D9').setFormula('=Constants!$B$18*0.8');
+  
+  cardsSheet.getRange('D14').setFormula('=Constants!$B$18*3');
+  cardsSheet.getRange('C14').setFormula('=Constants!$B$19*2');
+  
+  cardsSheet.getRange('D15').setFormula('=Constants!$B$18*2.5');
+  cardsSheet.getRange('C15').setFormula('=Constants!$B$19*1.8');
+  
+  cardsSheet.getRange('D16').setFormula('=Constants!$B$18*4');
+  cardsSheet.getRange('C16').setFormula('=Constants!$B$19*2.2');
+};
+
+DataRefresh.refreshMissionsFormulas = function() {
+  var missionsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Missions');
+  if (!missionsSheet) return;
+};
+
+DataRefresh.refreshQuestsFormulas = function() {
+  var questsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Quests');
+  if (!questsSheet) return;
+};
+
+DataRefresh.refreshStatisticsFormulas = function() {
+  var statisticsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Statistics');
+  if (!statisticsSheet) return;
+  
+  statisticsSheet.getRange('C3').setFormula('=SUM(B3)');
+  statisticsSheet.getRange('D3').setFormula('=C3*Constants!$B$57');
+  
+  statisticsSheet.getRange('C4').setFormula('=SUM(B4)');
+  statisticsSheet.getRange('D4').setFormula('=C4*Constants!$B$58');
+  
+  statisticsSheet.getRange('C5').setFormula('=SUM(B5)');
+  statisticsSheet.getRange('D5').setFormula('=C5*Constants!$B$59');
+  
+  statisticsSheet.getRange('C6').setFormula('=SUM(B6)');
+  statisticsSheet.getRange('D6').setFormula('=C6*Constants!$B$60');
+  
+  statisticsSheet.getRange('C7').setFormula('=SUM(B7)');
+  statisticsSheet.getRange('D7').setFormula('=C7*Constants!$B$61');
+  
+  statisticsSheet.getRange('C8').setFormula('=SUM(B8)');
+  statisticsSheet.getRange('D8').setFormula('=C8*Constants!$B$62');
+  
+  statisticsSheet.getRange('C9').setFormula('=SUM(B9)');
+  statisticsSheet.getRange('D9').setFormula('=C9*Constants!$B$63');
+  
+  statisticsSheet.getRange('B10').setFormula('=SUM(B3:B9)');
+  statisticsSheet.getRange('C10').setFormula('=SUM(C3:C9)');
+  statisticsSheet.getRange('D10').setFormula('=SUM(D3:D9)');
+};
+
+DataRefresh.refreshChestsFormulas = function() {
+  var chestsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Chests');
+  if (!chestsSheet) return;
+  
+  chestsSheet.getRange('C3').setFormula('=Constants!$B$74');
+  chestsSheet.getRange('D3').setFormula('=Constants!$B$70');
+  chestsSheet.getRange('E3').setFormula('=Constants!$B$71');
+  chestsSheet.getRange('F3').setFormula('=Constants!$B$72');
+  chestsSheet.getRange('G3').setFormula('=Constants!$B$73');
+  chestsSheet.getRange('H3').setFormula('=Constants!$B$66');
+  
+  chestsSheet.getRange('C4').setFormula('=Constants!$B$75');
+  chestsSheet.getRange('H4').setFormula('=Constants!$B$67');
+  
+  chestsSheet.getRange('C5').setFormula('=Constants!$B$76');
+  chestsSheet.getRange('H5').setFormula('=Constants!$B$68');
+  
+  chestsSheet.getRange('C6').setFormula('=Constants!$B$77');
+  chestsSheet.getRange('H6').setFormula('=Constants!$B$69');
+};
+
+DataRefresh.refreshShopFormulas = function() {
+  var shopSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Shop');
+  if (!shopSheet) return;
+  
+  shopSheet.getRange('D3').setFormula('=Constants!$B$66');
+  shopSheet.getRange('D4').setFormula('=Constants!$B$67');
+  shopSheet.getRange('D5').setFormula('=Constants!$B$68');
+  shopSheet.getRange('D6').setFormula('=Constants!$B$69');
+  shopSheet.getRange('D9').setFormula('=Constants!$B$78');
+  shopSheet.getRange('E12').setFormula('=Constants!$B$100');
+  shopSheet.getRange('E13').setFormula('=Constants!$B$101');
+};
+
+DataRefresh.refreshBattlePassFormulas = function() {
+  var battlePassSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Battle_Pass');
+  if (!battlePassSheet) return;
+};
+
+DataRefresh.refreshWeaponModifiersFormulas = function() {
+  var modifiersSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Weapon_Modifiers');
+  if (!modifiersSheet) return;
+  
+  modifiersSheet.getRange('B3').setFormula('=Constants!$B$79');
+  modifiersSheet.getRange('C3').setFormula('=Constants!$B$80');
+  modifiersSheet.getRange('D3').setFormula('=Constants!$B$81');
+  modifiersSheet.getRange('E3').setFormula('=Constants!$B$82');
+  modifiersSheet.getRange('F3').setFormula('=Constants!$B$83');
+  modifiersSheet.getRange('G3').setFormula('=Constants!$B$84');
+  modifiersSheet.getRange('H3').setFormula('=Constants!$B$85');
+  
+  modifiersSheet.getRange('B4').setFormula('=Constants!$B$86');
+  modifiersSheet.getRange('C4').setFormula('=Constants!$B$87');
+  modifiersSheet.getRange('D4').setFormula('=Constants!$B$88');
+  modifiersSheet.getRange('E4').setFormula('=Constants!$B$89');
+  modifiersSheet.getRange('F4').setFormula('=Constants!$B$90');
+  modifiersSheet.getRange('G4').setFormula('=Constants!$B$91');
+  modifiersSheet.getRange('H4').setFormula('=Constants!$B$92');
+  
+  modifiersSheet.getRange('B5').setFormula('=Constants!$B$93');
+  modifiersSheet.getRange('C5').setFormula('=Constants!$B$94');
+  modifiersSheet.getRange('D5').setFormula('=Constants!$B$95');
+  modifiersSheet.getRange('E5').setFormula('=Constants!$B$96');
+  modifiersSheet.getRange('F5').setFormula('=Constants!$B$97');
+  modifiersSheet.getRange('G5').setFormula('=Constants!$B$98');
+  modifiersSheet.getRange('H5').setFormula('=Constants!$B$99');
+};

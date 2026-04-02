@@ -1,0 +1,108 @@
+import type { BalanceConstants, WeaponId } from '../balance/model';
+import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
+import { getWeaponLevelStats } from '../balance/simulator';
+import type { ProgressionState, UpgradePolicy } from './types';
+import { getWeaponUpgradeSoftCost } from './upgradeCosts';
+
+type WeaponKey = WeaponId;
+
+const weaponToLevelKey: Record<WeaponKey, keyof ProgressionState['weaponLevels']> = {
+  machineGun: 'machineGunLevel',
+  hydra70: 'hydraLevel',
+  hellfire: 'hellfireLevel',
+};
+
+function getWeaponLevelValue(state: ProgressionState['weaponLevels'], weaponId: WeaponKey): number {
+  return state[weaponToLevelKey[weaponId]];
+}
+
+function withWeaponLevelValue(
+  state: ProgressionState['weaponLevels'],
+  weaponId: WeaponKey,
+  nextLevel: number
+): ProgressionState['weaponLevels'] {
+  return {
+    ...state,
+    [weaponToLevelKey[weaponId]]: nextLevel,
+  } as ProgressionState['weaponLevels'];
+}
+
+function computeTotalCombatDps(constants: BalanceConstants, weaponLevels: ProgressionState['weaponLevels']) {
+  const ids: WeaponKey[] = ['machineGun', 'hydra70', 'hellfire'];
+  return ids.reduce((sum, id) => {
+    const lvl = getWeaponLevelValue(weaponLevels, id);
+    const stats = getWeaponLevelStats(constants, id, lvl);
+    // В прогнозе бой идёт по sustainedDps (с учётом боезапаса),
+    // поэтому и выбор апгрейда должен опираться на sustainedDps.
+    return sum + stats.sustainedDps;
+  }, 0);
+}
+
+export const weaponOnlyUpgradePolicy: UpgradePolicy = ({ constants, state, ctx }) => {
+  const ids: WeaponKey[] = ['machineGun', 'hydra70', 'hellfire'];
+  const wavesPerLevel = Math.max(1, Math.min(2, constants.economy.wavesPerLevel ?? 2));
+  const unlocked = state.unlockedWeapons ?? { machineGun: true, hydra70: false, hellfire: false };
+
+  const maxUpgradesPerAttempt = state.segmentId === 'free' ? 1 : 5;
+
+  let nextState: ProgressionState = {
+    ...state,
+    lifetimeWeaponUpgradeSoftSpent: state.lifetimeWeaponUpgradeSoftSpent ?? 0,
+  };
+  for (let step = 0; step < maxUpgradesPerAttempt; step += 1) {
+    const candidates: Array<{ weaponId: WeaponKey; nextLevel: number; cost: number; dpsGain: number }> = [];
+    const currentTotalDps = computeTotalCombatDps(constants, nextState.weaponLevels);
+
+    for (const weaponId of ids) {
+      if (weaponId === 'hydra70' && !unlocked.hydra70) continue;
+      if (weaponId === 'hellfire' && !unlocked.hellfire) continue;
+      // Прогрессия открытия/апгрейда оружия:
+      // - ур.1: только пулемёт;
+      // - ур.2: ракеты в бою, но апгрейд ракет — только после завершения 2-го уровня;
+      // - ур.3+: ракеты можно качать, но не между волнами одной попытки: иначе EV «лучшего»
+      //   апгрейда по суммарному DPS отдаёт Гидру/Hellfire, а следующая волна плотная по пехоте
+      //   — пулемёт недокачан, первая попытка падает, вторая проходит за счёт retryPower (артефакт).
+      if (weaponId !== 'machineGun' && ctx.levelIndex <= 2) continue;
+      if (
+        weaponId !== 'machineGun' &&
+        ctx.waveIndex >= 1 &&
+        ctx.waveIndex < wavesPerLevel
+      ) {
+        continue;
+      }
+
+      const currentLevel = getWeaponLevelValue(nextState.weaponLevels, weaponId);
+      const cap = getMaxWeaponLevelForWeapon(constants, weaponId);
+      if (currentLevel >= cap) continue;
+      const nextLevel = currentLevel + 1;
+      const cost = getWeaponUpgradeSoftCost(constants, weaponId, currentLevel);
+      if (cost > nextState.softBalance) continue;
+
+      const candidateWeaponLevels = withWeaponLevelValue(nextState.weaponLevels, weaponId, nextLevel);
+      const nextTotalDps = computeTotalCombatDps(constants, candidateWeaponLevels);
+
+      candidates.push({
+        weaponId,
+        nextLevel,
+        cost,
+        dpsGain: nextTotalDps - currentTotalDps,
+      });
+    }
+
+    if (candidates.length === 0) break;
+
+    // Берем апгрейд с максимальным приростом устойчивого DPS.
+    candidates.sort((a, b) => b.dpsGain - a.dpsGain);
+    const best = candidates[0];
+
+    nextState = {
+      ...nextState,
+      softBalance: Math.max(0, nextState.softBalance - best.cost),
+      weaponLevels: withWeaponLevelValue(nextState.weaponLevels, best.weaponId, best.nextLevel),
+      lifetimeWeaponUpgradeSoftSpent: (nextState.lifetimeWeaponUpgradeSoftSpent ?? 0) + best.cost,
+    };
+  }
+
+  return nextState;
+};
+

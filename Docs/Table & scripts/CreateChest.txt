@@ -1,0 +1,70 @@
+function createAdvancedBalancerV3() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Удаляем старые листы, если есть
+  ["Данные", "Управление", "Результаты"].forEach(name => {
+    var sh = ss.getSheetByName(name);
+    if (sh) ss.deleteSheet(sh);
+  });
+
+  // Создаём новые листы
+  var dataSheet = ss.insertSheet("Данные");
+  var controlSheet = ss.insertSheet("Управление");
+  var resultSheet = ss.insertSheet("Результаты");
+
+  // ========== 1. Лист "Данные" ==========
+  // ---- Редкости (заголовки) ----
+  dataSheet.getRange(1, 1).setValue("РЕДКОСТИ").setFontWeight("bold").setFontSize(12);
+  dataSheet.getRange(2, 1, 1, 2).setValues([["Название редкости", "Вес редкости"]]).setFontWeight("bold");
+  // Оставляем пустые строки для ввода
+  dataSheet.getRange(3, 1, 20, 2).clearContent(); // место для ваших редкостей
+
+  // ---- Предметы (заголовки) ----
+  dataSheet.getRange(1, 4).setValue("ПРЕДМЕТЫ").setFontWeight("bold").setFontSize(12);
+  dataSheet.getRange(2, 4, 1, 4).setValues([["ID", "Название", "Базовый вес", "Редкость"]]).setFontWeight("bold");
+  dataSheet.getRange(3, 4, 100, 4).clearContent(); // место для предметов
+
+  // ---- Сундуки (заголовки) ----
+  dataSheet.getRange(1, 9).setValue("СУНДУКИ").setFontWeight("bold").setFontSize(12);
+  // Заголовки для редкостей будут добавлены позже, когда появятся редкости, но пока создадим базовую структуру
+  dataSheet.getRange(2, 9, 1, 3).setValues([["Тип сундука", "Цена", "Предметов за сундук"]]).setFontWeight("bold");
+  // Место для коэффициентов редкостей мы вставим между "Тип сундука" и "Цена" после того, как пользователь введёт редкости.
+  // Пояснение для пользователя:
+  dataSheet.getRange(4, 9).setValue("ВНИМАНИЕ: после заполнения редкостей, вставьте столбцы с коэффициентами между 'Тип сундука' и 'Цена' (по одному столбцу на каждую редкость).");
+
+  // Автоширина
+  dataSheet.autoResizeColumns(1, 12);
+
+  // ========== 2. Лист "Управление" ==========
+  controlSheet.getRange(2, 2).setValue("Выберите сундук:").setFontWeight("bold");
+  var chestSelect = controlSheet.getRange(2, 3);
+  // Список сундуков будет динамически обновляться в скрипте, но пока оставим пустым
+  chestSelect.clearContent();
+  // Позже пользователь сможет задать список через проверку данных вручную, либо мы будем обновлять его в скрипте расчёта.
+
+  controlSheet.getRange(4, 2).setValue("Количество сундуков:").setFontWeight("bold");
+  var quantityCell = controlSheet.getRange(4, 3);
+  quantityCell.setValue(1).setNumberFormat("#");
+
+  // Кнопка (ячейка с макросом)
+  var button = controlSheet.getRange(9, 2, 1, 2);
+  button.setValue("👉 РАССЧИТАТЬ").setFontWeight("bold").setBackground("#4CAF50").setFontColor("white");
+  button.setHorizontalAlignment("center");
+  button.setNote("Нажмите для расчёта (после назначения макроса calculateAndSimulateV3)");
+
+  controlSheet.autoResizeColumns(1, 3);
+
+  // ========== 3. Лист "Результаты" ==========
+  resultSheet.getRange(1, 1).setValue("РЕЗУЛЬТАТЫ РАСЧЁТА").setFontWeight("bold").setFontSize(14);
+  resultSheet.getRange(3, 1, 1, 5).setValues([["Предмет", "Итоговый вес", "Вероятность", "Ожидаемое кол-во", "Выпало (симуляция)"]]).setFontWeight("bold");
+  resultSheet.getRange(4, 1, 100, 5).clearContent();
+
+  resultSheet.getRange(3, 7).setValue("СВОДКА ПО ОТКРЫТИЯМ").setFontWeight("bold");
+  resultSheet.getRange(5, 7).setValue("Всего получено предметов:");
+  resultSheet.getRange(5, 8).setValue("—");
+
+  resultSheet.autoResizeColumns(1, 8);
+
+  SpreadsheetApp.flush();
+  Browser.msgBox("Структура создана! Заполните лист 'Данные' своими значениями, затем на листе 'Управление' настройте выпадающий список для выбора сундука (можно вручную или через меню Данные -> Проверка данных). После этого назначьте макрос calculateAndSimulateV3 на кнопку.");
+}

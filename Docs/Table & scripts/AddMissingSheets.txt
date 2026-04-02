@@ -1,0 +1,5 @@
+function addMissingSheets() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  CreateSheets.createAllSheets(spreadsheet);
+  SpreadsheetApp.getUi().alert('✅ Недостающие листы добавлены!');
+}

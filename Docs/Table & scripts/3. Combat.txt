@@ -1,0 +1,74 @@
+var Combat = {};
+
+Combat.runCombatSimulation = function() {
+  var combatSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Combat_Simulator');
+  
+  var mission = combatSheet.getRange('B3').getValue();
+  var wave = combatSheet.getRange('B4').getValue();
+  var result = combatSheet.getRange('B20').getValue();
+  var finalReward = combatSheet.getRange('B21').getValue();
+  
+  if (result === "ПОБЕДА") {
+    var profileSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Player_Profile');
+    var currentCoins = profileSheet.getRange('B7').getValue();
+    profileSheet.getRange('B7').setValue(currentCoins + finalReward);
+    
+    var missionsCompleted = profileSheet.getRange('B9').getValue();
+    profileSheet.getRange('B9').setValue(missionsCompleted + 1);
+    
+    var currentLevel = profileSheet.getRange('B3').getValue();
+    var currentProgress = profileSheet.getRange('B26').getValue();
+    profileSheet.getRange('B26').setValue(currentProgress + 1);
+    
+    if (currentProgress + 1 >= 6) {
+      profileSheet.getRange('B3').setValue(currentLevel + 1);
+      profileSheet.getRange('B26').setValue(0);
+      SpreadsheetApp.getUi().alert('🎉 Уровень пройден! Новый уровень: ' + (currentLevel + 1));
+    }
+    
+    this.generateRandomKills();
+    this.updateStatistics();
+    
+    SpreadsheetApp.getUi().alert('🎉 Победа! Получено ' + finalReward + ' монет');
+  } else {
+    SpreadsheetApp.getUi().alert('💥 Поражение! Получено ' + finalReward + ' монет');
+  }
+};
+
+Combat.generateRandomKills = function() {
+  var combatSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Combat_Simulator');
+  var wavesSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Waves');
+  
+  var level = combatSheet.getRange('B3').getValue();
+  var wave = combatSheet.getRange('B4').getValue();
+  
+  var waveIndex = (level - 1) * 2 + wave + 2;
+  var waveData = wavesSheet.getRange('C' + waveIndex + ':I' + waveIndex).getValues()[0];
+  
+  for (var j = 0; j < waveData.length; j++) {
+    var targetEnemies = waveData[j] || 0;
+    var minKills = Math.max(0, targetEnemies - 2);
+    var maxKills = targetEnemies;
+    var randomKills = Math.floor(Math.random() * (maxKills - minKills + 1)) + minKills;
+    
+    if (randomKills > 0) {
+      var statsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Statistics');
+      var currentLevelTotal = statsSheet.getRange('B' + (j+3)).getValue();
+      statsSheet.getRange('B' + (j+3)).setValue(currentLevelTotal + randomKills);
+      
+      var profileSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Player_Profile');
+      var currentTotalKills = profileSheet.getRange('B' + (19 + j)).getValue();
+      profileSheet.getRange('B' + (19 + j)).setValue(currentTotalKills + randomKills);
+    }
+  }
+};
+
+Combat.updateStatistics = function() {
+  var statsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Statistics');
+  
+  var levelKills = statsSheet.getRange('B3:B9').getValues();
+  for (var i = 0; i < levelKills.length; i++) {
+    levelKills[i][0] = 0;
+  }
+  statsSheet.getRange('B3:B9').setValues(levelKills);
+};

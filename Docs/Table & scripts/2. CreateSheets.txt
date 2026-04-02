@@ -1,0 +1,689 @@
+var CreateSheets = {};
+
+/**
+ * Создаёт все необходимые листы, если они ещё не существуют.
+ * Безопасно для повторного запуска.
+ */
+CreateSheets.createAllSheets = function(spreadsheet) {
+  this.createPlayerProfile(spreadsheet);
+  this.createWeapons(spreadsheet);
+  this.createEnemies(spreadsheet);
+  this.createLevels7(spreadsheet);
+  this.createWaves(spreadsheet);
+  this.createCombatSimulator(spreadsheet);
+  this.createProgressionCalculator(spreadsheet);
+  this.createCards(spreadsheet);
+  this.createCardSlots(spreadsheet);
+  this.createMissions(spreadsheet);
+  this.createQuests(spreadsheet);
+  this.createStatistics(spreadsheet);
+  this.createChests(spreadsheet);
+  this.createShop(spreadsheet);
+  this.createBattlePass(spreadsheet);
+  this.createWeaponModifiers(spreadsheet);
+  this.createAllyUnits(spreadsheet);
+  this.createBalance(spreadsheet);
+  this.createLevelDesign(spreadsheet);
+  // Единый лист для карточек поддержки (всё в одном)
+  this.createSupportCardsFull(spreadsheet);
+};
+
+// Вспомогательная функция для проверки существования листа
+CreateSheets.sheetExists = function(spreadsheet, sheetName) {
+  var sheets = spreadsheet.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].getName() === sheetName) return true;
+  }
+  return false;
+};
+
+// ============ Существующие функции (без изменений, но с проверкой) ============
+
+CreateSheets.createPlayerProfile = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Player_Profile')) return;
+  var sheet = spreadsheet.insertSheet('Player_Profile');
+  sheet.getRange('A1:C30').setValues([
+    ['ПАРАМЕТРЫ ПРОФИЛЯ ИГРОКА', '', ''],
+    ['Параметр', 'Значение', 'Описание'],
+    ['Уровень игрока', 1, 'Текущий уровень игрока'],
+    ['Текущее здоровье вертолёта', '=Constants!$B$2', 'Стартовое ХП'],
+    ['Текущий уровень пулемёта', 1, 'Уровень прокачки пулемёта'],
+    ['Текущий уровень ракет Hydra', 1, 'Уровень прокачки Hydra-70'],
+    ['Текущий уровень ракет Hellfire', 1, 'Уровень прокачки Hellfire'],
+    ['Количество монет (софт)', 500, 'Мягкая валюта'],
+    ['Количество золота (хард)', 0, 'Премиум валюта'],
+    ['Всего пройдено миссий', 0, 'Счётчик миссий'],
+    ['Энергия', 100, 'Текущая энергия'],
+    ['Максимальная энергия', 100, 'Максимум энергии'],
+    ['Купленные слоты карточек', 6, 'Купленные ячейки для карточек'],
+    ['Карточки пулемёта', 0, 'Количество карточек усиления пулемёта'],
+    ['Карточки Hydra', 0, 'Количество карточек усиления Hydra'],
+    ['Карточки Hellfire', 0, 'Количество карточек усиления Hellfire'],
+    ['Карточки поддержки', 0, 'Количество карточек поддержки'],
+    ['Тип игрока', 'non_payer', 'payer / non_payer'],
+    ['Звание игрока', 'Рекрут', 'Текущее звание'],
+    ['Убито пехотинцев всего', 0, 'Статистика убийств'],
+    ['Убито джипов всего', 0, 'Статистика убийств'],
+    ['Убито БТР всего', 0, 'Статистика убийств'],
+    ['Убито танков всего', 0, 'Статистика убийств'],
+    ['Убито вертолётов всего', 0, 'Статистика убийств'],
+    ['Убито самолётов всего', 0, 'Статистика убийств'],
+    ['Убито тяж.пехоты всего', 0, 'Статистика убийств'],
+    ['Текущий прогресс уровня', 0, 'Прогресс на текущем уровне'],
+    ['Макс. уровень пулемёта', '=Constants!$B$11', 'Лимит прокачки'],
+    ['Макс. уровень Hydra', '=Constants!$B$11', 'Лимит прокачки'],
+    ['Макс. уровень Hellfire', '=Constants!$B$11', 'Лимит прокачки'],
+    ['VIP подписка активна', 'FALSE', 'Статус VIP подписки'],
+    ['Battle Pass активен', 'FALSE', 'Статус Battle Pass']
+  ]);
+};
+
+CreateSheets.createWeapons = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Weapons')) return;
+  var sheet = spreadsheet.insertSheet('Weapons');
+  
+  // Добавлены столбцы: H - Время перезарядки, I - Время до опустошения, J - Устойчивый DPS
+  sheet.getRange('A1:J1').setValues([['Оружие', 'Уровень', 'Урон', 'Ск.стр/мин', 'DPS', 'Боезапас', 'Стоимость улучшения', 'Время перезарядки (сек)', 'Время до опустошения (сек)', 'Устойчивый DPS']]);
+  
+  var data = [];
+  var maxLevel = 10;
+  
+  // Пулемёт
+  for (var level = 1; level <= maxLevel; level++) {
+    data.push([
+      'Пулемёт',
+      level,
+      '=Constants!$B$3*POWER(Constants!$B$6,' + (level-1) + ')',
+      '=Constants!$B$21*POWER(Constants!$B$22,' + (level-1) + ')',
+      '=C' + (level+1) + '*D' + (level+1) + '/60',
+      '=Constants!$B$27*POWER(Constants!$B$28,' + (level-1) + ')',
+      '=Constants!$B$7*300*POWER(Constants!$B$7,' + (level-1) + ')',
+      '=Constants!$B$105',  // B105 - время перезарядки пулемёта
+      '=F' + (level+1) + '/(D' + (level+1) + '/60)',
+      '=E' + (level+1) + '*I' + (level+1) + '/(I' + (level+1) + '+H' + (level+1) + ')'
+    ]);
+  }
+  
+  data.push(['', '', '', '', '', '', '', '', '', '']);
+  
+  // Hydra-70
+  for (var level = 1; level <= maxLevel; level++) {
+    data.push([
+      'Hydra-70',
+      level,
+      '=Constants!$B$4*POWER(Constants!$B$6,' + (level-1) + ')',
+      '=Constants!$B$23*POWER(Constants!$B$24,' + (level-1) + ')',
+      '=C' + (maxLevel + level + 2) + '*D' + (maxLevel + level + 2) + '/60',
+      '=Constants!$B$29*POWER(Constants!$B$28,' + (level-1) + ')',
+      '=Constants!$B$7*500*POWER(Constants!$B$7,' + (level-1) + ')',
+      '=Constants!$B$106',  // B106 - время перезарядки Hydra
+      '=F' + (maxLevel + level + 2) + '/(D' + (maxLevel + level + 2) + '/60)',
+      '=E' + (maxLevel + level + 2) + '*I' + (maxLevel + level + 2) + '/(I' + (maxLevel + level + 2) + '+H' + (maxLevel + level + 2) + ')'
+    ]);
+  }
+  
+  data.push(['', '', '', '', '', '', '', '', '', '']);
+  
+  // Hellfire
+  for (var level = 1; level <= maxLevel; level++) {
+    data.push([
+      'Hellfire',
+      level,
+      '=Constants!$B$5*POWER(Constants!$B$6,' + (level-1) + ')',
+      '=Constants!$B$25*POWER(Constants!$B$26,' + (level-1) + ')',
+      '=C' + (maxLevel*2 + level + 3) + '*D' + (maxLevel*2 + level + 3) + '/60',
+      '=Constants!$B$31*POWER(Constants!$B$28,' + (level-1) + ')',
+      '=Constants!$B$7*800*POWER(Constants!$B$7,' + (level-1) + ')',
+      '=Constants!$B$107',  // B107 - время перезарядки Hellfire
+      '=F' + (maxLevel*2 + level + 3) + '/(D' + (maxLevel*2 + level + 3) + '/60)',
+      '=E' + (maxLevel*2 + level + 3) + '*I' + (maxLevel*2 + level + 3) + '/(I' + (maxLevel*2 + level + 3) + '+H' + (maxLevel*2 + level + 3) + ')'
+    ]);
+  }
+  
+  sheet.getRange(2, 1, data.length, 10).setValues(data);
+};
+
+CreateSheets.createEnemies = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Enemies')) return;
+  var sheet = spreadsheet.insertSheet('Enemies');
+  sheet.getRange('A1:J9').setValues([
+    ['ВРАЖЕСКИЕ ЮНИТЫ', '', '', '', '', '', '', '', '', ''],
+    ['Тип врага', 'Здоровье', 'Урон', 'Дальность стрельбы', 'Скорость', 'Броня', 'Награда', 'Приоритет', 'Особенность', 'Вес'],
+    ['Пехотинец', '=Constants!$B$33', '=Constants!$B$34', '=Constants!$B$35', '=Constants!$B$36', 0, '=Constants!$B$57', 'Низкий', 'Основной юнит', 1],
+    ['Джип', '=Constants!$B$37', '=Constants!$B$38', '=Constants!$B$39', '=Constants!$B$40', 10, '=Constants!$B$58', 'Низкий', 'Транспорт', 3],
+    ['БТР', '=Constants!$B$41', '=Constants!$B$42', '=Constants!$B$43', '=Constants!$B$44', 25, '=Constants!$B$59', 'Средний', 'Броня', 8],
+    ['Танк', '=Constants!$B$45', '=Constants!$B$46', '=Constants!$B$47', '=Constants!$B$48', 50, '=Constants!$B$60', 'Средний', 'Высокий урон', 15],
+    ['Вертолёт', '=Constants!$B$49', '=Constants!$B$50', '=Constants!$B$51', '=Constants!$B$52', 15, '=Constants!$B$61', 'Высокий', 'Воздух', 5],
+    ['Самолёт', '=Constants!$B$53', '=Constants!$B$54', '=Constants!$B$55', '=Constants!$B$56', 20, '=Constants!$B$62', 'Высокий', 'Быстрый', 2],
+    ['Тяж.пехота', '=Constants!$B$63', '=Constants!$B$64', '=Constants!$B$35', '=Constants!$B$36', 5, '=Constants!$B$63', 'Средний', 'Доп.здоровье', 2]
+  ]);
+};
+
+CreateSheets.createLevels7 = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, '7_Levels')) return;
+  var sheet = spreadsheet.insertSheet('7_Levels');
+  
+  var levelsData = [];
+  levelsData.push(['НАСТРОЙКИ 7 УРОВНЕЙ', '', '', '', '', '', '', '', '', '']);
+  levelsData.push(['Уровень', 'Множитель здоровья', 'Множитель урона', 'Награда базовая', 'Время (сек)', 'Кол-во волн', 'Сложность', 'Мин. DPS', 'Рек. здоровье', 'Макс. врагов']);
+  
+  for (var level = 1; level <= 7; level++) {
+    levelsData.push([
+      level,
+      '=1+' + (level-1) + '*0.15',
+      '=1+' + (level-1) + '*0.1',
+      '=Constants!$B$8*POWER(1.1,' + (level-1) + ')',
+      45,
+      2,
+      '=B' + (level+2) + '*C' + (level+2),
+      '=100*POWER(1.2,' + (level-1) + ')',
+      '=Constants!$B$2*POWER(1.1,' + (level-1) + ')',
+      '=10+' + level + '*5'
+    ]);
+  }
+  
+  sheet.getRange(1, 1, levelsData.length, 10).setValues(levelsData);
+  
+  sheet.getRange('J2:J8').setValues([
+    ['Мисии на уровне'],
+    ['Уничтожить пехотинцев', 'Уничтожить джипы', 'Сохранить здоровье', 'Уничтожить танки', 'Использовать ракеты', 'Время прохождения'],
+    ['=5+Уровень*2', '=2+Уровень', '80%', '=Уровень', '=3+Уровень', '=40-Уровень*5'],
+    ['=6+Уровень*2', '=3+Уровень', '75%', '=Уровень+1', '=4+Уровень', '=35-Уровень*5'],
+    ['=7+Уровень*2', '=4+Уровень', '70%', '=Уровень+2', '=5+Уровень', '=30-Уровень*5'],
+    ['=8+Уровень*2', '=5+Уровень', '65%', '=Уровень+3', '=6+Уровень', '=25-Уровень*5'],
+    ['=9+Уровень*2', '=6+Уровень', '60%', '=Уровень+4', '=7+Уровень', '=20-Уровень*5'],
+    ['=10+Уровень*2', '=7+Уровень', '55%', '=Уровень+5', '=8+Уровень', '=15-Уровень*5']
+  ]);
+};
+
+CreateSheets.createWaves = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Waves')) return;
+  var sheet = spreadsheet.insertSheet('Waves');
+  
+  sheet.getRange('A1:O15').setValues([
+    ['НАСТРОЙКИ ВОЛН ДЛЯ 7 УРОВНЕЙ', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+    ['Ур.', 'Волна', 'Пехот.', 'Джип', 'БТР', 'Танк', 'Верт.', 'Сам.', 'Тяж.пех.', 'Общ.здор.', 'Общ.угроза', 'Награда', 'Время(сек)', 'Мин.DPS', 'Сложность'],
+    [1, 1, 5, 2, 0, 0, 0, 0, 0, '=(C3*Constants!$B$33+D3*Constants!$B$37+E3*Constants!$B$41+F3*Constants!$B$45+G3*Constants!$B$49+H3*Constants!$B$53+I3*Constants!$B$63)*POWER(1.3,B3-1)', '=(C3*Constants!$B$34+D3*Constants!$B$38+E3*Constants!$B$42+F3*Constants!$B$46+G3*Constants!$B$50+H3*Constants!$B$54+I3*Constants!$B$64)*POWER(1.2,B3-1)', '=Constants!$B$8', 45, '=J3/45', '=K3/45'],
+    [1, 2, 8, 3, 1, 0, 0, 0, 0, '=(C4*Constants!$B$33+D4*Constants!$B$37+E4*Constants!$B$41+F4*Constants!$B$45+G4*Constants!$B$49+H4*Constants!$B$53+I4*Constants!$B$63)*POWER(1.3,B4-1)', '=(C4*Constants!$B$34+D4*Constants!$B$38+E4*Constants!$B$42+F4*Constants!$B$46+G4*Constants!$B$50+H4*Constants!$B$54+I4*Constants!$B$64)*POWER(1.2,B4-1)', '=L3*Constants!$B$9', 45, '=J4/45', '=K4/45'],
+    [2, 1, 10, 4, 2, 1, 0, 0, 0, '=(C5*Constants!$B$33+D5*Constants!$B$37+E5*Constants!$B$41+F5*Constants!$B$45+G5*Constants!$B$49+H5*Constants!$B$53+I5*Constants!$B$63)*POWER(1.3,B5-1)', '=(C5*Constants!$B$34+D5*Constants!$B$38+E5*Constants!$B$42+F5*Constants!$B$46+G5*Constants!$B$50+H5*Constants!$B$54+I5*Constants!$B$64)*POWER(1.2,B5-1)', '=L4*Constants!$B$9', 45, '=J5/45', '=K5/45'],
+    [2, 2, 12, 5, 3, 2, 0, 0, 0, '=(C6*Constants!$B$33+D6*Constants!$B$37+E6*Constants!$B$41+F6*Constants!$B$45+G6*Constants!$B$49+H6*Constants!$B$53+I6*Constants!$B$63)*POWER(1.3,B6-1)', '=(C6*Constants!$B$34+D6*Constants!$B$38+E6*Constants!$B$42+F6*Constants!$B$46+G6*Constants!$B$50+H6*Constants!$B$54+I6*Constants!$B$64)*POWER(1.2,B6-1)', '=L5*Constants!$B$9', 45, '=J6/45', '=K6/45'],
+    [3, 1, 15, 6, 4, 3, 1, 0, 0, '=(C7*Constants!$B$33+D7*Constants!$B$37+E7*Constants!$B$41+F7*Constants!$B$45+G7*Constants!$B$49+H7*Constants!$B$53+I7*Constants!$B$63)*POWER(1.3,B7-1)', '=(C7*Constants!$B$34+D7*Constants!$B$38+E7*Constants!$B$42+F7*Constants!$B$46+G7*Constants!$B$50+H7*Constants!$B$54+I7*Constants!$B$64)*POWER(1.2,B7-1)', '=L6*Constants!$B$9', 45, '=J7/45', '=K7/45'],
+    [3, 2, 18, 7, 5, 4, 2, 0, 0, '=(C8*Constants!$B$33+D8*Constants!$B$37+E8*Constants!$B$41+F8*Constants!$B$45+G8*Constants!$B$49+H8*Constants!$B$53+I8*Constants!$B$63)*POWER(1.3,B8-1)', '=(C8*Constants!$B$34+D8*Constants!$B$38+E8*Constants!$B$42+F8*Constants!$B$46+G8*Constants!$B$50+H8*Constants!$B$54+I8*Constants!$B$64)*POWER(1.2,B8-1)', '=L7*Constants!$B$9', 45, '=J8/45', '=K8/45'],
+    [4, 1, 20, 8, 6, 5, 3, 1, 0, '=(C9*Constants!$B$33+D9*Constants!$B$37+E9*Constants!$B$41+F9*Constants!$B$45+G9*Constants!$B$49+H9*Constants!$B$53+I9*Constants!$B$63)*POWER(1.3,B9-1)', '=(C9*Constants!$B$34+D9*Constants!$B$38+E9*Constants!$B$42+F9*Constants!$B$46+G9*Constants!$B$50+H9*Constants!$B$54+I9*Constants!$B$64)*POWER(1.2,B9-1)', '=L8*Constants!$B$9', 45, '=J9/45', '=K9/45'],
+    [4, 2, 22, 9, 7, 6, 4, 2, 1, '=(C10*Constants!$B$33+D10*Constants!$B$37+E10*Constants!$B$41+F10*Constants!$B$45+G10*Constants!$B$49+H10*Constants!$B$53+I10*Constants!$B$63)*POWER(1.3,B10-1)', '=(C10*Constants!$B$34+D10*Constants!$B$38+E10*Constants!$B$42+F10*Constants!$B$46+G10*Constants!$B$50+H10*Constants!$B$54+I10*Constants!$B$64)*POWER(1.2,B10-1)', '=L9*Constants!$B$9', 45, '=J10/45', '=K10/45'],
+    [5, 1, 25, 10, 8, 7, 5, 3, 2, '=(C11*Constants!$B$33+D11*Constants!$B$37+E11*Constants!$B$41+F11*Constants!$B$45+G11*Constants!$B$49+H11*Constants!$B$53+I11*Constants!$B$63)*POWER(1.3,B11-1)', '=(C11*Constants!$B$34+D11*Constants!$B$38+E11*Constants!$B$42+F11*Constants!$B$46+G11*Constants!$B$50+H11*Constants!$B$54+I11*Constants!$B$64)*POWER(1.2,B11-1)', '=L10*Constants!$B$9', 45, '=J11/45', '=K11/45'],
+    [5, 2, 28, 11, 9, 8, 6, 4, 3, '=(C12*Constants!$B$33+D12*Constants!$B$37+E12*Constants!$B$41+F12*Constants!$B$45+G12*Constants!$B$49+H12*Constants!$B$53+I12*Constants!$B$63)*POWER(1.3,B12-1)', '=(C12*Constants!$B$34+D12*Constants!$B$38+E12*Constants!$B$42+F12*Constants!$B$46+G12*Constants!$B$50+H12*Constants!$B$54+I12*Constants!$B$64)*POWER(1.2,B12-1)', '=L11*Constants!$B$9', 45, '=J12/45', '=K12/45'],
+    [6, 1, 30, 12, 10, 9, 7, 5, 4, '=(C13*Constants!$B$33+D13*Constants!$B$37+E13*Constants!$B$41+F13*Constants!$B$45+G13*Constants!$B$49+H13*Constants!$B$53+I13*Constants!$B$63)*POWER(1.3,B13-1)', '=(C13*Constants!$B$34+D13*Constants!$B$38+E13*Constants!$B$42+F13*Constants!$B$46+G13*Constants!$B$50+H13*Constants!$B$54+I13*Constants!$B$64)*POWER(1.2,B13-1)', '=L12*Constants!$B$9', 45, '=J13/45', '=K13/45'],
+    [6, 2, 32, 13, 11, 10, 8, 6, 5, '=(C14*Constants!$B$33+D14*Constants!$B$37+E14*Constants!$B$41+F14*Constants!$B$45+G14*Constants!$B$49+H14*Constants!$B$53+I14*Constants!$B$63)*POWER(1.3,B14-1)', '=(C14*Constants!$B$34+D14*Constants!$B$38+E14*Constants!$B$42+F14*Constants!$B$46+G14*Constants!$B$50+H14*Constants!$B$54+I14*Constants!$B$64)*POWER(1.2,B14-1)', '=L13*Constants!$B$9', 45, '=J14/45', '=K14/45'],
+    [7, 1, 35, 14, 12, 11, 9, 7, 6, '=(C15*Constants!$B$33+D15*Constants!$B$37+E15*Constants!$B$41+F15*Constants!$B$45+G15*Constants!$B$49+H15*Constants!$B$53+I15*Constants!$B$63)*POWER(1.3,B15-1)', '=(C15*Constants!$B$34+D15*Constants!$B$38+E15*Constants!$B$42+F15*Constants!$B$46+G15*Constants!$B$50+H15*Constants!$B$54+I15*Constants!$B$64)*POWER(1.2,B15-1)', '=L14*Constants!$B$9', 45, '=J15/45', '=K15/45'],
+    [7, 2, 38, 15, 13, 12, 10, 8, 7, '=(C16*Constants!$B$33+D16*Constants!$B$37+E16*Constants!$B$41+F16*Constants!$B$45+G16*Constants!$B$49+H16*Constants!$B$53+I16*Constants!$B$63)*POWER(1.3,B16-1)', '=(C16*Constants!$B$34+D16*Constants!$B$38+E16*Constants!$B$42+F16*Constants!$B$46+G16*Constants!$B$50+H16*Constants!$B$54+I16*Constants!$B$64)*POWER(1.2,B16-1)', '=L15*Constants!$B$9', 45, '=J16/45', '=K16/45']
+  ]);
+};
+
+CreateSheets.createCombatSimulator = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Combat_Simulator')) return;
+  var sheet = spreadsheet.insertSheet('Combat_Simulator');
+  
+  var data = [
+    ['КОМБАТ СИМУЛЯТОР', '', '', '', ''],
+    ['Параметр', 'Значение', 'Формула', 'Ручной', 'Действие'],
+    ['Выбранный уровень', 1, '', '', 'Введите 1-7'],
+    ['Выбранная волна', 1, '', '', '1-2'],
+    ['Уровень пулемёта', '=Player_Profile!$B$3', 'Из профиля', '', 'Текущий уровень'],
+    ['Уровень Hydra', '=Player_Profile!$B$4', 'Из профиля', '', 'Текущий уровень'],
+    ['Уровень Hellfire', '=Player_Profile!$B$5', 'Из профиля', '', 'Текущий уровень'],
+    ['DPS пулемёта', '=IFERROR(VLOOKUP(B5, Weapons!$B$2:$F$11, 4, FALSE), 0)', 'Из Weapons по уровню', '', 'Текущий DPS пулемёта'],
+    ['DPS Hydra', '=IFERROR(VLOOKUP(B6, Weapons!$B$13:$F$22, 4, FALSE), 0)', 'Из Weapons по уровню', '', 'Текущий DPS Hydra'],
+    ['DPS Hellfire', '=IFERROR(VLOOKUP(B7, Weapons!$B$24:$F$33, 4, FALSE), 0)', 'Из Weapons по уровню', '', 'Текущий DPS Hellfire'],
+    ['Суммарный DPS', '=SUM(B8:B10)', 'DPS п + DPS р + DPS сн', '', 'Общий урон/сек'],
+    ['Здоровье вертолёта', '=Player_Profile!$B$2', 'Из профиля', '', 'Текущее ХП вертолёта'],
+    ['Номер волны в таблице', '=(B3-1)*2+B4+1', 'Расчет индекса', '', ''],
+    ['Суммарное здоровье врагов', '=IFERROR(INDEX(Waves!$J$3:$J$16, B13), 0)', 'Из Waves по индексу', '', 'Общее ХП противников'],
+    ['Угроза вертолёту', '=IFERROR(INDEX(Waves!$K$3:$K$16, B13), 0)', 'Из Waves по индексу', '', 'Общий урон противников'],
+    ['Время убийства (сек)', '=IF(B11>0, B14/B11, 999)', 'Здоровье противников/DPS', '', 'Секунд на убийство'],
+    ['Награда за волну', '=IFERROR(INDEX(Waves!$L$3:$L$16, B13), 0)', 'Из Waves по индексу', '', 'Базовая награда'],
+    ['Множитель звезд', 1, '1 или 2', '', 'Умножение награды'],
+    ['Итоговая награда', '=B17*B18', 'Награда × Множитель', '', ''],
+    ['Результат', '=IF(OR(B15>B12, B16>45), "ПОРАЖЕНИЕ", "ПОБЕДА")', 'Угроза>ХП или Время>45сек', '', 'Исход боя'],
+    ['Финальная награда', '=IF(B20="ПОБЕДА", B19, B19*(1-Constants!$B$12/100))', 'Победа=100%, Поражение=-%', '', ''],
+    ['Уровень пройден', '=IF(B20="ПОБЕДА", TRUE, FALSE)', 'Логическое значение', '', ''],
+    ['Звёзды', '=IF(B20="ПОБЕДА", IF(B16<=15, 3, IF(B16<=30, 2, 1)), 0)', 'По времени убийства', '', '1-3 звезды']
+  ];
+  
+  sheet.getRange(1, 1, data.length, 5).setValues(data);
+};
+
+CreateSheets.createProgressionCalculator = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Progression_Calculator')) return;
+  var sheet = spreadsheet.insertSheet('Progression_Calculator');
+  
+  sheet.getRange('A1:H12').setValues([
+    ['КАЛЬКУЛЯТОР ПРОГРЕССИИ', '', '', '', '', '', '', ''],
+    ['Уровень', 'Сумма улучшений', 'Награда за уровень', 'Баланс', 'Суммарный DPS', 'Здоровье вертолёта', 'Требуемый DPS', 'Прогресс'],
+    [1, 0, '=Constants!$B$8', '=C3-B3', '=VLOOKUP(1, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(1, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(1, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2', '=VLOOKUP(1, Waves!$N$3:$N$16, 1, FALSE)', '=IF(E3>=G3, "✓", "✗")'],
+    [2, '=VLOOKUP(2, Weapons!$B$2:$G$11, 6, FALSE)+VLOOKUP(2, Weapons!$B$13:$G$22, 6, FALSE)+VLOOKUP(2, Weapons!$B$24:$G$33, 6, FALSE)', '=Constants!$B$8*POWER(Constants!$B$9,1)', '=C4-B4', '=VLOOKUP(2, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(2, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(2, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2*POWER(1.1,1)', '=VLOOKUP(3, Waves!$N$3:$N$16, 1, FALSE)', '=IF(E4>=G4, "✓", "✗")'],
+    [3, '=B4+VLOOKUP(3, Weapons!$B$2:$G$11, 6, FALSE)+VLOOKUP(3, Weapons!$B$13:$G$22, 6, FALSE)+VLOOKUP(3, Weapons!$B$24:$G$33, 6, FALSE)', '=Constants!$B$8*POWER(Constants!$B$9,2)', '=C5-B5', '=VLOOKUP(3, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(3, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(3, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2*POWER(1.1,2)', '=VLOOKUP(5, Waves!$N$3:$N$16, 1, FALSE)', '=IF(E5>=G5, "✓", "✗")'],
+    [4, '=B5+VLOOKUP(4, Weapons!$B$2:$G$11, 6, FALSE)+VLOOKUP(4, Weapons!$B$13:$G$22, 6, FALSE)+VLOOKUP(4, Weapons!$B$24:$G$33, 6, FALSE)', '=Constants!$B$8*POWER(Constants!$B$9,3)', '=C6-B6', '=VLOOKUP(4, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(4, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(4, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2*POWER(1.1,3)', '=VLOOKUP(7, Waves!$N$3:$N$16, 1, FALSE)', '=IF(E6>=G6, "✓", "✗")'],
+    [5, '=B6+VLOOKUP(5, Weapons!$B$2:$G$11, 6, FALSE)+VLOOKUP(5, Weapons!$B$13:$G$22, 6, FALSE)+VLOOKUP(5, Weapons!$B$24:$G$33, 6, FALSE)', '=Constants!$B$8*POWER(Constants!$B$9,4)', '=C7-B7', '=VLOOKUP(5, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(5, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(5, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2*POWER(1.1,4)', '=VLOOKUP(9, Waves!$N$3:$N$16, 1, FALSE)', '=IF(E7>=G7, "✓", "✗")'],
+    [6, '=B7+VLOOKUP(6, Weapons!$B$2:$G$11, 6, FALSE)+VLOOKUP(6, Weapons!$B$13:$G$22, 6, FALSE)+VLOOKUP(6, Weapons!$B$24:$G$33, 6, FALSE)', '=Constants!$B$8*POWER(Constants!$B$9,5)', '=C8-B8', '=VLOOKUP(6, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(6, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(6, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2*POWER(1.1,5)', '=VLOOKUP(11, Waves!$N$3:$N$16, 1, FALSE)', '=IF(E8>=G8, "✓", "✗")'],
+    [7, '=B8+VLOOKUP(7, Weapons!$B$2:$G$11, 6, FALSE)+VLOOKUP(7, Weapons!$B$13:$G$22, 6, FALSE)+VLOOKUP(7, Weapons!$B$24:$G$33, 6, FALSE)', '=Constants!$B$8*POWER(Constants!$B$9,6)', '=C9-B9', '=VLOOKUP(7, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(7, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(7, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2*POWER(1.1,6)', '=VLOOKUP(13, Waves!$N$3:$N$16, 1, FALSE)', '=IF(E9>=G9, "✓", "✗")'],
+    [8, '=B9+VLOOKUP(8, Weapons!$B$2:$G$11, 6, FALSE)+VLOOKUP(8, Weapons!$B$13:$G$22, 6, FALSE)+VLOOKUP(8, Weapons!$B$24:$G$33, 6, FALSE)', '=Constants!$B$8*POWER(Constants!$B$9,7)', '=C10-B10', '=VLOOKUP(8, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(8, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(8, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2*POWER(1.1,7)', '=VLOOKUP(15, Waves!$N$3:$N$16, 1, FALSE)', '=IF(E10>=G10, "✓", "✗")'],
+    [9, '=B10+VLOOKUP(9, Weapons!$B$2:$G$11, 6, FALSE)+VLOOKUP(9, Weapons!$B$13:$G$22, 6, FALSE)+VLOOKUP(9, Weapons!$B$24:$G$33, 6, FALSE)', '=Constants!$B$8*POWER(Constants!$B$9,8)', '=C11-B11', '=VLOOKUP(9, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(9, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(9, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2*POWER(1.1,8)', '=0', '=IF(E11>=G11, "✓", "✗")'],
+    [10, '=B11+VLOOKUP(10, Weapons!$B$2:$G$11, 6, FALSE)+VLOOKUP(10, Weapons!$B$13:$G$22, 6, FALSE)+VLOOKUP(10, Weapons!$B$24:$G$33, 6, FALSE)', '=Constants!$B$8*POWER(Constants!$B$9,9)', '=C12-B12', '=VLOOKUP(10, Weapons!$B$2:$F$11, 4, FALSE)+VLOOKUP(10, Weapons!$B$13:$F$22, 4, FALSE)+VLOOKUP(10, Weapons!$B$24:$F$33, 4, FALSE)', '=Constants!$B$2*POWER(1.1,9)', '=0', '=IF(E12>=G12, "✓", "✗")']
+  ]);
+};
+
+CreateSheets.createCards = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Cards')) return;
+  var sheet = spreadsheet.insertSheet('Cards');
+  sheet.getRange('A1:G20').setValues([
+    ['КАРТОЧКИ МОДИФИКАТОРЫ', '', '', '', '', '', ''],
+    ['Название', 'Тип оружия', 'Модификатор урона %', 'Стоимость', 'Редкость', 'Эффект', 'Ячейка'],
+    ['Усиление ствола', 'Пулемёт', '=Constants!$B$19', '=Constants!$B$18', 'Обычная', '+20% урона', 1],
+    ['Термические ракеты', 'Hydra-70', '=Constants!$B$19', '=Constants!$B$18', 'Обычная', '+20% урона', 2],
+    ['Система самонаведения', 'Hellfire', '=Constants!$B$19', '=Constants!$B$18', 'Обычная', '+20% урона', 3],
+    ['Быстрый затвор', 'Пулемёт', '=Constants!$B$19*1.5', '=Constants!$B$18*2', 'Редкая', '+30% урона', 1],
+    ['Наводящиеся ракеты', 'Hydra-70', '=Constants!$B$19*1.3', '=Constants!$B$18*1.5', 'Редкая', '+26% урона', 2],
+    ['Точное наведение', 'Hellfire', '=Constants!$B$19*1.4', '=Constants!$B$18*1.8', 'Редкая', '+28% урона', 3],
+    ['Облегченный ствол', 'Пулемёт', '=Constants!$B$19*0.8', '=Constants!$B$18*0.8', 'Обычная', '+16% урона', 1],
+    ['Прочная броня', 'Защита', 0, 1000, 'Редкая', '+15% здоровья', 4],
+    ['Ускоренная перезарядка', 'Пулемёт', 0, 1200, 'Эпическая', '+25% скорости перезарядки', 1],
+    ['Улучшенные двигатели', 'Hydra-70', 0, 1500, 'Эпическая', '+30% скорости полета', 2],
+    ['Точный прицел', 'Hellfire', 0, 1800, 'Эпическая', '+40% точности', 3],
+    ['Двойной выстрел', 'Пулемёт', '=Constants!$B$19*2', '=Constants!$B$18*3', 'Легендарная', '+40% урона', 1],
+    ['Кластерные ракеты', 'Hydra-70', '=Constants!$B$19*1.8', '=Constants!$B$18*2.5', 'Легендарная', '+36% урона', 2],
+    ['Ядерная боеголовка', 'Hellfire', '=Constants!$B$19*2.2', '=Constants!$B$18*4', 'Легендарная', '+44% урона', 3],
+    ['Подкрепление пехоты', 'Поддержка', 100, 800, 'Редкая', 'Вызывает отряд пехоты', 5],
+    ['Авиаудар', 'Супер оружие', 300, 1500, 'Эпическая', 'Мощный авиаудар', 6],
+    ['Ремонтный дрон', 'Поддержка', 50, 1200, 'Редкая', 'Восстанавливает здоровье', 7],
+    ['Щит', 'Защита', 200, 1000, 'Редкая', 'Временный щит', 8]
+  ]);
+};
+
+CreateSheets.createCardSlots = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Card_Slots')) return;
+  var sheet = spreadsheet.insertSheet('Card_Slots');
+  sheet.getRange('A1:E25').setValues([
+    ['ЯЧЕЙКИ ДЛЯ КАРТОЧЕК', '', '', '', ''],
+    ['Номер ячейки', 'Тип карточки', 'Открыта', 'Стоимость открытия', 'Требуемый уровень'],
+    [1, 'Пулемёт', 'TRUE', 0, 1],
+    [2, 'Hydra-70', 'TRUE', 0, 1],
+    [3, 'Hellfire', 'TRUE', 0, 1],
+    [4, 'Защита', 'TRUE', 0, 1],
+    [5, 'Поддержка', 'TRUE', 0, 1],
+    [6, 'Супер оружие', 'TRUE', 0, 1],
+    [7, 'Поддержка', 'FALSE', '=Constants!$B$78', 3],
+    [8, 'Защита', 'FALSE', '=Constants!$B$78', 3],
+    [9, 'Пулемёт', 'FALSE', '=Constants!$B$78', 5],
+    [10, 'Hydra-70', 'FALSE', '=Constants!$B$78', 5],
+    [11, 'Hellfire', 'FALSE', '=Constants!$B$78', 5],
+    [12, 'Поддержка', 'FALSE', '=Constants!$B$78*1.5', 7],
+    [13, 'Супер оружие', 'FALSE', '=Constants!$B$78*1.5', 7],
+    [14, 'Пулемёт', 'FALSE', '=Constants!$B$78*2', 10],
+    [15, 'Hydra-70', 'FALSE', '=Constants!$B$78*2', 10],
+    [16, 'Hellfire', 'FALSE', '=Constants!$B$78*2', 10],
+    [17, 'Защита', 'FALSE', '=Constants!$B$78*2.5', 15],
+    [18, 'Поддержка', 'FALSE', '=Constants!$B$78*2.5', 15],
+    [19, 'Супер оружие', 'FALSE', '=Constants!$B$78*3', 20],
+    [20, 'Пулемёт', 'FALSE', '=Constants!$B$78*3', 20],
+    [21, 'Hydra-70', 'FALSE', '=Constants!$B$78*3', 20],
+    [22, 'Hellfire', 'FALSE', '=Constants!$B$78*3', 20],
+    [23, 'Защита', 'FALSE', '=Constants!$B$78*4', 30],
+    [24, 'Поддержка', 'FALSE', '=Constants!$B$78*4', 30]
+  ]);
+};
+
+CreateSheets.createMissions = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Missions')) return;
+  var sheet = spreadsheet.insertSheet('Missions');
+  
+  var missions = [];
+  missions.push(['МИССИИ НА 7 УРОВНЕЙ', '', '', '', '']);
+  missions.push(['Уровень', 'ID миссии', 'Задание', 'Награда', 'Статус']);
+  
+  var missionId = 1;
+  for (var level = 1; level <= 7; level++) {
+    missions.push([level, missionId++, 'Уничтожить ' + (5 + level*2) + ' пехотинцев', '=Constants!$B$8*0.5', 'Не выполнено']);
+    missions.push([level, missionId++, 'Уничтожить ' + (2 + level) + ' джипа', '=Constants!$B$8*0.75', 'Не выполнено']);
+    missions.push([level, missionId++, 'Сохранить вертолёт минимум 80% HP', '=Constants!$B$8', 'Не выполнено']);
+    missions.push([level, missionId++, 'Уничтожить ' + level + ' танка', '=Constants!$B$8*1.25', 'Не выполнено']);
+    missions.push([level, missionId++, 'Использовать ракеты ' + (3 + level) + ' раза', '=Constants!$B$8*0.5', 'Не выполнено']);
+    missions.push([level, missionId++, 'Пройди уровень за ' + (40 - level*5) + ' секунд', '=Constants!$B$8*1.3', 'Не выполнено']);
+  }
+  
+  sheet.getRange(1, 1, missions.length, 5).setValues(missions);
+};
+
+CreateSheets.createQuests = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Quests')) return;
+  var sheet = spreadsheet.insertSheet('Quests');
+  
+  var quests = [];
+  quests.push(['КВЕСТЫ НА 7 УРОВНЕЙ', '', '', '', '']);
+  quests.push(['Уровень', 'ID квеста', 'Задание', 'Награда', 'Статус']);
+  
+  var questId = 1;
+  for (var level = 1; level <= 7; level++) {
+    quests.push([level, questId++, 'Пройди уровень ' + level, '=Constants!$B$17', 'Не выполнено']);
+    quests.push([level, questId++, 'Улучши любое оружие 1 раз', '=Constants!$B$17', 'Не выполнено']);
+    quests.push([level, questId++, 'Уничтожь ' + (10 + level*5) + ' противников', '=Constants!$B$17*2', 'Не выполнено']);
+    quests.push([level, questId++, 'Используй 2 карточки', '=Constants!$B$17*3', 'Не выполнено']);
+    quests.push([level, questId++, 'Получи 3 звезды на уровне', '=Constants!$B$17*4', 'Не выполнено']);
+  }
+  
+  sheet.getRange(1, 1, quests.length, 5).setValues(quests);
+};
+
+CreateSheets.createStatistics = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Statistics')) return;
+  var sheet = spreadsheet.insertSheet('Statistics');
+  sheet.getRange('A1:D10').setValues([
+    ['СТАТИСТИКА УБИЙСТВ', '', '', ''],
+    ['Тип юнита', 'Количество за уровень', 'Количество всего', 'Награда всего'],
+    ['Пехотинец', 0, '=SUM(B3)', '=C3*Constants!$B$57'],
+    ['Джип', 0, '=SUM(B4)', '=C4*Constants!$B$58'],
+    ['БТР', 0, '=SUM(B5)', '=C5*Constants!$B$59'],
+    ['Танк', 0, '=SUM(B6)', '=C6*Constants!$B$60'],
+    ['Вертолёт', 0, '=SUM(B7)', '=C7*Constants!$B$61'],
+    ['Самолёт', 0, '=SUM(B8)', '=C8*Constants!$B$62'],
+    ['Тяж.пехота', 0, '=SUM(B9)', '=C9*Constants!$B$63'],
+    ['Всего', '=SUM(B3:B9)', '=SUM(C3:C9)', '=SUM(D3:D9)']
+  ]);
+};
+
+CreateSheets.createChests = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Chests')) return;
+  var sheet = spreadsheet.insertSheet('Chests');
+  sheet.getRange('A1:H7').setValues([
+    ['СУНДУКИ И НАГРАДЫ', '', '', '', '', '', '', ''],
+    ['Название сундука', 'Редкость', 'Кол-во карточек', 'Шанс обычной %', 'Шанс редкой %', 'Шанс эпической %', 'Шанс легендарной %', 'Стоимость'],
+    ['Обычный сундук', 'Обычный', '=Constants!$B$74', '=Constants!$B$70', '=Constants!$B$71', '=Constants!$B$72', '=Constants!$B$73', '=Constants!$B$66'],
+    ['Редкий сундук', 'Редкий', '=Constants!$B$75', 50, 40, 9, 1, '=Constants!$B$67'],
+    ['Эпический сундук', 'Эпический', '=Constants!$B$76', 30, 50, 18, 2, '=Constants!$B$68'],
+    ['Легендарный сундук', 'Легендарный', '=Constants!$B$77', 10, 40, 40, 10, '=Constants!$B$69'],
+    ['Сундук за уровень', 'Особый', 5, 60, 30, 9, 1, 0]
+  ]);
+};
+
+CreateSheets.createShop = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Shop')) return;
+  var sheet = spreadsheet.insertSheet('Shop');
+  sheet.getRange('A1:F20').setValues([
+    ['МАГАЗИН (БАНК)', '', '', '', '', ''],
+    ['Товар', 'Тип', 'Количество', 'Цена (монеты)', 'Цена (золото)', 'Доступно'],
+    ['Обычный сундук', 'Сундук', 1, '=Constants!$B$66', 0, 'TRUE'],
+    ['Редкий сундук', 'Сундук', 1, '=Constants!$B$67', 50, 'TRUE'],
+    ['Эпический сундук', 'Сундук', 1, '=Constants!$B$68', 100, 'TRUE'],
+    ['Легендарный сундук', 'Сундук', 1, '=Constants!$B$69', 200, 'TRUE'],
+    ['100 монет', 'Валюта', 100, 0, 10, 'TRUE'],
+    ['500 монет', 'Валюта', 500, 0, 40, 'TRUE'],
+    ['1000 монет', 'Валюта', 1000, 0, 70, 'TRUE'],
+    ['Ячейка карточки', 'Улучшение', 1, '=Constants!$B$78', 20, 'TRUE'],
+    ['Энергия (полная)', 'Энергия', 100, 200, 0, 'TRUE'],
+    ['VIP подписка (7 дней)', 'Подписка', 1, 0, '=Constants!$B$100', 'TRUE'],
+    ['Боевой пропуск', 'Пропуск', 1, 0, '=Constants!$B$101', 'TRUE'],
+    ['Набор новичка', 'Набор', 1, 0, 300, 'TRUE'],
+    ['Продвинутый набор', 'Набор', 1, 0, 800, 'TRUE'],
+    ['Профессиональный набор', 'Набор', 1, 0, 1500, 'TRUE'],
+    ['Копилка (малая)', 'Копилка', 1, 0, 100, 'TRUE'],
+    ['Копилка (средняя)', 'Копилка', 1, 0, 250, 'TRUE'],
+    ['Копилка (большая)', 'Копилка', 1, 0, 500, 'TRUE'],
+    ['', '', '', '', '', '']
+  ]);
+};
+
+CreateSheets.createBattlePass = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Battle_Pass')) return;
+  var sheet = spreadsheet.insertSheet('Battle_Pass');
+  
+  var data = [];
+  data.push(['BATTLE PASS', '', '', '', '', '', '']);
+  data.push(['Уровень', 'Награда бесплатная', 'Награда премиум', 'Опыт для уровня', 'Всего опыта', 'Прогресс', 'Достигнут']);
+  
+  var totalExp = 0;
+  for (var level = 1; level <= 30; level++) {
+    var expForLevel = 100 * level;
+    totalExp += expForLevel;
+    var freeReward = 'Монеты: ' + (50 * level);
+    var premiumReward = level % 5 == 0 ? 'Сундук' : 'Монеты: ' + (100 * level);
+    
+    data.push([
+      level,
+      freeReward,
+      premiumReward,
+      expForLevel,
+      totalExp,
+      '0%',
+      'FALSE'
+    ]);
+  }
+  
+  sheet.getRange(1, 1, data.length, 7).setValues(data);
+};
+
+CreateSheets.createWeaponModifiers = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Weapon_Modifiers')) return;
+  var sheet = spreadsheet.insertSheet('Weapon_Modifiers');
+  sheet.getRange('A1:I5').setValues([
+    ['МОДИФИКАТОРЫ УРОНА ОРУЖИЯ', '', '', '', '', '', '', '', ''],
+    ['Тип оружия / Тип врага', 'Пехотинец', 'Джип', 'БТР', 'Танк', 'Вертолёт', 'Самолёт', 'Тяж.пехота', 'Союзник'],
+    ['Пулемёт', '=Constants!$B$79', '=Constants!$B$80', '=Constants!$B$81', '=Constants!$B$82', '=Constants!$B$83', '=Constants!$B$84', '=Constants!$B$85', 1],
+    ['Hydra-70', '=Constants!$B$86', '=Constants!$B$87', '=Constants!$B$88', '=Constants!$B$89', '=Constants!$B$90', '=Constants!$B$91', '=Constants!$B$92', 1],
+    ['Hellfire', '=Constants!$B$93', '=Constants!$B$94', '=Constants!$B$95', '=Constants!$B$96', '=Constants!$B$97', '=Constants!$B$98', '=Constants!$B$99', 1]
+  ]);
+};
+
+CreateSheets.createAllyUnits = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Ally_Units')) return;
+  var sheet = spreadsheet.insertSheet('Ally_Units');
+  sheet.getRange('A1:D7').setValues([
+    ['СОЮЗНЫЕ ЮНИТЫ', '', '', ''],
+    ['Тип союзника', 'Здоровье', 'Урон', 'Особенность'],
+    ['Пехотинец', '=Constants!$B$100', '=Constants!$B$101', 'Базовая поддержка'],
+    ['Джип', 200, 30, 'Быстрая поддержка'],
+    ['БТР', 400, 50, 'Тяжелая поддержка'],
+    ['Танк', 800, 80, 'Мощная поддержка'],
+    ['Вертолёт', 600, 60, 'Воздушная поддержка']
+  ]);
+};
+
+CreateSheets.createBalance = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Balance')) return;
+  var sheet = spreadsheet.insertSheet('Balance');
+  sheet.getRange('A1:D20').setValues([
+    ['БАЛАНС ИГРЫ (ГЕЙМДИЗАЙНЕР)', '', '', ''],
+    ['Параметр', 'Значение', 'Формула', 'Описание'],
+    ['Баланс прокачки 3х видов оружия', '1:1.2:1.5', 'Пулемёт:Hydra:Hellfire', 'Соотношение урона'],
+    ['Настройка параметров NPC 7 типов', 'См. лист Enemies', '', 'Дальность, урон, ХП, скорость'],
+    ['Покупка сундуков с карточками', '5 видов', 'См. лист Chests', 'Редкость и шансы'],
+    ['Покупка ячеек карточек', '24 ячейки', 'См. лист Card_Slots', 'Стоимость и уровень'],
+    ['Сундуки содержимое', '5 сундуков', 'См. лист Chests', 'Шансы выпадения'],
+    ['Баланс вражеских юнитов', 'См. лист Enemies', '', 'Параметры 7 типов'],
+    ['Баланс союзных юнитов', 'См. лист Ally_Units', '', 'Параметры поддержки'],
+    ['Магазин баланс товаров', 'См. лист Shop', '', 'Стоимость товаров'],
+    ['Награда за бой', 'Рассчетная', 'См. Waves столбец L', 'Зависит от уровня и волны'],
+    ['Battle Pass награды', '30 уровней', 'См. лист Battle_Pass', 'Бесплатные и премиум'],
+    ['Наносимый урон 3х типов оружия', 'См. лист Weapons', 'Уровень 1-10', 'Прокачка урона'],
+    ['Модификаторы урона', 'См. лист Weapon_Modifiers', '', 'Эффективность против типов'],
+    ['Враги вылазят из техники', '50% шанс', 'При ХП < 30%', 'Дополнительные юниты'],
+    ['Изменение траектории техники', 'При атаке', 'Случайное отклонение', 'Уклонение от выстрелов'],
+    ['Тепловой режим (FLIR)', 'Черно-белый', 'Подсветка врагов', 'Ночная видимость'],
+    ['Зум камеры', '3 уровня', '1x, 2x, 3x', 'Приближение/отдаление'],
+    ['Dead-zone камеры', 'Границы карты', 'Ограничение поворота', 'Не выходить за пределы'],
+    ['Визуальные триггеры', 'Победа/Поражение', 'Попап-уведомления', 'Обратная связь']
+  ]);
+};
+
+CreateSheets.createLevelDesign = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Level_Design')) return;
+  var sheet = spreadsheet.insertSheet('Level_Design');
+  sheet.getRange('A1:E10').setValues([
+    ['ДИЗАЙН УРОВНЕЙ (7 ЛОКАЦИЙ)', '', '', '', ''],
+    ['Уровень', 'Тематика', 'Сложность', 'Время прохождения', 'Особенности'],
+    [1, 'Пустыня', 'Легкий', '2-3 минуты', 'Открытая местность, мало укрытий'],
+    [2, 'Город', 'Средний', '3-4 минуты', 'Здания, улицы, больше врагов'],
+    [3, 'Лес', 'Средний', '3-4 минуты', 'Деревья, укрытия, засады'],
+    [4, 'Горы', 'Сложный', '4-5 минут', 'Высота, обрывы, ограниченный обзор'],
+    [5, 'Военная база', 'Сложный', '4-5 минут', 'Укрепления, техника, много врагов'],
+    [6, 'Порт', 'Очень сложный', '5-6 минут', 'Вода, корабли, ограниченное пространство'],
+    [7, 'Секретная лаборатория', 'Экстрим', '6-7 минут', 'Подземелье, босс, финальный уровень']
+  ]);
+};
+
+// ============ ЕДИНАЯ ФУНКЦИЯ ДЛЯ КАРТОЧЕК ПОДДЕРЖКИ (все данные в одном листе) ============
+
+CreateSheets.createSupportCardsFull = function(spreadsheet) {
+  if (this.sheetExists(spreadsheet, 'Support_Cards_Full')) return;
+  var sheet = spreadsheet.insertSheet('Support_Cards_Full');
+  
+  var headers = ['Card_ID', 'Card_Name', 'Rarity', 'Type', 'Param1_Name', 'Param2_Name',
+                 'Level', 'Param1_Value', 'Param2_Value', 'Cards_To_Next', 'Coins_To_Next'];
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#1a73e8').setFontColor('#FFFFFF');
+  
+  // Определение карточек с правилами прогрессии и названиями параметров
+  var cards = [
+    { id:1, name:'Рой дронов', rarity:'Редкая', type:'Призыв',
+      param1_name:'Количество дронов', param2_name:'Урон дрона',
+      param1_base:5, param1_growth:'linear', param1_inc:1,
+      param2_base:10, param2_growth:'exponential', param2_mult:1.15 },
+    { id:2, name:'Бочка с минами', rarity:'Эпическая', type:'Заклинание',
+      param1_name:'Количество мин', param2_name:'Урон мины',
+      param1_base:3, param1_growth:'linear', param1_inc:1,
+      param2_base:50, param2_growth:'exponential', param2_mult:1.2 },
+    { id:3, name:'Вертолет', rarity:'Редкая', type:'Призыв',
+      param1_name:'Здоровье', param2_name:'Урон',
+      param1_base:200, param1_growth:'exponential', param1_mult:1.2,
+      param2_base:30, param2_growth:'exponential', param2_mult:1.15 },
+    { id:4, name:'Десант БТР', rarity:'Эпическая', type:'Призыв',
+      param1_name:'Количество БТР', param2_name:'Уровень БТР',
+      param1_base:1, param1_growth:'step', param1_steps:[[1,4,1],[5,7,2],[8,10,3]],
+      param2_base:1, param2_growth:'linear', param2_inc:1 },
+    { id:5, name:'Десант танк', rarity:'Легендарная', type:'Призыв',
+      param1_name:'Количество танков', param2_name:'Уровень танка',
+      param1_base:1, param1_growth:'constant',
+      param2_base:1, param2_growth:'linear', param2_inc:1 },
+    { id:6, name:'Десант бронеавто', rarity:'Редкая', type:'Призыв',
+      param1_name:'Количество авто', param2_name:'Уровень авто',
+      param1_base:1, param1_growth:'step', param1_steps:[[1,2,1],[3,4,2],[5,6,3],[7,8,4],[9,10,5]],
+      param2_base:1, param2_growth:'linear', param2_inc:1 },
+    { id:7, name:'Десант пехота', rarity:'Обычная', type:'Призыв',
+      param1_name:'Количество пехоты', param2_name:'Уровень пехоты',
+      param1_base:3, param1_growth:'linear', param1_inc:1,
+      param2_base:1, param2_growth:'linear', param2_inc:1 },
+    { id:8, name:'Патроны - Hydra', rarity:'Обычная', type:'Ресурс',
+      param1_name:'Количество патронов', param2_name:'-',
+      param1_base:5, param1_growth:'linear', param1_inc:2,
+      param2_base:null },
+    { id:9, name:'Патроны - Hellfire', rarity:'Редкая', type:'Ресурс',
+      param1_name:'Количество патронов', param2_name:'-',
+      param1_base:3, param1_growth:'linear', param1_inc:1,
+      param2_base:null },
+    { id:10, name:'Истребитель Raptor', rarity:'Легендарная', type:'Призыв',
+      param1_name:'Количество ракет', param2_name:'Урон ракеты',
+      param1_base:5, param1_growth:'linear', param1_inc:1,
+      param2_base:100, param2_growth:'exponential', param2_mult:1.15 },
+    { id:11, name:'ЭМИ', rarity:'Эпическая', type:'Заклинание',
+      param1_name:'Длительность (сек)', param2_name:'Бонус урона (%)',
+      param1_base:3, param1_growth:'linear', param1_inc:0.5,
+      param2_base:50, param2_growth:'linear', param2_inc:5 },
+    { id:12, name:'Ремонтный дрон', rarity:'Редкая', type:'Поддержка',
+      param1_name:'Лечение (ХП/сек)', param2_name:'Длительность (сек)',
+      param1_base:20, param1_growth:'exponential', param1_mult:1.15,
+      param2_base:5, param2_growth:'linear', param2_inc:1 },
+    { id:13, name:'Отражающее поле', rarity:'Эпическая', type:'Защита',
+      param1_name:'Длительность (сек)', param2_name:'Отражение (%)',
+      param1_base:3, param1_growth:'linear', param1_inc:0.5,
+      param2_base:50, param2_growth:'linear', param2_inc:5 },
+    { id:14, name:'Кассетная бомба', rarity:'Эпическая', type:'Заклинание',
+      param1_name:'Количество взрывов', param2_name:'Урон взрыва',
+      param1_base:6, param1_growth:'linear', param1_inc:1,
+      param2_base:30, param2_growth:'exponential', param2_mult:1.2 }
+  ];
+  
+  // Таблица стоимости улучшения (захардкожена для простоты)
+  var upgradeCosts = {
+    1: {cards:0, common:0, rare:0, epic:0, legendary:0},
+    2: {cards:2, common:5, rare:20, epic:50, legendary:100},
+    3: {cards:4, common:20, rare:50, epic:150, legendary:300},
+    4: {cards:10, common:50, rare:150, epic:400, legendary:800},
+    5: {cards:20, common:150, rare:400, epic:1000, legendary:2000},
+    6: {cards:50, common:400, rare:1000, epic:2000, legendary:5000},
+    7: {cards:100, common:1000, rare:2000, epic:4000, legendary:10000},
+    8: {cards:200, common:2000, rare:4000, epic:8000, legendary:20000},
+    9: {cards:400, common:4000, rare:8000, epic:20000, legendary:50000},
+    10:{cards:800, common:8000, rare:20000, epic:50000, legendary:100000}
+  };
+  
+  function getCost(rarity, level) {
+    var row = upgradeCosts[level];
+    if (!row) return {cards:0, coins:0};
+    var coins = 0;
+    if (rarity === 'Обычная') coins = row.common;
+    else if (rarity === 'Редкая') coins = row.rare;
+    else if (rarity === 'Эпическая') coins = row.epic;
+    else if (rarity === 'Легендарная') coins = row.legendary;
+    return {cards: row.cards, coins: coins};
+  }
+  
+  var outputRows = [];
+  for (var c = 0; c < cards.length; c++) {
+    var card = cards[c];
+    for (var level = 1; level <= 10; level++) {
+      var p1, p2;
+      
+      // Параметр 1
+      if (card.param1_growth === 'linear') {
+        p1 = card.param1_base + card.param1_inc * (level - 1);
+      } else if (card.param1_growth === 'exponential') {
+        p1 = Math.round(card.param1_base * Math.pow(card.param1_mult, level - 1) * 100) / 100;
+      } else if (card.param1_growth === 'constant') {
+        p1 = card.param1_base;
+      } else if (card.param1_growth === 'step') {
+        p1 = card.param1_base;
+        for (var s = 0; s < card.param1_steps.length; s++) {
+          var step = card.param1_steps[s];
+          if (level >= step[0] && level <= step[1]) {
+            p1 = step[2];
+            break;
+          }
+        }
+      }
+      
+      // Параметр 2
+      if (card.param2_base === null) {
+        p2 = null;
+      } else if (card.param2_growth === 'linear') {
+        p2 = card.param2_base + card.param2_inc * (level - 1);
+      } else if (card.param2_growth === 'exponential') {
+        p2 = Math.round(card.param2_base * Math.pow(card.param2_mult, level - 1) * 100) / 100;
+      } else if (card.param2_growth === 'constant') {
+        p2 = card.param2_base;
+      }
+      
+      if (p1 !== null && typeof p1 === 'number') p1 = Math.round(p1 * 100) / 100;
+      if (p2 !== null && typeof p2 === 'number') p2 = Math.round(p2 * 100) / 100;
+      
+      var nextLevel = level + 1;
+      var cost = (nextLevel <= 10) ? getCost(card.rarity, nextLevel) : {cards:0, coins:0};
+      
+      outputRows.push([
+        card.id,
+        card.name,
+        card.rarity,
+        card.type,
+        card.param1_name,
+        card.param2_name,
+        level,
+        p1,
+        p2,
+        cost.cards,
+        cost.coins
+      ]);
+    }
+  }
+  
+  if (outputRows.length > 0) {
+    sheet.getRange(2, 1, outputRows.length, headers.length).setValues(outputRows);
+  }
+};

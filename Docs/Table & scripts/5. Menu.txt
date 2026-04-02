@@ -1,0 +1,133 @@
+var Menu = {};
+
+Menu.createMenu = function() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('🎮 War Drone Balance')
+    .addItem('🚀 Запустить симуляцию боя', 'Menu.runCombatSimulation')
+    .addItem('⚡ Улучшить пулемёт', 'Menu.upgradeMachineGun')
+    .addItem('💥 Улучшить Hydra-70', 'Menu.upgradeHydra')
+    .addItem('🎯 Улучшить Hellfire', 'Menu.upgradeHellfire')
+    .addItem('❤️ Улучшить здоровье вертолёта', 'Menu.upgradeHelicopter')
+    .addItem('🃏 Купить ячейку карточки', 'Menu.buyCardSlot')
+    .addItem('📊 Обновить все формулы', 'Menu.refreshAllData')
+    .addSeparator()
+    .addSubMenu(ui.createMenu('📈 Аналитика')
+      .addItem('📋 Показать статистику', 'Menu.showStatistics')
+      .addItem('📊 Показать прогресс', 'Menu.showProgression')
+      .addItem('🎯 Показать баланс', 'Menu.showBalance')
+      .addItem('🗺️ Показать дизайн уровней', 'Menu.showLevelDesign'))
+    .addSubMenu(ui.createMenu('🛒 Магазин')
+      .addItem('🏪 Показать магазин', 'Menu.showShop')
+      .addItem('🎫 Показать Battle Pass', 'Menu.showBattlePass')
+      .addItem('🎁 Показать сундуки', 'Menu.showChests'))
+    .addSubMenu(ui.createMenu('⚙️ Настройки')
+      .addItem('🔧 Заполнить константы', 'Menu.fillConstants')
+      .addItem('🔄 Сбросить прогресс', 'Menu.resetProgress')
+      .addItem('💾 Экспорт баланса', 'Menu.exportBalance'))
+    .addToUi();
+};
+
+Menu.runCombatSimulation = function() {
+  Combat.runCombatSimulation();
+};
+
+Menu.upgradeMachineGun = function() {
+  Upgrades.upgradeMachineGun();
+};
+
+Menu.upgradeHydra = function() {
+  Upgrades.upgradeHydra();
+};
+
+Menu.upgradeHellfire = function() {
+  Upgrades.upgradeHellfire();
+};
+
+Menu.upgradeHelicopter = function() {
+  Upgrades.upgradeHelicopter();
+};
+
+Menu.buyCardSlot = function() {
+  Upgrades.buyCardSlot();
+};
+
+Menu.applyMachineGunCard = function() {
+  Upgrades.applyCard('Усиление ствола');
+};
+
+Menu.applyHydraCard = function() {
+  Upgrades.applyCard('Термические ракеты');
+};
+
+Menu.applyHellfireCard = function() {
+  Upgrades.applyCard('Система самонаведения');
+};
+
+Menu.fillConstants = function() {
+  DataRefresh.fillConstants();
+};
+
+Menu.refreshAllData = function() {
+  DataRefresh.refreshAllData();
+};
+
+Menu.showStatistics = function() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  spreadsheet.setActiveSheet(spreadsheet.getSheetByName('Statistics'));
+};
+
+Menu.showProgression = function() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  spreadsheet.setActiveSheet(spreadsheet.getSheetByName('Progression_Calculator'));
+};
+
+Menu.showBalance = function() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  spreadsheet.setActiveSheet(spreadsheet.getSheetByName('Balance'));
+};
+
+Menu.showLevelDesign = function() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  spreadsheet.setActiveSheet(spreadsheet.getSheetByName('Level_Design'));
+};
+
+Menu.showShop = function() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  spreadsheet.setActiveSheet(spreadsheet.getSheetByName('Shop'));
+};
+
+Menu.showBattlePass = function() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  spreadsheet.setActiveSheet(spreadsheet.getSheetByName('Battle_Pass'));
+};
+
+Menu.showChests = function() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  spreadsheet.setActiveSheet(spreadsheet.getSheetByName('Chests'));
+};
+
+Menu.resetProgress = function() {
+  var ui = SpreadsheetApp.getUi();
+  var response = ui.alert('Сброс прогресса', 'Вы уверены, что хотите сбросить весь прогресс игрока?', ui.ButtonSet.YES_NO);
+  
+  if (response == ui.Button.YES) {
+    var profileSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Player_Profile');
+    profileSheet.getRange('B3').setValue(1);
+    profileSheet.getRange('B4:B6').setValue(1);
+    profileSheet.getRange('B7').setValue(500);
+    profileSheet.getRange('B9').setValue(0);
+    profileSheet.getRange('B10').setValue(100);
+    profileSheet.getRange('B13').setValue(6);
+    profileSheet.getRange('B14:B17').setValue(0);
+    profileSheet.getRange('B19:B25').setValue(0);
+    profileSheet.getRange('B26').setValue(0);
+    profileSheet.getRange('B30:B31').setValue('FALSE');
+    
+    ui.alert('✅ Прогресс сброшен! Игрок возвращен к начальным значениям.');
+  }
+};
+
+Menu.exportBalance = function() {
+  var ui = SpreadsheetApp.getUi();
+  ui.alert('Экспорт баланса', 'Все данные уже сохранены в таблице. Используйте Файл → Скачать для экспорта.', ui.ButtonSet.OK);
+};

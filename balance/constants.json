@@ -1,0 +1,412 @@
+{
+  "meta": {
+    "maxWeaponLevel": 100,
+    "maxMachineGunLevel": 100,
+    "maxHydraLevel": 40,
+    "maxHellfireLevel": 20,
+    "maxPlayerLevel": 50,
+    "gameLevels": 15,
+    "enemyTypes": 10,
+    "baseWaveTimeSec": 45,
+    "forecastMaxAttemptsPerDay": 10,
+    "forecastFreeChestsPerDay": 3,
+    "trafficUsdPerDayPayer": 1.142857,
+    "trafficUsdPerDayWhale": 10.785714,
+    "trafficDau": 70000,
+    "trafficPayerShare": 0.08,
+    "trafficWhaleShare": 0.01,
+    "trafficEcpmUsd": 6,
+    "trafficViewsPerDay": 5,
+    "trafficMarketFee": 0.3,
+    "trafficRoyalty": 0.3,
+    "trafficTaxes": 0.06
+  },
+  "player": {
+    "baseAllyHp": 1000,
+    "baseAllyInfantryHp": 175,
+    "baseAllyInfantryDamage": 10
+  },
+  "weapons": {
+    "machineGun": {
+      "id": "machineGun",
+      "displayName": "Пулемёт",
+      "baseDamage": 15,
+      "baseFireRatePerMin": 600,
+      "baseAmmo": 200,
+      "upgradeBaseSoft": 300,
+      "upgradeCostMultiplier": 0.8,
+      "reloadTimeSec": 2
+    },
+    "hydra70": {
+      "id": "hydra70",
+      "displayName": "Гидра-70",
+      "baseDamage": 80,
+      "baseFireRatePerMin": 60,
+      "baseAmmo": 12,
+      "upgradeBaseSoft": 500,
+      "upgradeCostMultiplier": 0.8,
+      "reloadTimeSec": 4
+    },
+    "hellfire": {
+      "id": "hellfire",
+      "displayName": "Хеллфайр",
+      "baseDamage": 150,
+      "baseFireRatePerMin": 30,
+      "baseAmmo": 6,
+      "upgradeBaseSoft": 800,
+      "upgradeCostMultiplier": 0.8,
+      "reloadTimeSec": 6
+    },
+    "growth": {
+      "damageMultiplierPerLevel": 0.2,
+      "fireRateMultiplierPerLevel": 1.05,
+      "ammoMultiplierPerLevel": 0.1
+    }
+  },
+  "economy": {
+    "baseMissionReward": 200,
+    "missionDifficultyMultiplier": 1.3,
+    "wavesPerLevel": 2,
+    "missionsPerSession": 3,
+    "lossPenaltyPercent": 15,
+    "combatSkill": {
+      "missChancePercent": 0,
+      "partialHitChancePercent": 0,
+      "partialDamagePercent": 50
+    },
+    "adMultiplier": 2,
+    "missionsPerPlayerLevel": 6,
+    "questsPerLevel": 5,
+    "questBaseReward": 25,
+    "cardBaseCost": 500,
+    "cardBaseBonusPercent": 20,
+    "cardSlotsPerLevel": 1,
+    "cardSlotCost": 200,
+    "maxCardSlots": 24,
+    "startingCardSlots": 4,
+    "baseLevelRewardMultiplier": 1.1,
+    "cardRarityWeights": {
+      "common": 1.5,
+      "uncommon": 1,
+      "rare": 0.6,
+      "epic": 0.3,
+      "legendary": 0.1
+    },
+    "chests": {
+      "common": {
+        "priceSoft": 2750,
+        "priceHard": 50,
+        "cards": 1,
+        "dropChancesPercent": {
+          "common": 1.5,
+          "uncommon": 1,
+          "rare": 0.6,
+          "epic": 0.3,
+          "legendary": 0.1
+        }
+      },
+      "rare": {
+        "priceSoft": 11000,
+        "priceHard": 200,
+        "cards": 2,
+        "dropChancesPercent": {
+          "common": 0.3,
+          "uncommon": 0.6,
+          "rare": 1,
+          "epic": 0.6,
+          "legendary": 0.3
+        }
+      },
+      "epic": {
+        "priceSoft": 33000,
+        "priceHard": 600,
+        "cards": 5,
+        "dropChancesPercent": {
+          "common": 0.1,
+          "uncommon": 0.3,
+          "rare": 0.6,
+          "epic": 1,
+          "legendary": 1.5
+        }
+      }
+    },
+    "currencyPacks": [
+      { "id": "soft_small", "name": "Софт малый", "currency": "soft", "amount": 500, "baseWeight": 1 },
+      { "id": "soft_medium", "name": "Софт средний", "currency": "soft", "amount": 1500, "baseWeight": 0.8 },
+      { "id": "soft_big", "name": "Софт большой", "currency": "soft", "amount": 4000, "baseWeight": 0.5 },
+      { "id": "hard_small", "name": "Хард малый", "currency": "hard", "amount": 20, "baseWeight": 0.5 },
+      { "id": "hard_medium", "name": "Хард средний", "currency": "hard", "amount": 60, "baseWeight": 0.35 },
+      { "id": "hard_big", "name": "Хард большой", "currency": "hard", "amount": 150, "baseWeight": 0.2 }
+    ],
+    "freeChests": [
+      {
+        "id": "free_5m",
+        "name": "Бесплатный сундук 5м",
+        "cooldownMinutes": 5,
+        "packIds": ["soft_small", "soft_medium", "soft_big", "hard_small"],
+        "blueprintRarities": ["common", "uncommon"]
+      },
+      {
+        "id": "free_15m",
+        "name": "Бесплатный сундук 15м",
+        "cooldownMinutes": 20,
+        "packIds": ["soft_medium", "soft_big", "hard_small", "hard_medium"],
+        "blueprintRarities": ["common", "uncommon", "rare"]
+      },
+      {
+        "id": "free_30m",
+        "name": "Бесплатный сундук 30м",
+        "cooldownMinutes": 50,
+        "packIds": ["soft_big", "hard_medium", "hard_big"],
+        "blueprintRarities": ["common", "uncommon", "rare", "epic", "legendary"]
+      }
+    ],
+    "vip": {
+      "priceHard": 500
+    },
+    "battlePass": {
+      "priceHard": 1000,
+      "levels": 30,
+      "rewardPerLevelSoft": 150
+    },
+    "shopItems": [
+      { "id": "shop_common_chest", "name": "Обычный сундук (бронза)", "type": "chest", "chestId": "common", "quantity": 1, "priceSoft": 2750, "priceHard": 50 },
+      { "id": "shop_rare_chest", "name": "Редкий сундук (серебро)", "type": "chest", "chestId": "rare", "quantity": 1, "priceSoft": 11000, "priceHard": 200 },
+      { "id": "shop_epic_chest", "name": "Эпический сундук (золото)", "type": "chest", "chestId": "epic", "quantity": 1, "priceSoft": 33000, "priceHard": 600 },
+      { "id": "shop_soft_180", "name": "180 монет", "type": "currency_soft", "quantity": 180, "priceSoft": 0, "priceHard": 10 },
+      { "id": "shop_soft_720", "name": "720 монет", "type": "currency_soft", "quantity": 720, "priceSoft": 0, "priceHard": 40 },
+      { "id": "shop_soft_1260", "name": "1260 монет", "type": "currency_soft", "quantity": 1260, "priceSoft": 0, "priceHard": 70 },
+      { "id": "iap_gold_499", "name": "Золото $4.99", "type": "iap_gold", "quantity": 900, "priceSoft": 0, "priceHard": 0, "priceUsd": 4.99 },
+      { "id": "iap_gold_1099", "name": "Золото $10.99", "type": "iap_gold", "quantity": 1900, "priceSoft": 0, "priceHard": 0, "priceUsd": 10.99 },
+      { "id": "iap_gold_2199", "name": "Золото $21.99", "type": "iap_gold", "quantity": 4300, "priceSoft": 0, "priceHard": 0, "priceUsd": 21.99 },
+      { "id": "iap_gold_5499", "name": "Золото $54.99", "type": "iap_gold", "quantity": 11000, "priceSoft": 0, "priceHard": 0, "priceUsd": 54.99 },
+      { "id": "iap_gold_10999", "name": "Золото $109.99", "type": "iap_gold", "quantity": 24000, "priceSoft": 0, "priceHard": 0, "priceUsd": 109.99 },
+      { "id": "iap_soft_499", "name": "Монеты $4.99", "type": "iap_soft", "quantity": 13370, "priceSoft": 0, "priceHard": 0, "priceUsd": 4.99 },
+      { "id": "iap_soft_1099", "name": "Монеты $10.99", "type": "iap_soft", "quantity": 29250, "priceSoft": 0, "priceHard": 0, "priceUsd": 10.99 },
+      { "id": "iap_soft_2199", "name": "Монеты $21.99", "type": "iap_soft", "quantity": 66850, "priceSoft": 0, "priceHard": 0, "priceUsd": 21.99 },
+      { "id": "iap_soft_5499", "name": "Монеты $54.99", "type": "iap_soft", "quantity": 175500, "priceSoft": 0, "priceHard": 0, "priceUsd": 54.99 },
+      { "id": "iap_soft_10999", "name": "Монеты $109.99", "type": "iap_soft", "quantity": 376000, "priceSoft": 0, "priceHard": 0, "priceUsd": 109.99 },
+      { "id": "shop_card_slot", "name": "Ячейка карточки", "type": "card_slot", "quantity": 1, "priceSoft": 200, "priceHard": 20 },
+      { "id": "shop_energy_full", "name": "Энергия (полная)", "type": "energy", "quantity": 100, "priceSoft": 200, "priceHard": 0 },
+      { "id": "shop_vip", "name": "VIP подписка (7 дней)", "type": "vip", "quantity": 1, "priceSoft": 0, "priceHard": 500 },
+      { "id": "shop_battle_pass", "name": "Боевой пропуск", "type": "battle_pass", "quantity": 1, "priceSoft": 0, "priceHard": 1000 },
+      { "id": "shop_starter_pack", "name": "Набор новичка", "type": "pack", "quantity": 1, "priceSoft": 0, "priceHard": 300 },
+      { "id": "shop_advanced_pack", "name": "Продвинутый набор", "type": "pack", "quantity": 1, "priceSoft": 0, "priceHard": 800 },
+      { "id": "shop_pro_pack", "name": "Профессиональный набор", "type": "pack", "quantity": 1, "priceSoft": 0, "priceHard": 1500 },
+      { "id": "shop_piggy_small", "name": "Копилка (малая)", "type": "piggy", "quantity": 1, "priceSoft": 0, "priceHard": 100 },
+      { "id": "shop_piggy_medium", "name": "Копилка (средняя)", "type": "piggy", "quantity": 1, "priceSoft": 0, "priceHard": 250 },
+      { "id": "shop_piggy_big", "name": "Копилка (большая)", "type": "piggy", "quantity": 1, "priceSoft": 0, "priceHard": 500 }
+    ],
+    "rocketUnlock": {
+      "hydra70Soft": 5000,
+      "hellfireSoft": 20000
+    },
+    "loginRewards": [
+      { "day": 1, "soft": 500, "hard": 0 },
+      { "day": 2, "soft": 700, "hard": 0 },
+      { "day": 3, "soft": 900, "hard": 0 },
+      { "day": 4, "soft": 0, "hard": 20 },
+      { "day": 5, "soft": 1200, "hard": 0 },
+      { "day": 6, "soft": 1500, "hard": 0 },
+      { "day": 7, "soft": 0, "hard": 60 }
+    ],
+    "referenceUsd": {
+      "vipWeeklyUsd": 7.99,
+      "minGoldPackUsd": 0.99
+    },
+    "usdAnchor": {
+      "vipPriceHard": 500
+    },
+    "referencePacks": {
+      "goldPerUsd": 541,
+      "softPerUsd": 2680,
+      "softPerGoldRatio": 18,
+      "goldTiers": [
+        { "usd": 4.99, "goldBase": 900, "goldBonus": 1800 },
+        { "usd": 10.99, "goldBase": 1900, "goldBonus": 3800 },
+        { "usd": 21.99, "goldBase": 4300, "goldBonus": 8600 },
+        { "usd": 54.99, "goldBase": 11000, "goldBonus": 22000 },
+        { "usd": 109.99, "goldBase": 24000, "goldBonus": 48000 }
+      ],
+      "cashTiers": [
+        { "usd": 4.99, "cashBase": 16000, "cashBonus": 32000 },
+        { "usd": 10.99, "cashBase": 35000, "cashBonus": 70000 },
+        { "usd": 21.99, "cashBase": 80000, "cashBonus": 160000 },
+        { "usd": 54.99, "cashBase": 210000, "cashBonus": 420000 },
+        { "usd": 109.99, "cashBase": 450000, "cashBonus": 900000 }
+      ],
+      "chests": {
+        "bronze": { "usd": 0.25, "cards": 1, "priceGold": 50, "kit10Gold": 500 },
+        "silver": { "usd": 1.00, "cards": 2, "priceGold": 200, "kit20Gold": 2000 },
+        "gold": { "usd": 3.00, "cards": 5, "priceGold": 600, "kit50Gold": 6000 }
+      }
+    },
+    "referenceAvgRewardPerAttemptSoft": 487.0666666666666
+  },
+  "enemies": {
+    "infantry": {
+      "id": "infantry",
+      "displayName": "Пехотинец",
+      "baseHp": 20,
+      "baseDamage": 5,
+      "range": 50,
+      "speed": 70,
+      "reward": 10
+    },
+    "jeep": {
+      "id": "jeep",
+      "displayName": "Джип",
+      "baseHp": 80,
+      "baseDamage": 15,
+      "range": 60,
+      "speed": 90,
+      "reward": 30
+    },
+    "apc": {
+      "id": "apc",
+      "displayName": "БТР",
+      "baseHp": 150,
+      "baseDamage": 25,
+      "range": 70,
+      "speed": 50,
+      "reward": 50
+    },
+    "lightTank": {
+      "id": "lightTank",
+      "displayName": "Лёгкий танк",
+      "baseHp": 200,
+      "baseDamage": 30,
+      "baseFireRatePerMin": 24,
+      "range": 78,
+      "speed": 52,
+      "reward": 65
+    },
+    "heavyTank": {
+      "id": "heavyTank",
+      "displayName": "Тяжёлый танк",
+      "baseHp": 380,
+      "baseDamage": 46,
+      "baseFireRatePerMin": 18,
+      "range": 85,
+      "speed": 32,
+      "reward": 115
+    },
+    "mlrs": {
+      "id": "mlrs",
+      "displayName": "РСЗО",
+      "baseHp": 130,
+      "baseDamage": 140,
+      "baseFireRatePerMin": 9,
+      "range": 220,
+      "speed": 22,
+      "reward": 90,
+      "attackWindupFraction": 0.22
+    },
+    "fuelTruck": {
+      "id": "fuelTruck",
+      "displayName": "Бензовоз-камикадзе",
+      "baseHp": 70,
+      "baseDamage": 95,
+      "baseFireRatePerMin": 28,
+      "range": 8,
+      "speed": 110,
+      "reward": 55,
+      "objectivePressureMultiplier": 1.5
+    },
+    "heli": {
+      "id": "heli",
+      "displayName": "Вертолёт",
+      "baseHp": 120,
+      "baseDamage": 35,
+      "range": 100,
+      "speed": 80,
+      "reward": 80
+    },
+    "plane": {
+      "id": "plane",
+      "displayName": "Самолёт",
+      "baseHp": 250,
+      "baseDamage": 45,
+      "range": 120,
+      "speed": 120,
+      "reward": 120
+    },
+    "heavyInfantry": {
+      "id": "heavyInfantry",
+      "displayName": "Тяж.пехота",
+      "baseHp": 150,
+      "baseDamage": 20,
+      "range": 50,
+      "speed": 70,
+      "reward": 40
+    }
+  },
+  "weaponVsEnemyModifiers": {
+    "machineGun": {
+      "infantry": 1.0,
+      "jeep": 0.8,
+      "apc": 0.5,
+      "lightTank": 0.42,
+      "heavyTank": 0.28,
+      "mlrs": 0.52,
+      "fuelTruck": 0.88,
+      "heli": 0.7,
+      "plane": 0.6,
+      "heavyInfantry": 0.9
+    },
+    "hydra70": {
+      "infantry": 1.5,
+      "jeep": 1.2,
+      "apc": 1.0,
+      "lightTank": 1.05,
+      "heavyTank": 0.82,
+      "mlrs": 1.05,
+      "fuelTruck": 1.12,
+      "heli": 1.3,
+      "plane": 1.1,
+      "heavyInfantry": 1.4
+    },
+    "hellfire": {
+      "infantry": 2.0,
+      "jeep": 1.8,
+      "apc": 1.5,
+      "lightTank": 1.38,
+      "heavyTank": 1.22,
+      "mlrs": 1.55,
+      "fuelTruck": 1.35,
+      "heli": 1.7,
+      "plane": 1.6,
+      "heavyInfantry": 1.9
+    }
+  },
+  "supportCards": [
+    { "id": 1, "name": "Рой дронов", "rarity": "uncommon", "type": "summon", "param1Name": "Количество дронов", "param2Name": "Урон дрона", "param1Growth": { "kind": "linear", "base": 5, "inc": 1 }, "param2Growth": { "kind": "exp", "base": 10, "mult": 1.15 } },
+    { "id": 2, "name": "Мины", "rarity": "common", "type": "spell", "param1Name": "Количество мин", "param2Name": "Урон мины", "param1Growth": { "kind": "linear", "base": 3, "inc": 1 }, "param2Growth": { "kind": "exp", "base": 50, "mult": 1.2 }, "unlockAfterLevel": 3, "firstBlueprints": 0 },
+    { "id": 3, "name": "Вертолет", "rarity": "rare", "type": "summon", "param1Name": "Здоровье", "param2Name": "Урон", "param1Growth": { "kind": "exp", "base": 200, "mult": 1.2 }, "param2Growth": { "kind": "exp", "base": 30, "mult": 1.15 } },
+    { "id": 4, "name": "Десант Джипов", "rarity": "rare", "type": "summon", "param1Name": "Количество джипов", "param2Name": "Уровень джипа", "param1Growth": { "kind": "step", "steps": [ [1,2,1], [3,4,2], [5,6,3], [7,8,4], [9,10,5] ] }, "param2Growth": { "kind": "linear", "base": 1, "inc": 1 } },
+    { "id": 5, "name": "Десант БТР", "rarity": "epic", "type": "summon", "param1Name": "Количество БТР", "param2Name": "Уровень БТР", "param1Growth": { "kind": "step", "steps": [ [1,4,1], [5,7,2], [8,10,3] ] }, "param2Growth": { "kind": "linear", "base": 1, "inc": 1 } },
+    { "id": 6, "name": "Десант тяжёлых танков", "rarity": "legendary", "type": "summon", "param1Name": "Количество танков", "param2Name": "Уровень танка", "param1Growth": { "kind": "constant", "base": 1 }, "param2Growth": { "kind": "linear", "base": 1, "inc": 1 } },
+    { "id": 7, "name": "Десант пехоты", "rarity": "common", "type": "summon", "param1Name": "Количество пехоты", "param2Name": "Уровень пехоты", "param1Growth": { "kind": "linear", "base": 3, "inc": 1 }, "param2Growth": { "kind": "linear", "base": 1, "inc": 1 }, "unlockAfterLevel": 3, "firstBlueprints": 0 },
+    { "id": 8, "name": "Патроны - Hydra", "rarity": "common", "type": "resource", "param1Name": "Количество патронов", "param2Name": "-", "param1Growth": { "kind": "linear", "base": 5, "inc": 2 }, "unlockAfterLevel": 3, "firstBlueprints": 0 },
+    { "id": 9, "name": "Патроны - Hellfire", "rarity": "rare", "type": "resource", "param1Name": "Количество патронов", "param2Name": "-", "param1Growth": { "kind": "linear", "base": 3, "inc": 1 }, "unlockAfterLevel": 3, "firstBlueprints": 0 },
+    { "id": 10, "name": "Патроны - Machine gun", "rarity": "common", "type": "resource", "param1Name": "Количество патронов", "param2Name": "-", "param1Growth": { "kind": "linear", "base": 5, "inc": 2 }, "unlockAfterLevel": 3, "firstBlueprints": 0 },
+    { "id": 11, "name": "Истребитель Raptor", "rarity": "rare", "type": "summon", "param1Name": "Количество ракет", "param2Name": "Урон ракеты", "param1Growth": { "kind": "linear", "base": 5, "inc": 1 }, "param2Growth": { "kind": "exp", "base": 100, "mult": 1.15 } },
+    { "id": 12, "name": "ЭМИ", "rarity": "rare", "type": "spell", "param1Name": "Длительность (сек)", "param2Name": "Бонус урона (%)", "param1Growth": { "kind": "linear", "base": 3, "inc": 0.5 }, "param2Growth": { "kind": "linear", "base": 50, "inc": 5 } },
+    { "id": 13, "name": "Ремонтный дрон", "rarity": "rare", "type": "support", "param1Name": "Лечение (ХП/сек)", "param2Name": "Длительность (сек)", "param1Growth": { "kind": "exp", "base": 20, "mult": 1.15 }, "param2Growth": { "kind": "linear", "base": 5, "inc": 1 } },
+    { "id": 14, "name": "Отражающее поле", "rarity": "epic", "type": "defence", "param1Name": "Длительность (сек)", "param2Name": "Отражение (%)", "param1Growth": { "kind": "linear", "base": 3, "inc": 0.5 }, "param2Growth": { "kind": "linear", "base": 50, "inc": 5 } },
+    { "id": 15, "name": "Кассетная бомба", "rarity": "legendary", "type": "spell", "param1Name": "Количество взрывов", "param2Name": "Урон взрыва", "param1Growth": { "kind": "linear", "base": 6, "inc": 1 }, "param2Growth": { "kind": "exp", "base": 30, "mult": 1.2 } }
+  ],
+  "cardUpgradeCosts": {
+    "1": { "cards": 0, "uncommon": 0, "common": 0, "rare": 0, "epic": 0, "legendary": 0 },
+    "2": { "cards": 2, "uncommon": 5, "common": 5, "rare": 20, "epic": 50, "legendary": 100 },
+    "3": { "cards": 4, "uncommon": 20, "common": 20, "rare": 50, "epic": 150, "legendary": 300 },
+    "4": { "cards": 10, "uncommon": 50, "common": 50, "rare": 150, "epic": 400, "legendary": 800 },
+    "5": { "cards": 20, "uncommon": 150, "common": 150, "rare": 400, "epic": 1000, "legendary": 2000 },
+    "6": { "cards": 50, "uncommon": 400, "common": 400, "rare": 1000, "epic": 2000, "legendary": 5000 },
+    "7": { "cards": 100, "uncommon": 1000, "common": 1000, "rare": 2000, "epic": 4000, "legendary": 10000 },
+    "8": { "cards": 200, "uncommon": 2000, "common": 2000, "rare": 4000, "epic": 8000, "legendary": 20000 },
+    "9": { "cards": 400, "uncommon": 4000, "common": 4000, "rare": 8000, "epic": 20000, "legendary": 50000 },
+    "10": { "cards": 800, "uncommon": 8000, "common": 8000, "rare": 20000, "epic": 50000, "legendary": 100000 }
+  }
+}
+

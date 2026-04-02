@@ -1,0 +1,300 @@
+import type { BalanceConstants, CardRarity, ChestConfig, CurrencyPackConfig, FreeChestConfig } from '../balance/model';
+import type { SegmentId } from './types';
+
+export interface SegmentUsdProfile {
+  segmentId: SegmentId;
+  weeklyUsdRange: [number, number];
+}
+
+export const DEFAULT_SEGMENT_USD_PROFILES: SegmentUsdProfile[] = [
+  { segmentId: 'free', weeklyUsdRange: [0, 0] },
+  { segmentId: 'payer', weeklyUsdRange: [6, 10] },
+  { segmentId: 'whale', weeklyUsdRange: [51, 100] },
+];
+
+function clampFinite(n: number, fallback: number): number {
+  return Number.isFinite(n) ? n : fallback;
+}
+
+export function getExpectedWeeklyUsdForSegment(
+  segmentId: SegmentId,
+  profiles: SegmentUsdProfile[] = DEFAULT_SEGMENT_USD_PROFILES
+): number {
+  // Если в meta заданы дневные значения — используем их (это “истина” для вкладки «Трафик» и прогноза).
+  if (segmentId === 'payer') {
+    const v = (profiles as any)?.__constants?.meta?.trafficUsdPerDayPayer;
+    // fallback: чаще вызов идёт без __constants, поэтому отдельная функция ниже используется в прогнозе.
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v * 7;
+  }
+  if (segmentId === 'whale') {
+    const v = (profiles as any)?.__constants?.meta?.trafficUsdPerDayWhale;
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) return v * 7;
+  }
+
+  const p = profiles.find((x) => x.segmentId === segmentId) ?? profiles[1];
+  const [minUsd, maxUsd] = p.weeklyUsdRange;
+  return (minUsd + maxUsd) / 2;
+}
+
+function findBestIapSoftPackForUsd(constants: BalanceConstants): { packSoft: number; priceUsd: number } | null {
+  const iapSoft = constants.economy.shopItems.filter((it) => it.type === 'iap_soft' && (it.priceUsd ?? 0) > 0 && it.quantity > 0);
+  if (iapSoft.length === 0) return null;
+
+  // Максимальная эффективность: soft / USD
+  let best: { packSoft: number; priceUsd: number } | null = null;
+  for (const item of iapSoft) {
+    const priceUsd = item.priceUsd ?? 0;
+    const packSoft = item.quantity;
+    if (priceUsd <= 0 || packSoft <= 0) continue;
+    if (!best) {
+      best = { packSoft, priceUsd };
+      continue;
+    }
+    const bestRate = best.packSoft / best.priceUsd;
+    const thisRate = packSoft / priceUsd;
+    if (thisRate > bestRate) best = { packSoft, priceUsd };
+  }
+  return best;
+}
+
+export function getSoftIncomeFromSegmentPerWeek(
+  constants: BalanceConstants,
+  segmentId: SegmentId,
+  profiles: SegmentUsdProfile[] = DEFAULT_SEGMENT_USD_PROFILES
+): number {
+  if (segmentId === 'free') return 0;
+
+  const meta = constants.meta ?? ({} as any);
+  const usdPerDay =
+    segmentId === 'payer'
+      ? meta.trafficUsdPerDayPayer
+      : segmentId === 'whale'
+        ? meta.trafficUsdPerDayWhale
+        : 0;
+  const expectedUsd =
+    typeof usdPerDay === 'number' && Number.isFinite(usdPerDay) && usdPerDay > 0
+      ? usdPerDay * 7
+      : getExpectedWeeklyUsdForSegment(segmentId, profiles);
+  const bestPack = findBestIapSoftPackForUsd(constants);
+  if (!bestPack) return 0;
+
+  const softPerUsd = bestPack.packSoft / bestPack.priceUsd;
+  return Math.max(0, expectedUsd * softPerUsd);
+}
+
+export function getBestSoftPerUsd(constants: BalanceConstants): number {
+  const bestPack = findBestIapSoftPackForUsd(constants);
+  if (!bestPack) return 0;
+  return bestPack.packSoft / bestPack.priceUsd;
+}
+
+export function getBestGoldPerUsd(constants: BalanceConstants): number {
+  const iapGold = constants.economy.shopItems.filter((it) => it.type === 'iap_gold' && (it.priceUsd ?? 0) > 0 && it.quantity > 0);
+  if (iapGold.length === 0) return 0;
+  let best = 0;
+  for (const item of iapGold) {
+    const usd = item.priceUsd ?? 0;
+    const qty = item.quantity ?? 0;
+    if (usd <= 0 || qty <= 0) continue;
+    best = Math.max(best, qty / usd);
+  }
+  return best;
+}
+
+export function getIapSoftIncomeForUsd(
+  constants: BalanceConstants,
+  usd: number
+): number {
+  if (usd <= 0) return 0;
+  const bestPack = findBestIapSoftPackForUsd(constants);
+  if (!bestPack) return 0;
+  const softPerUsd = bestPack.packSoft / bestPack.priceUsd;
+  return Math.max(0, usd * softPerUsd);
+}
+
+export function mapCardRarityToChestDropRarity(
+  rarity: CardRarity
+): keyof NonNullable<ChestConfig['dropChancesPercent']> {
+  if (rarity === 'uncommon') return 'uncommon';
+  return rarity;
+}
+
+function getChestDropChancePercent(chest: ChestConfig, rarityKey: keyof NonNullable<ChestConfig['dropChancesPercent']>): number {
+  const drops = chest.dropChancesPercent;
+  if (!drops) return 0;
+  return drops[rarityKey] ?? 0;
+}
+
+export function countSupportCardsOfRarity(constants: BalanceConstants, rarity: CardRarity): number {
+  return constants.supportCards.filter((c) => c.rarity === rarity).length;
+}
+
+/**
+ * Expected-value: сколько копий конкретной карты (одной карточки данного rarity) падает за ОДИН сундук.
+ *
+ * Логика: Spreadsheet SimulatorChest (взвешенный ролл по всем карточкам).
+ */
+export function getExpectedCopiesOfSingleCardPerChest(
+  constants: BalanceConstants,
+  chestId: string,
+  targetRarity: CardRarity
+): number {
+  const chest = constants.economy.chests[chestId];
+  if (!chest) return 0;
+
+  // Полная логика из Spreadsheet SimulatorChest:
+  // finalWeight(item) = itemBaseWeight * rarityWeight * chestMultiplierByRarity
+  // P(item) = finalWeight(item) / sum(finalWeight(all items))
+  // E[copies of single item per chest] = cardsPerChest * P(item)
+  const rarityWeights = constants.economy.cardRarityWeights ?? {};
+  const allCards = constants.supportCards;
+  const rarityKey = mapCardRarityToChestDropRarity(targetRarity);
+  const chestMultiplierTarget = getChestDropChancePercent(
+    chest,
+    rarityKey as keyof NonNullable<ChestConfig['dropChancesPercent']>
+  );
+  const targetRarityWeight = rarityWeights[targetRarity] ?? 1;
+  if (chestMultiplierTarget <= 0 || targetRarityWeight <= 0) return 0;
+
+  const countTargetItems = allCards.filter((c) => c.rarity === targetRarity).length;
+  if (countTargetItems <= 0) return 0;
+
+  let totalWeight = 0;
+  for (const card of allCards) {
+    const baseWeight = card.chestBaseWeight ?? 1;
+    const rarityWeight = rarityWeights[card.rarity] ?? 1;
+    const cardRarityKey = mapCardRarityToChestDropRarity(card.rarity);
+    const chestMultiplier = getChestDropChancePercent(
+      chest,
+      cardRarityKey as keyof NonNullable<ChestConfig['dropChancesPercent']>
+    ) || 1;
+    totalWeight += Math.max(0, baseWeight * rarityWeight * chestMultiplier);
+  }
+  if (totalWeight <= 0) return 0;
+
+  const targetSingleItemWeight = 1 * targetRarityWeight * chestMultiplierTarget;
+  const targetSingleItemProbability = targetSingleItemWeight / totalWeight;
+  return chest.cards * targetSingleItemProbability;
+}
+
+export function getExpectedCopiesOfSingleCardPerSoftSpent(
+  constants: BalanceConstants,
+  chestId: string,
+  targetRarity: CardRarity
+): number {
+  const chest = constants.economy.chests[chestId];
+  if (chest.priceSoft <= 0) return 0;
+  const expectedCopies = getExpectedCopiesOfSingleCardPerChest(constants, chestId, targetRarity);
+  return expectedCopies / chest.priceSoft;
+}
+
+/**
+ * chestPolicy: выбираем сундук с максимальной эффективностью
+ * (expectedCopiesOfSingleCard per 1 soft spent) для конкретной цели по rarity.
+ */
+export function pickBestChestByRarityEfficiency(
+  constants: BalanceConstants,
+  targetRarity: CardRarity
+): string {
+  const chestIds = Object.keys(constants.economy.chests).filter((id) => Boolean(constants.economy.chests[id]));
+  if (chestIds.length === 0) {
+    return 'common';
+  }
+  let bestChest = chestIds[0];
+  let bestEff = -Infinity;
+  for (const chestId of chestIds) {
+    const eff = getExpectedCopiesOfSingleCardPerSoftSpent(constants, chestId, targetRarity);
+    if (eff > bestEff) {
+      bestEff = eff;
+      bestChest = chestId;
+    }
+  }
+  return bestChest;
+}
+
+export function getExpectedChestsToGetCards(
+  constants: BalanceConstants,
+  chestId: string,
+  targetRarity: CardRarity,
+  cardsNeeded: number
+): number {
+  if (cardsNeeded <= 0) return 0;
+  const expectedPerChest = getExpectedCopiesOfSingleCardPerChest(constants, chestId, targetRarity);
+  if (expectedPerChest <= 0) return Infinity;
+  return cardsNeeded / expectedPerChest;
+}
+
+type FreeChestDrop =
+  | { kind: 'pack'; pack: CurrencyPackConfig; weight: number }
+  | { kind: 'blueprint'; rarity: CardRarity; weight: number };
+
+function getFreeChestDropPool(constants: BalanceConstants, chest: FreeChestConfig): FreeChestDrop[] {
+  const packsById = new Map((constants.economy.currencyPacks ?? []).map((p) => [p.id, p]));
+  const rarityWeights = constants.economy.cardRarityWeights ?? {};
+  const drops: FreeChestDrop[] = [];
+
+  for (const packId of chest.packIds ?? []) {
+    const pack = packsById.get(packId);
+    if (!pack) continue;
+    drops.push({ kind: 'pack', pack, weight: Math.max(0, pack.baseWeight ?? 0) });
+  }
+  for (const rarity of chest.blueprintRarities ?? []) {
+    drops.push({
+      kind: 'blueprint',
+      rarity,
+      weight: Math.max(0, rarityWeights[rarity] ?? 0),
+    });
+  }
+  return drops;
+}
+
+export function getExpectedBlueprintCopiesOfSingleCardPerFreeChest(
+  constants: BalanceConstants,
+  freeChestId: string,
+  targetRarity: CardRarity
+): number {
+  const chest = (constants.economy.freeChests ?? []).find((c) => c.id === freeChestId);
+  if (!chest) return 0;
+  const pool = getFreeChestDropPool(constants, chest);
+  const totalWeight = pool.reduce((s, d) => s + d.weight, 0);
+  if (totalWeight <= 0) return 0;
+
+  const rarityWeight = pool
+    .filter((d): d is Extract<FreeChestDrop, { kind: 'blueprint' }> => d.kind === 'blueprint' && d.rarity === targetRarity)
+    .reduce((s, d) => s + d.weight, 0);
+  if (rarityWeight <= 0) return 0;
+
+  const cardsOfRarity = countSupportCardsOfRarity(constants, targetRarity);
+  if (cardsOfRarity <= 0) return 0;
+
+  const pRarity = rarityWeight / totalWeight;
+  // В бесплатном сундуке строго один дроп; для blueprint-дропа даётся 1 чертёж.
+  return pRarity / cardsOfRarity;
+}
+
+export function getExpectedFreeChestCurrencyPerOpen(
+  constants: BalanceConstants,
+  freeChestId: string
+): { soft: number; hard: number } {
+  const chest = (constants.economy.freeChests ?? []).find((c) => c.id === freeChestId);
+  if (!chest) return { soft: 0, hard: 0 };
+  const pool = getFreeChestDropPool(constants, chest);
+  const totalWeight = pool.reduce((s, d) => s + d.weight, 0);
+  if (totalWeight <= 0) return { soft: 0, hard: 0 };
+
+  let soft = 0;
+  let hard = 0;
+  for (const drop of pool) {
+    if (drop.kind !== 'pack') continue;
+    const p = drop.weight / totalWeight;
+    if (drop.pack.currency === 'soft') soft += p * drop.pack.amount;
+    else hard += p * drop.pack.amount;
+  }
+  return { soft, hard };
+}
+
+export function getExpectedFreeChestOpensPerHour(chest: FreeChestConfig): number {
+  const minutes = Math.max(1, chest.cooldownMinutes || 0);
+  return 60 / minutes;
+}
+

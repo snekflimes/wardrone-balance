@@ -1,0 +1,143 @@
+var Upgrades = {};
+
+Upgrades.upgradeMachineGun = function() {
+  this.upgradeWeapon('Пулемёт', 4);
+};
+
+Upgrades.upgradeHydra = function() {
+  this.upgradeWeapon('Hydra-70', 5);
+};
+
+Upgrades.upgradeHellfire = function() {
+  this.upgradeWeapon('Hellfire', 6);
+};
+
+Upgrades.upgradeWeapon = function(weaponName, levelCell) {
+  var profileSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Player_Profile');
+  var currentLevel = profileSheet.getRange('B' + levelCell).getValue();
+  var maxLevel = 10;
+  
+  if (currentLevel >= maxLevel) {
+    SpreadsheetApp.getUi().alert('⚠️ ' + weaponName + ' уже максимального уровня!');
+    return;
+  }
+  
+  var weaponsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Weapons');
+  var weaponData = weaponsSheet.getDataRange().getValues();
+  
+  var upgradeCost = 0;
+  for (var i = 1; i < weaponData.length; i++) {
+    if (weaponData[i][0] === weaponName && weaponData[i][1] === currentLevel + 1) {
+      upgradeCost = weaponData[i][6];
+      break;
+    }
+  }
+  
+  var currentCoins = profileSheet.getRange('B7').getValue();
+  
+  if (currentCoins >= upgradeCost) {
+    profileSheet.getRange('B7').setValue(currentCoins - upgradeCost);
+    profileSheet.getRange('B' + levelCell).setValue(currentLevel + 1);
+    
+    if ((currentLevel + 1) % 3 === 0) {
+      var cardCell = 0;
+      if (weaponName === 'Пулемёт') cardCell = 14;
+      else if (weaponName === 'Hydra-70') cardCell = 15;
+      else if (weaponName === 'Hellfire') cardCell = 16;
+      
+      var currentCards = profileSheet.getRange('B' + cardCell).getValue();
+      profileSheet.getRange('B' + cardCell).setValue(currentCards + 1);
+      
+      SpreadsheetApp.getUi().alert('🎁 Получена карточка для ' + weaponName + '!');
+    }
+    
+    SpreadsheetApp.getUi().alert('✅ ' + weaponName + ' улучшен до уровня ' + (currentLevel + 1) + ' за ' + upgradeCost + ' монет');
+  } else {
+    SpreadsheetApp.getUi().alert('❌ Недостаточно монет! Нужно: ' + upgradeCost);
+  }
+};
+
+Upgrades.upgradeHelicopter = function() {
+  var profileSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Player_Profile');
+  var currentHealth = profileSheet.getRange('B4').getValue();
+  var upgradeCost = 400;
+  var currentCoins = profileSheet.getRange('B7').getValue();
+  
+  if (currentCoins >= upgradeCost) {
+    profileSheet.getRange('B7').setValue(currentCoins - upgradeCost);
+    profileSheet.getRange('B4').setValue(currentHealth * 1.2);
+    
+    SpreadsheetApp.getUi().alert('✅ Здоровье вертолёта улучшено! Новое здоровье: ' + (currentHealth * 1.2).toFixed(0));
+  } else {
+    SpreadsheetApp.getUi().alert('❌ Недостаточно монет! Нужно: ' + upgradeCost);
+  }
+};
+
+Upgrades.buyCardSlot = function() {
+  var profileSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Player_Profile');
+  var currentSlots = profileSheet.getRange('B13').getValue();
+  var maxSlots = 24;
+  var slotCost = 200;
+  var currentCoins = profileSheet.getRange('B7').getValue();
+  
+  if (currentSlots >= maxSlots) {
+    SpreadsheetApp.getUi().alert('⚠️ Достигнуто максимальное количество ячеек!');
+    return;
+  }
+  
+  if (currentCoins >= slotCost) {
+    profileSheet.getRange('B7').setValue(currentCoins - slotCost);
+    profileSheet.getRange('B13').setValue(currentSlots + 1);
+    
+    SpreadsheetApp.getUi().alert('✅ Куплена ячейка для карточек! Теперь ячеек: ' + (currentSlots + 1));
+  } else {
+    SpreadsheetApp.getUi().alert('❌ Недостаточно монет! Нужно: ' + slotCost);
+  }
+};
+
+Upgrades.applyCard = function(cardType) {
+  var cardsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Cards');
+  var cardData = cardsSheet.getDataRange().getValues();
+  var card = null;
+  
+  for (var i = 2; i < cardData.length; i++) {
+    if (cardData[i][0] === cardType) {
+      card = cardData[i];
+      break;
+    }
+  }
+  
+  if (!card) {
+    SpreadsheetApp.getUi().alert('❌ Карточка не найдена!');
+    return;
+  }
+  
+  var weaponType = card[1];
+  var bonus = card[2];
+  var cost = card[3];
+  
+  var profileSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Player_Profile');
+  var currentCoins = profileSheet.getRange('B7').getValue();
+  var cardCell = 0;
+  if (weaponType === 'Пулемёт') cardCell = 14;
+  else if (weaponType === 'Hydra-70') cardCell = 15;
+  else if (weaponType === 'Hellfire') cardCell = 16;
+  else cardCell = 17;
+  
+  var currentCards = profileSheet.getRange('B' + cardCell).getValue();
+  
+  if (currentCards <= 0) {
+    SpreadsheetApp.getUi().alert('❌ Нет карточек ' + weaponType + '!');
+    return;
+  }
+  
+  if (currentCoins < cost) {
+    SpreadsheetApp.getUi().alert('❌ Недостаточно монет для активации!');
+    return;
+  }
+  
+  profileSheet.getRange('B7').setValue(currentCoins - cost);
+  profileSheet.getRange('B' + cardCell).setValue(currentCards - 1);
+  
+  SpreadsheetApp.getUi().alert('✅ Карточка "' + cardType + '" активирована! Бонус: +' + bonus + '%');
+};
