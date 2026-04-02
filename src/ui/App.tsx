@@ -94,6 +94,7 @@ function normalizeForecastUiState(
 /** Раньше пресеты автотюна жили только в localStorage — подмешиваем к данным из БД (ключи из БД перекрывают legacy). */
 const LEGACY_TUNE_PRESETS_STORAGE_KEY = 'war-drone-tune-presets-v1';
 const LOCAL_PERSISTENCE_STORAGE_KEY = 'war-drone-balance-snapshot-v1';
+const ADMIN_KEY_STORAGE_KEY = 'war-drone-admin-key-v1';
 
 function readLegacyTunePresetsFromLocalStorage(): Record<string, SavedTunePreset> | null {
   if (typeof window === 'undefined') return null;
@@ -562,6 +563,22 @@ export const App: React.FC = () => {
   // на проде — PHP endpoint внутри /wardrone.
   const SAME_ORIGIN_API_URL = isLocalhost ? '/api/storage/balance' : 'api/storage/balance/index.php';
   const REMOTE_API_URL = 'https://snek.su/wardrone/api/storage/balance/index.php';
+  const getAdminKey = () => {
+    if (typeof window === 'undefined') return '';
+    try {
+      return window.localStorage.getItem(ADMIN_KEY_STORAGE_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  };
+  const setAdminKey = (key: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(ADMIN_KEY_STORAGE_KEY, key);
+    } catch {
+      // ignore
+    }
+  };
 
   const loadFromDb = async () => {
     const defaults = getDefaultReferenceWavesConfig();
@@ -718,9 +735,16 @@ export const App: React.FC = () => {
         forecastSegmentId,
         forecastUiState,
       });
+      const adminKey = getAdminKey();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      // На проде (PHP) включаем защиту: без ключа сохранение запрещено.
+      if (!isLocalhost) {
+        if (!adminKey) throw new Error('admin_key_missing');
+        headers['X-Wardrone-Key'] = adminKey;
+      }
       const response = await fetch(SAME_ORIGIN_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(snapshot),
       });
       if (!response.ok) throw new Error('save_failed');
@@ -731,6 +755,12 @@ export const App: React.FC = () => {
       setSaveMessage('Сохранено в БД');
       window.setTimeout(() => setSaveMessage(''), 1800);
     } catch {
+      if (!isLocalhost) {
+        setSaveMessage('Нужен ключ администратора (кнопка рядом с «Сохранить»).');
+        window.setTimeout(() => setSaveMessage(''), 2600);
+        setIsSaving(false);
+        return;
+      }
       // Если API недоступен (статический хостинг) — сохраняем локально в браузере.
       const snapshot = buildPersistenceSnapshot(balance, referenceWavesConfig, {
         activeForecastPresetName,
@@ -890,6 +920,20 @@ export const App: React.FC = () => {
             <button type="button" onClick={saveToDb} disabled={!storageReady || isSaving}>
               {isSaving ? 'Сохранение...' : 'Сохранить'}
             </button>
+            {!isLocalhost && (
+              <button
+                type="button"
+                onClick={() => {
+                  const cur = getAdminKey();
+                  const next = window.prompt('Ключ администратора для сохранения (будет сохранён в этом браузере):', cur) ?? '';
+                  setAdminKey(next.trim());
+                }}
+                disabled={!storageReady || isSaving}
+                title="Без ключа сохранение на сервер запрещено"
+              >
+                Ввести ключ
+              </button>
+            )}
             {isLocalhost && (
               <>
                 <button type="button" onClick={loadFromRemoteServer} disabled={isSaving}>

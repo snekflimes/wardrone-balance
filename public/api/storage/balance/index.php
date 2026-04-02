@@ -9,7 +9,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 // Allow local dev (localhost) to use the same server storage.
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, X-Wardrone-Key');
 
 if ($method === 'OPTIONS') {
   http_response_code(204);
@@ -21,6 +21,25 @@ if ($method === 'OPTIONS') {
 $dataDir = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'data';
 $dataFile = $dataDir . DIRECTORY_SEPARATOR . 'balance.json';
 $backupDir = $dataDir . DIRECTORY_SEPARATOR . 'backups';
+$adminKeyFile = $dataDir . DIRECTORY_SEPARATOR . 'admin.key';
+
+function readAdminKey(string $path): ?string {
+  if (!file_exists($path)) return null;
+  $raw = file_get_contents($path);
+  if ($raw === false) return null;
+  $key = trim($raw);
+  return $key !== '' ? $key : null;
+}
+
+function getProvidedKey(): ?string {
+  // Header is preferred.
+  $hdr = $_SERVER['HTTP_X_WARDRONE_KEY'] ?? null;
+  if (is_string($hdr) && trim($hdr) !== '') return trim($hdr);
+  // Fallback: query parameter (useful for manual testing).
+  $q = $_GET['key'] ?? null;
+  if (is_string($q) && trim($q) !== '') return trim($q);
+  return null;
+}
 
 function ensureDir(string $dir): void {
   if (!is_dir($dir)) {
@@ -54,6 +73,16 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+  // Protect writes with a simple admin key stored on the server (not in git).
+  $expectedKey = readAdminKey($adminKeyFile);
+  if ($expectedKey === null) {
+    respond(500, ['error' => 'admin_key_not_configured']);
+  }
+  $provided = getProvidedKey();
+  if ($provided === null || !hash_equals($expectedKey, $provided)) {
+    respond(401, ['error' => 'unauthorized']);
+  }
+
   $raw = file_get_contents('php://input');
   if ($raw === false) {
     respond(400, ['error' => 'no_body']);
