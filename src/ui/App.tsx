@@ -592,6 +592,7 @@ export const App: React.FC = () => {
     };
 
     try {
+      // Prefer server-side storage when available (static hosting + PHP endpoint).
       const response = await fetch('/api/storage/balance');
       if (!response.ok) {
         const local = readLocalPersistenceSnapshot();
