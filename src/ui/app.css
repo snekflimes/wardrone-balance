@@ -74,31 +74,117 @@
   white-space: nowrap;
 }
 
-/* Верхняя панель табов (внутри липкой шапки) */
-.root .app-sticky-header nav {
+.root .app-header-tagline {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 450;
+  max-width: 36rem;
+  line-height: 1.35;
+}
+
+/* Верхняя панель табов: горизонтальный скролл на узких экранах */
+.root .app-tab-bar {
   display: flex;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
   margin: 0;
   padding: 6px;
   border: none;
-  border-radius: 999px;
+  border-radius: 12px;
   background: linear-gradient(to right, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.88));
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.65);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
-.root nav button {
+.root .app-tab-bar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.root .app-tab-bar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+
+.root .app-tab {
   cursor: pointer;
+  flex: 0 0 auto;
   font-size: 13px;
+  padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid transparent;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease,
-    box-shadow 0.18s ease;
+  background: transparent;
+  color: #cbd5e1;
+  font-weight: 500;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+  white-space: nowrap;
 }
 
-.root nav button:hover {
+.root .app-tab:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.7);
+  background: rgba(30, 41, 59, 0.65);
+  color: #f1f5f9;
+}
+
+.root .app-tab--active {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8) !important;
+  color: #fff !important;
+  font-weight: 600;
+  border-color: rgba(147, 197, 253, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(29, 78, 216, 0.5);
+}
+
+.root .app-tab-hint {
+  margin: 8px 4px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.root .btn-primary {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8) !important;
+  border-color: rgba(147, 197, 253, 0.5) !important;
+  color: #fff !important;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(29, 78, 216, 0.4);
+}
+
+.root .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.root .btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.root .btn-ghost {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+  color: #e2e8f0 !important;
+  padding: 7px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.root .btn-ghost:hover:not(:disabled) {
+  background: rgba(30, 41, 59, 0.85) !important;
+  border-color: rgba(148, 163, 184, 0.55) !important;
+}
+
+/* Широкие селекты в панелях (пресеты колонок и т.п.) */
+.root select.input-stretch,
+.root input.input-stretch {
+  width: auto !important;
+  min-width: min(100%, 280px);
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Карточки секций */

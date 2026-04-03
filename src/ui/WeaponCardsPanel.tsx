@@ -15,7 +15,11 @@ import {
 } from '../balance/cards';
 import {
   getSupportCardColumnOrder,
+  getSupportCardParameterPresetsForCard,
+  isSupportCardColumnRecognized,
+  supportCardHasColumnTitle,
   SUPPORT_CARD_BATTLE_COLUMN_HINT,
+  type SupportCardBattleParameterPreset,
 } from '../balance/supportCardRowSemantics';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
@@ -714,10 +718,49 @@ function removeSupportCardColumn(setBalance: SetBalance, cardId: number, columnN
   });
 }
 
+function moveSupportCardColumn(setBalance: SetBalance, cardId: number, fromIndex: number, delta: number) {
+  setBalance((prev) => {
+    const card = prev.supportCards.find((c) => c.id === cardId);
+    if (!card) return prev;
+    const order = [...getSupportCardColumnOrder(card)];
+    const toIndex = fromIndex + delta;
+    if (toIndex < 0 || toIndex >= order.length) return prev;
+    const next = [...order];
+    const [item] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, item);
+    return {
+      ...prev,
+      supportCards: prev.supportCards.map((c) =>
+        c.id === cardId ? { ...c, tableColumns: next } : c
+      ),
+    };
+  });
+}
+
+function groupPresetsByGroup(presets: SupportCardBattleParameterPreset[]): Map<string, SupportCardBattleParameterPreset[]> {
+  const m = new Map<string, SupportCardBattleParameterPreset[]>();
+  for (const p of presets) {
+    const list = m.get(p.group) ?? [];
+    list.push(p);
+    m.set(p.group, list);
+  }
+  return m;
+}
+
 function formatCellInputValue(value: number | null | undefined, integer: boolean): string {
   if (value == null || Number.isNaN(value)) return '';
   return integer ? String(Math.round(value)) : String(value);
 }
+
+const primaryActionStyle: React.CSSProperties = {
+  border: '1px solid rgba(56, 189, 248, 0.55)',
+  borderRadius: 8,
+  background: 'linear-gradient(180deg, rgba(14, 165, 233, 0.35), rgba(2, 132, 199, 0.25))',
+  color: '#f0f9ff',
+  padding: '8px 16px',
+  fontSize: 13,
+  fontWeight: 600,
+};
 
 function CardColumnsManager({
   card,
@@ -726,79 +769,145 @@ function CardColumnsManager({
   card: SupportCardConfig;
   setBalance: SetBalance;
 }) {
-  const [draft, setDraft] = useState('');
+  const [selectedPresetId, setSelectedPresetId] = useState('');
   const cols = getSupportCardColumnOrder(card);
+  const presets = useMemo(
+    () => getSupportCardParameterPresetsForCard(card),
+    [card.id, card.param1Name, card.param2Name]
+  );
+  const grouped = useMemo(() => groupPresetsByGroup(presets), [presets]);
+
+  const selectedPreset = presets.find((p) => p.id === selectedPresetId);
+  const canAdd =
+    Boolean(selectedPresetId && selectedPreset && !supportCardHasColumnTitle(card, selectedPreset.columnTitle));
+
   return (
     <div
       style={{
-        marginBottom: 12,
-        padding: 10,
-        background: 'rgba(0,0,0,0.22)',
-        borderRadius: 10,
-        border: '1px solid rgba(148,163,184,0.15)',
+        marginBottom: 14,
+        padding: '12px 14px',
+        background: 'rgba(2, 6, 23, 0.5)',
+        borderRadius: 12,
+        border: '1px solid rgba(148,163,184,0.2)',
       }}
     >
-      <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.45, marginBottom: 10, whiteSpace: 'pre-wrap' }}>
-        {SUPPORT_CARD_BATTLE_COLUMN_HINT}
-      </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-        <input
-          style={{ ...inputStyle, flex: '1 1 180px', maxWidth: 360 }}
-          placeholder="Новая колонка (заголовок, как в бою)"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              addSupportCardColumn(setBalance, card.id, draft);
-              setDraft('');
-            }
-          }}
-        />
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 10, marginBottom: 12 }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 240px', minWidth: 200 }}>
+          <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Добавить параметр
+          </span>
+          <select
+            className="input-stretch"
+            style={{ ...inputStyle, width: '100%', minWidth: 0 }}
+            value={selectedPresetId}
+            onChange={(e) => setSelectedPresetId(e.target.value)}
+          >
+            <option value="">Выберите из списка…</option>
+            {[...grouped.entries()].map(([group, list]) => (
+              <optgroup key={group} label={group}>
+                {list.map((p) => {
+                  const taken = supportCardHasColumnTitle(card, p.columnTitle);
+                  return (
+                    <option key={`${p.id}:${p.columnTitle}`} value={p.id} disabled={taken}>
+                      {p.label}
+                      {taken ? ' — уже в таблице' : ''}
+                    </option>
+                  );
+                })}
+              </optgroup>
+            ))}
+          </select>
+        </label>
         <button
           type="button"
-          style={smallButtonStyle}
+          style={primaryActionStyle}
+          disabled={!canAdd}
+          title={canAdd ? selectedPreset?.effectHint : ''}
           onClick={() => {
-            addSupportCardColumn(setBalance, card.id, draft);
-            setDraft('');
+            if (!selectedPreset || supportCardHasColumnTitle(card, selectedPreset.columnTitle)) return;
+            addSupportCardColumn(setBalance, card.id, selectedPreset.columnTitle);
+            setSelectedPresetId('');
           }}
         >
-          Добавить колонку
+          Добавить
         </button>
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-        {cols.map((col) => (
-          <span
-            key={col}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '4px 10px',
-              borderRadius: 999,
-              background: 'rgba(51, 65, 85, 0.8)',
-              fontSize: 12,
-              color: '#e2e8f0',
-            }}
-          >
-            {col}
-            <button
-              type="button"
-              title={cols.length <= 1 ? 'Нужна хотя бы одна колонка' : 'Удалить колонку'}
-              style={{
-                ...smallButtonStyle,
-                padding: '2px 8px',
-                lineHeight: 1.2,
-                opacity: cols.length <= 1 ? 0.35 : 1,
-                cursor: cols.length <= 1 ? 'not-allowed' : 'pointer',
-              }}
-              disabled={cols.length <= 1}
-              onClick={() => removeSupportCardColumn(setBalance, card.id, col)}
-            >
-              ×
-            </button>
-          </span>
-        ))}
+
+      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
+        Порядок колонок влияет на приоритет, если несколько подходят под один шаблон. Стрелки — сдвиг влево/вправо.
       </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'stretch' }}>
+        {cols.map((col, index) => {
+          const known = isSupportCardColumnRecognized(card, col);
+          return (
+            <span
+              key={col}
+              title={known ? undefined : 'Заголовок не из списка пресетов — симулятор учитывает только по шаблону текста; новый параметр добавляйте через разработку.'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '6px 8px 6px 10px',
+                borderRadius: 10,
+                background: known ? 'rgba(51, 65, 85, 0.85)' : 'rgba(120, 53, 15, 0.35)',
+                border: known ? '1px solid rgba(148, 163, 184, 0.25)' : '1px dashed rgba(251, 191, 36, 0.45)',
+                fontSize: 12,
+                color: '#e2e8f0',
+              }}
+            >
+              <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{col}</span>
+              {!known && (
+                <span style={{ fontSize: 10, color: '#fbbf24', flexShrink: 0 }}>нет в списке</span>
+              )}
+              <span style={{ display: 'inline-flex', gap: 2, marginLeft: 4 }}>
+                <button
+                  type="button"
+                  title="Влево"
+                  style={{ ...smallButtonStyle, padding: '2px 6px', minWidth: 28 }}
+                  disabled={index === 0}
+                  onClick={() => moveSupportCardColumn(setBalance, card.id, index, -1)}
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  title="Вправо"
+                  style={{ ...smallButtonStyle, padding: '2px 6px', minWidth: 28 }}
+                  disabled={index >= cols.length - 1}
+                  onClick={() => moveSupportCardColumn(setBalance, card.id, index, 1)}
+                >
+                  ›
+                </button>
+                <button
+                  type="button"
+                  title={cols.length <= 1 ? 'Нужна хотя бы одна колонка' : 'Удалить колонку'}
+                  style={{
+                    ...smallButtonStyle,
+                    padding: '2px 8px',
+                    lineHeight: 1.2,
+                    opacity: cols.length <= 1 ? 0.35 : 1,
+                    cursor: cols.length <= 1 ? 'not-allowed' : 'pointer',
+                  }}
+                  disabled={cols.length <= 1}
+                  onClick={() => removeSupportCardColumn(setBalance, card.id, col)}
+                >
+                  ×
+                </button>
+              </span>
+            </span>
+          );
+        })}
+      </div>
+
+      <details style={{ marginTop: 12 }}>
+        <summary style={{ cursor: 'pointer', fontSize: 12, color: '#94a3b8', userSelect: 'none' }}>
+          Как симулятор читает заголовки колонок
+        </summary>
+        <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5, marginTop: 8, whiteSpace: 'pre-wrap' }}>
+          {SUPPORT_CARD_BATTLE_COLUMN_HINT}
+        </div>
+      </details>
     </div>
   );
 }
@@ -1027,8 +1136,9 @@ export const WeaponCardsPanel: React.FC<{
 
       <div style={cardStyle}>
         <h3 style={{ marginTop: 0 }}>Карточки поддержки</h3>
-        <p style={{ color: '#94a3b8', fontSize: 13, marginTop: 0 }}>
-          Сверху — несоздаваемые параметры карточек. Ниже — ручные скалируемые столбцы из листа и общая стоимость прокачки.
+        <p style={{ color: '#94a3b8', fontSize: 13, marginTop: 0, maxWidth: 720, lineHeight: 1.5 }}>
+          В таблице уровней колонки добавляются только из списка пресетов — так симулятор и прогноз гарантированно знают смысл поля.
+          Нужен новый параметр — попросите добавить пресет и разбор в коде. Сверху — метаданные карточки; внизу — стоимость прокачки.
         </p>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -1079,7 +1189,7 @@ export const WeaponCardsPanel: React.FC<{
           </button>
         </div>
 
-        <h4>Нескалируемые параметры</h4>
+        <h4>Метаданные (имя, редкость, тип)</h4>
         <table style={tableStyle}>
           <thead>
             <tr>

@@ -28,6 +28,8 @@ import type { SegmentId } from '../progression/types';
 
 type TabId = 'combat' | 'economy' | 'weapons' | 'shop' | 'formulas' | 'charts' | 'traffic' | 'forecast' | 'levels';
 
+type TabConfig = { id: TabId; label: string; hint: string };
+
 /** JSON.stringify с сортировкой ключей — надёжное сравнение снимков после hydrate/parse. */
 function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object') {
@@ -158,16 +160,16 @@ function forecastUiStateFromDb(
   return mergeLegacyForecastUiState(normalizeForecastUiState(raw, gameLevels));
 }
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'combat', label: 'Бой' },
-  { id: 'economy', label: 'Экономика' },
-  { id: 'weapons', label: 'Оружие и карты' },
-  { id: 'shop', label: 'Сундуки и магазин' },
-  { id: 'formulas', label: 'Формулы' },
-  { id: 'charts', label: 'Графики' },
-  { id: 'traffic', label: 'Трафик' },
-  { id: 'forecast', label: 'Прогноз' },
-  { id: 'levels', label: 'Уровни' },
+const TABS: TabConfig[] = [
+  { id: 'combat', label: 'Бой', hint: 'Быстрая проверка волны: нагрузка, исход, награда.' },
+  { id: 'economy', label: 'Экономика', hint: 'Софт, энергия, награды, множители прогрессии.' },
+  { id: 'weapons', label: 'Оружие и карты', hint: 'Стволы, карты поддержки, таблицы уровней.' },
+  { id: 'shop', label: 'Сундуки и магазин', hint: 'Витрина, сундуки, веса и цены.' },
+  { id: 'formulas', label: 'Формулы', hint: 'Коэффициенты боя, скилл, референсные волны.' },
+  { id: 'charts', label: 'Графики', hint: 'Визуализация баланса по уровням.' },
+  { id: 'traffic', label: 'Трафик', hint: 'Сегменты и политика монетизации.' },
+  { id: 'forecast', label: 'Прогноз', hint: 'Симуляция прохождения и экономики во времени.' },
+  { id: 'levels', label: 'Уровни', hint: 'Конструктор волн и привязка к прогнозу.' },
 ];
 
 /** Снимок для сохранения в БД и сравнения «грязного» состояния. */
@@ -913,23 +915,34 @@ export const App: React.FC = () => {
   const hydra = getWeaponLevelStats(balance, 'hydra70', hydraLevel);
   const hellfire = getWeaponLevelStats(balance, 'hellfire', hellfireLevel);
 
+  const activeTabHint = TABS.find((t) => t.id === activeTab)?.hint ?? '';
+
   return (
     <div className="root" style={{ padding: 16, maxWidth: 1400, margin: '0 auto' }}>
       <header className="app-sticky-header">
         <div className="app-sticky-header__top">
-          <h2 style={{ margin: 0 }}>War Drone Balance Simulator</h2>
+          <div>
+            <h2 style={{ margin: 0 }}>War Drone Balance Simulator</h2>
+            <p className="app-header-tagline">Редактор баланса: правки → сохранение → прогноз и бой.</p>
+          </div>
           <div className="app-sticky-header__actions">
             {hasUnsavedChanges && (
               <span className="app-sticky-header__unsaved" role="status">
                 Есть несохранённые изменения
               </span>
             )}
-            <button type="button" onClick={saveToDb} disabled={!storageReady || isSaving}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={saveToDb}
+              disabled={!storageReady || isSaving}
+            >
               {isSaving ? 'Сохранение...' : 'Сохранить'}
             </button>
             {!isLocalhost && (
               <button
                 type="button"
+                className="btn-ghost"
                 onClick={() => {
                   const cur = getAdminKey();
                   const next = window.prompt('Ключ администратора для сохранения (будет сохранён в этом браузере):', cur) ?? '';
@@ -943,16 +956,25 @@ export const App: React.FC = () => {
             )}
             {isLocalhost && (
               <>
-                <button type="button" onClick={loadFromRemoteServer} disabled={isSaving}>
+                <button type="button" className="btn-ghost" onClick={loadFromRemoteServer} disabled={isSaving}>
                   Загрузить с сервера
                 </button>
-                <button type="button" onClick={publishToRemoteServer} disabled={!storageReady || isSaving}>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={publishToRemoteServer}
+                  disabled={!storageReady || isSaving}
+                >
                   Отправить на сервер
                 </button>
               </>
             )}
-            <button type="button" onClick={exportBalanceBackup}>Экспорт бэкапа</button>
-            <button type="button" onClick={importBalanceBackup}>Импорт бэкапа</button>
+            <button type="button" className="btn-ghost" onClick={exportBalanceBackup}>
+              Экспорт бэкапа
+            </button>
+            <button type="button" className="btn-ghost" onClick={importBalanceBackup}>
+              Импорт бэкапа
+            </button>
             {saveMessage && <span style={{ alignSelf: 'center', fontSize: 12, color: '#94a3b8' }}>{saveMessage}</span>}
             <input
               ref={backupInputRef}
@@ -963,26 +985,23 @@ export const App: React.FC = () => {
             />
           </div>
         </div>
-        <nav>
+        <nav className="app-tab-bar" aria-label="Разделы симулятора">
           {TABS.map(({ id, label }) => (
             <button
               key={id}
               type="button"
+              className={activeTab === id ? 'app-tab app-tab--active' : 'app-tab'}
               onClick={() => setActiveTab(id)}
-              style={{
-                padding: '8px 14px',
-                border: '1px solid transparent',
-                borderRadius: 999,
-                background: activeTab === id ? '#1d4ed8' : 'transparent',
-                color: activeTab === id ? '#fff' : '#cbd5e1',
-                fontWeight: activeTab === id ? 600 : 500,
-                boxShadow: activeTab === id ? '0 4px 14px rgba(29, 78, 216, 0.45)' : 'none',
-              }}
             >
               {label}
             </button>
           ))}
         </nav>
+        {activeTabHint ? (
+          <p className="app-tab-hint" role="status">
+            {activeTabHint}
+          </p>
+        ) : null}
       </header>
 
       {activeTab === 'combat' && (

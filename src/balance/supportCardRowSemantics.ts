@@ -146,3 +146,191 @@ export function parseSupportCardBattleRow(
 
 /** Текст подсказки для UI редактора колонок. */
 export const SUPPORT_CARD_BATTLE_COLUMN_HINT = `Симулятор и прогноз читают заголовки колонок (без учёта регистра): количество / число — численность; здоровье / ХП — HP одного союзника; суммарное (или всего) здоровье / ХП — общий пул HP; урон — урон за попадание (для расчёта DPS вместе со скорострельностью); бонус урона (%) — ЭМИ; длительность — время эффекта; лечение / ХП/сек — ремонтный дрон; отражение (%) — поле; мана; перезарядка; скорость; дальность; скорострельность; радиус. Колонки «Карточек/Монет до уровня» в бою не используются.`;
+
+/** Пресет колонки: columnTitle — точный заголовок в таблице (совпадает с логикой парсера). */
+export interface SupportCardBattleParameterPreset {
+  id: string;
+  group: string;
+  /** Короткая подпись в выпадающем списке */
+  label: string;
+  columnTitle: string;
+  /** Подсказка при наведении */
+  effectHint?: string;
+}
+
+/**
+ * Известные параметры: добавляйте только через код (парсер + симулятор), затем сюда — появятся в UI.
+ * Новые боевые смыслы сначала добавляются в parseSupportCardBattleRow / supportCardManaCombat.
+ */
+export const SUPPORT_CARD_BATTLE_PARAMETER_PRESETS: SupportCardBattleParameterPreset[] = [
+  {
+    id: 'mana',
+    group: 'Стоимость и тайминг карты',
+    label: 'Мана',
+    columnTitle: 'Мана',
+    effectHint: 'Стоимость розыгрыша; ищется по слову «мана»',
+  },
+  {
+    id: 'cooldown',
+    group: 'Стоимость и тайминг карты',
+    label: 'Перезарядка (сек)',
+    columnTitle: 'Перезарядка (сек)',
+    effectHint: 'Кулдаун после применения',
+  },
+  {
+    id: 'count_units',
+    group: 'Призыв и урон',
+    label: 'Количество (юнитов)',
+    columnTitle: 'Количество',
+    effectHint: 'Численность; не путать с «Количество маны»',
+  },
+  {
+    id: 'mana_amount',
+    group: 'Стоимость и тайминг карты',
+    label: 'Количество маны',
+    columnTitle: 'Количество маны',
+    effectHint: 'Если в листе отдельная колонка; не считается как число юнитов',
+  },
+  {
+    id: 'hp_each',
+    group: 'Призыв и урон',
+    label: 'Здоровье (на юнита)',
+    columnTitle: 'Здоровье',
+    effectHint: 'HP одного союзника',
+  },
+  {
+    id: 'hp_total',
+    group: 'Призыв и урон',
+    label: 'Суммарное здоровье',
+    columnTitle: 'Суммарное здоровье',
+    effectHint: 'Общий пул HP отряда',
+  },
+  {
+    id: 'damage',
+    group: 'Призыв и урон',
+    label: 'Урон (за попадание)',
+    columnTitle: 'Урон',
+    effectHint: 'Урон за выстрел; DPS вместе со скорострельностью',
+  },
+  {
+    id: 'emp_bonus',
+    group: 'Призыв и урон',
+    label: 'Бонус урона (%)',
+    columnTitle: 'Бонус урона (%)',
+    effectHint: 'ЭМИ и подобные проценты',
+  },
+  {
+    id: 'duration',
+    group: 'Эффекты',
+    label: 'Длительность (сек)',
+    columnTitle: 'Длительность (сек)',
+    effectHint: 'Время действия эффекта',
+  },
+  {
+    id: 'heal_per_sec',
+    group: 'Эффекты',
+    label: 'Лечение (ХП/сек)',
+    columnTitle: 'Лечение (ХП/сек)',
+    effectHint: 'Ремонт / реген',
+  },
+  {
+    id: 'reflect',
+    group: 'Эффекты',
+    label: 'Отражение (%)',
+    columnTitle: 'Отражение (%)',
+    effectHint: 'Отражающее поле',
+  },
+  {
+    id: 'speed',
+    group: 'Характеристики на поле',
+    label: 'Скорость',
+    columnTitle: 'Скорость',
+    effectHint: 'Множители HP/DPS союзника',
+  },
+  {
+    id: 'range',
+    group: 'Характеристики на поле',
+    label: 'Дальность',
+    columnTitle: 'Дальность',
+    effectHint: 'Дистанция атаки',
+  },
+  {
+    id: 'fire_rate',
+    group: 'Характеристики на поле',
+    label: 'Скорострельность',
+    columnTitle: 'Скорострельность',
+    effectHint: 'Выстр/сек или RPM в зависимости от величины',
+  },
+  {
+    id: 'blast_radius',
+    group: 'Характеристики на поле',
+    label: 'Радиус',
+    columnTitle: 'Радиус',
+    effectHint: 'Взрыв / зона поражения',
+  },
+  {
+    id: 'econ_cards',
+    group: 'Экономика (в бою не читается)',
+    label: 'Карточек до уровня',
+    columnTitle: 'Карточек до уровня',
+    effectHint: 'Только для таблицы прогрессии',
+  },
+  {
+    id: 'econ_coins',
+    group: 'Экономика (в бою не читается)',
+    label: 'Монет до уровня',
+    columnTitle: 'Монет до уровня',
+    effectHint: 'Только для таблицы прогрессии',
+  },
+];
+
+/** Колонка уже есть в карточке (без учёта регистра и лишних пробелов). */
+export function supportCardHasColumnTitle(card: SupportCardConfig, columnTitle: string): boolean {
+  const t = columnTitle.trim().toLowerCase();
+  return getSupportCardColumnOrder(card).some((c) => c.trim().toLowerCase() === t);
+}
+
+/** Пресеты плюс param1/param2 из конфига карточки (если заданы и не дублируют стандартный заголовок). */
+export function getSupportCardParameterPresetsForCard(card: SupportCardConfig): SupportCardBattleParameterPreset[] {
+  const out = [...SUPPORT_CARD_BATTLE_PARAMETER_PRESETS];
+  const presetTitles = new Set(
+    SUPPORT_CARD_BATTLE_PARAMETER_PRESETS.map((p) => p.columnTitle.trim().toLowerCase())
+  );
+  const p1 = card.param1Name?.trim();
+  if (p1 && !presetTitles.has(p1.toLowerCase())) {
+    out.push({
+      id: 'sheet_param1',
+      group: 'Поля с листа (имена из карточки)',
+      label: `Параметр 1: ${p1}`,
+      columnTitle: p1,
+      effectHint: 'Совпадает с полем param1Name',
+    });
+  }
+  const p2 = card.param2Name?.trim();
+  if (
+    p2 &&
+    p2 !== '-' &&
+    !presetTitles.has(p2.toLowerCase()) &&
+    (!p1 || p2.toLowerCase() !== p1.toLowerCase())
+  ) {
+    out.push({
+      id: 'sheet_param2',
+      group: 'Поля с листа (имена из карточки)',
+      label: `Параметр 2: ${p2}`,
+      columnTitle: p2,
+      effectHint: 'Совпадает с полем param2Name',
+    });
+  }
+  return out;
+}
+
+/** Колонка из пресета или совпадает с param1/param2 карточки. */
+export function isSupportCardColumnRecognized(card: SupportCardConfig, columnTitle: string): boolean {
+  const t = columnTitle.trim().toLowerCase();
+  if (SUPPORT_CARD_BATTLE_PARAMETER_PRESETS.some((p) => p.columnTitle.trim().toLowerCase() === t)) return true;
+  const p1 = card.param1Name?.trim().toLowerCase();
+  if (p1 && p1 === t) return true;
+  const p2 = card.param2Name?.trim().toLowerCase();
+  if (p2 && p2 !== '-' && p2 === t) return true;
+  return false;
+}
