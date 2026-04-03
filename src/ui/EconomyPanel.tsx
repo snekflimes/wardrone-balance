@@ -16,22 +16,6 @@ import type { SegmentId } from '../progression/types';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 
-const sectionStyle: React.CSSProperties = {
-  marginTop: 0,
-  padding: 14,
-  border: '1px solid rgba(148, 163, 184, 0.26)',
-  borderRadius: 14,
-  background: 'rgba(15, 23, 42, 0.55)',
-};
-
-const cardStyle: React.CSSProperties = {
-  marginTop: 12,
-  padding: 12,
-  border: '1px solid rgba(148, 163, 184, 0.22)',
-  borderRadius: 12,
-  background: 'rgba(2, 6, 23, 0.55)',
-};
-
 const tableStyle: React.CSSProperties = {
   width: '100%',
   borderCollapse: 'separate',
@@ -253,36 +237,25 @@ export const EconomyPanel: React.FC<{
   ]);
 
   return (
-    <section style={sectionStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+    <section>
+      <div className="ui-toolbar" style={{ justifyContent: 'space-between', marginBottom: 0 }}>
         <div>
-          <h3 style={{ marginTop: 0 }}>Экономика</h3>
-          <p style={{ margin: 0, color: '#94a3b8', fontSize: 13 }}>
+          <h3>Экономика</h3>
+          <p className="ui-hint" style={{ marginBottom: 0 }}>
             USD-якоря, базовые награды, курсы и параметры прогрессии.
           </p>
         </div>
-        <button
-          type="button"
-          style={{
-            border: '1px solid rgba(148, 163, 184, 0.35)',
-            borderRadius: 999,
-            background: 'rgba(30, 41, 59, 0.9)',
-            color: '#e2e8f0',
-            padding: '6px 10px',
-            fontSize: 12,
-          }}
-          onClick={() => setCollapsed((v) => !v)}
-        >
+        <button type="button" className="btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => setCollapsed((v) => !v)}>
           {collapsed ? 'Развернуть' : 'Свернуть'}
         </button>
       </div>
 
       {!collapsed && (
         <>
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Ключевые метрики</h4>
+          <div className="ui-subcard">
+            <h4>Ключевые метрики</h4>
             {rates ? (
-              <table style={tableStyle}>
+              <table className="ui-table-compact" style={tableStyle}>
                 <tbody>
                   {kpis?.map(([label, value]) => (
                     <tr key={label}>
@@ -297,8 +270,8 @@ export const EconomyPanel: React.FC<{
             )}
           </div>
 
-          <div style={{ ...cardStyle, border: '1px solid rgba(34, 197, 94, 0.35)' }}>
-            <h4 style={{ marginTop: 0 }}>Награда за попытку: референс vs наш</h4>
+          <div className="ui-subcard ui-subcard--success">
+            <h4>Награда за попытку: референс vs наш</h4>
             <div style={{ marginBottom: 10, color: parityColor, fontWeight: 700 }}>
               Статус паритета: {parityLabel}{parity != null ? ` (${parity.toFixed(3)}x)` : ''}
             </div>
@@ -454,8 +427,8 @@ export const EconomyPanel: React.FC<{
             )}
           </div>
 
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Якоря USD</h4>
+          <div className="ui-subcard">
+            <h4>Якоря USD</h4>
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
               <label>
                 <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 6 }}>VIP референс (USD/нед)</div>
@@ -479,8 +452,8 @@ export const EconomyPanel: React.FC<{
             </div>
           </div>
 
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Формулы и базовые значения</h4>
+          <div className="ui-subcard">
+            <h4>Формулы и базовые значения</h4>
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
               {[
                 ['baseMissionReward', 'База награды за миссию'],
@@ -506,8 +479,8 @@ export const EconomyPanel: React.FC<{
             </div>
           </div>
 
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Ракетницы и награды за вход (влияет на «Прогноз»)</h4>
+          <div className="ui-subcard">
+            <h4>Ракетницы и награды за вход (влияет на «Прогноз»)</h4>
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
               <label>
                 <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 6 }}>Покупка Hydra (софт)</div>
@@ -655,8 +628,8 @@ export const EconomyPanel: React.FC<{
             </div>
           </div>
 
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Стоимость улучшения оружия (лист Weapons)</h4>
+          <div className="ui-subcard">
+            <h4>Стоимость улучшения оружия (лист Weapons)</h4>
             <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 0 }}>
               Параметры цены апгрейда теперь хранятся в стволах (`weapons.*`) и редактируются в разделе{' '}
               <strong>Оружие и карты</strong>. Здесь только справка по текущим значениям.
@@ -687,8 +660,8 @@ export const EconomyPanel: React.FC<{
             </table>
           </div>
 
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Стоимость улучшений карточек (софт и чертежи)</h4>
+          <div className="ui-subcard">
+            <h4>Стоимость улучшений карточек (софт и чертежи)</h4>
             <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 0 }}>
               Таблица по уровню карточки: софт по редкости и чертежи. На оружие эта таблица не влияет.
             </p>
@@ -735,15 +708,15 @@ export const EconomyPanel: React.FC<{
             </table>
           </div>
 
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Подсказка</h4>
+          <div className="ui-subcard">
+            <h4>Подсказка</h4>
             <p style={{ margin: 0, color: '#94a3b8', fontSize: 13 }}>
               Эти поля теперь сгруппированы и визуально отделены. Если захочешь, следующим шагом можно сделать ещё и отдельные пресеты "баланс для ранней/средней/поздней игры".
             </p>
           </div>
 
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Управление данными</h4>
+          <div className="ui-subcard">
+            <h4>Управление данными</h4>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button
                 type="button"

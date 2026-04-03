@@ -4,22 +4,6 @@ import { getEconomyUsdRates, getShopItemUsd } from '../balance/economy';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 
-const sectionStyle: React.CSSProperties = {
-  marginTop: 0,
-  padding: 14,
-  border: '1px solid rgba(148, 163, 184, 0.26)',
-  borderRadius: 14,
-  background: 'rgba(15, 23, 42, 0.55)',
-};
-
-const cardStyle: React.CSSProperties = {
-  marginTop: 12,
-  padding: 12,
-  border: '1px solid rgba(148, 163, 184, 0.22)',
-  borderRadius: 12,
-  background: 'rgba(2, 6, 23, 0.55)',
-};
-
 const tableStyle: React.CSSProperties = {
   width: '100%',
   borderCollapse: 'separate',
@@ -489,26 +473,15 @@ export const ShopPanel: React.FC<{
   };
 
   return (
-    <section style={sectionStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+    <section>
+      <div className="ui-toolbar" style={{ justifyContent: 'space-between', marginBottom: 0 }}>
         <div>
-          <h3 style={{ marginTop: 0 }}>Сундуки и магазин</h3>
-          <p style={{ margin: 0, color: '#94a3b8', fontSize: 13 }}>
+          <h3>Сундуки и магазин</h3>
+          <p className="ui-hint" style={{ marginBottom: 0 }}>
             Сравнение с референсом, редактирование сундуков и позиций магазина.
           </p>
         </div>
-        <button
-          type="button"
-          style={{
-            border: '1px solid rgba(148, 163, 184, 0.35)',
-            borderRadius: 999,
-            background: 'rgba(30, 41, 59, 0.9)',
-            color: '#e2e8f0',
-            padding: '6px 10px',
-            fontSize: 12,
-          }}
-          onClick={() => setCollapsed((v) => !v)}
-        >
+        <button type="button" className="btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => setCollapsed((v) => !v)}>
           {collapsed ? 'Развернуть' : 'Свернуть'}
         </button>
       </div>
@@ -516,8 +489,8 @@ export const ShopPanel: React.FC<{
       {!collapsed && (
         <>
           {balance.economy.referencePacks && (
-            <div style={cardStyle}>
-              <h4 style={{ marginTop: 0 }}>Сравнение с референсом</h4>
+            <div className="ui-subcard">
+              <h4>Сравнение с референсом</h4>
 
               <div style={{ display: 'grid', gap: 12 }}>
                 <div>
@@ -598,8 +571,8 @@ export const ShopPanel: React.FC<{
             </div>
           )}
 
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Сундуки</h4>
+          <div className="ui-subcard">
+            <h4>Сундуки</h4>
             <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>
               Логика как в CSV/SimulatorChest: итоговый вес = вес карточки × вес редкости × коэффициент сундука.
             </div>
@@ -1050,8 +1023,8 @@ export const ShopPanel: React.FC<{
             </div>
           </div>
 
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0 }}>Магазин</h4>
+          <div className="ui-subcard">
+            <h4>Магазин</h4>
             <table style={tableStyle}>
               <thead>
                 <tr>

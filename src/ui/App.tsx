@@ -1006,131 +1006,128 @@ export const App: React.FC = () => {
 
       {activeTab === 'combat' && (
         <>
-      <section style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-        <div>
-          <h3>Параметры игрока</h3>
-          <label>
-            Уровень игрока:{' '}
-            <input
-              type="number"
-              min={1}
-              max={balance.meta.maxPlayerLevel}
-              value={playerLevel}
-              onChange={e => setPlayerLevel(Number(e.target.value) || 1)}
-            />
-          </label>
-          <div>HP вертолёта: {balance.player.baseAllyHp}</div>
-        </div>
-
-        <div>
-          <h3>Уровни оружия</h3>
-          <div>
-            <label>
-              Пулемёт:{' '}
-              <input
-                type="number"
-                min={1}
-              max={getMaxWeaponLevelForWeapon(balance, 'machineGun')}
-                value={mgLevel}
-                onChange={e => setMgLevel(Number(e.target.value) || 1)}
-              />
-            </label>
-            <div>Мгновенный DPS: {mg.dps.toFixed(1)}</div>
-            <div>Устойчивый DPS: {mg.sustainedDps.toFixed(1)}</div>
-          </div>
-          <div>
-            <label>
-              Hydra-70:{' '}
-              <input
-                type="number"
-                min={1}
-              max={getMaxWeaponLevelForWeapon(balance, 'hydra70')}
-                value={hydraLevel}
-                onChange={e => setHydraLevel(Number(e.target.value) || 1)}
-              />
-            </label>
-            <div>Мгновенный DPS: {hydra.dps.toFixed(1)}</div>
-            <div>Устойчивый DPS: {hydra.sustainedDps.toFixed(1)}</div>
-          </div>
-          <div>
-            <label>
-              Hellfire:{' '}
-              <input
-                type="number"
-                min={1}
-              max={getMaxWeaponLevelForWeapon(balance, 'hellfire')}
-                value={hellfireLevel}
-                onChange={e => setHellfireLevel(Number(e.target.value) || 1)}
-              />
-            </label>
-            <div>Мгновенный DPS: {hellfire.dps.toFixed(1)}</div>
-            <div>Устойчивый DPS: {hellfire.sustainedDps.toFixed(1)}</div>
-          </div>
-          <div>
-            <strong>
-              Суммарный DPS:{' '}
-              {(mg.sustainedDps + hydra.sustainedDps + hellfire.sustainedDps).toFixed(1)}
-            </strong>
-          </div>
-        </div>
-
-        <div>
-          <h3>Волна</h3>
-          <label>
-            Уровень:{' '}
-            <input
-              type="number"
-              min={1}
-              max={balance.meta.gameLevels}
-              value={levelIndex}
-              onChange={e => setLevelIndex(Number(e.target.value) || 1)}
-            />
-          </label>
-          <br />
-          <label>
-            Волна:{' '}
-            <input
-              type="number"
-              min={1}
-              max={balance.economy.wavesPerLevel ?? 2}
-              value={waveIndex}
-              onChange={e => setWaveIndex(Number(e.target.value) || 1)}
-            />
-          </label>
-          <div style={{ marginTop: 8 }}>
-            {wave.enemies.map(group => (
-              <div key={group.enemyId}>
-                {balance.enemies[group.enemyId as EnemyId]?.displayName ?? group.enemyId}: x
-                {group.count}
+          <section className="ui-combat-grid">
+            <div className="ui-combat-block ui-subcard" style={{ marginTop: 0, marginBottom: 0 }}>
+              <h3>Игрок</h3>
+              <div className="ui-field">
+                <span>Уровень</span>
+                <input
+                  className="ui-num"
+                  type="number"
+                  min={1}
+                  max={balance.meta.maxPlayerLevel}
+                  value={playerLevel}
+                  onChange={(e) => setPlayerLevel(Number(e.target.value) || 1)}
+                />
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <div className="ui-kv">
+                <span>HP вертолёта: {balance.player.baseAllyHp}</span>
+              </div>
+            </div>
 
-      <section style={{ marginTop: 24 }}>
-        <h3>Результат симуляции</h3>
-        <div>
-          Время убийства волны:{' '}
-          {Number.isFinite(combatResult.timeToKillSec)
-            ? combatResult.timeToKillSec.toFixed(1) + ' с'
-            : '∞'}
-        </div>
-        <div>Входящий DPS врагов: {combatResult.incomingDps.toFixed(1)}</div>
-        <div>HP вертолёта: {combatResult.playerHp}</div>
-        <div>
-          Исход:{' '}
-          <strong style={{ color: combatResult.victory ? 'green' : 'red' }}>
-            {combatResult.victory ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}
-          </strong>
-        </div>
-        <div>Звёзды: {combatResult.stars}</div>
-        <div>Награда (монеты): {combatResult.rewardSoft.toFixed(0)}</div>
-        <div style={{ marginTop: 8, fontSize: 13, color: '#666' }}>
-          Скилл: множитель исходящего урона (ожидание){' '}
-          {(combatResult.outgoingSkillDamageMultiplier ?? 1).toFixed(3)} — настраивается в «Формулы → Бой и референсные волны».
-        </div>
-      </section>
+            <div className="ui-combat-block ui-subcard" style={{ marginTop: 0, marginBottom: 0 }}>
+              <h3>Оружие</h3>
+              <div className="ui-kv">
+                <div className="ui-field">
+                  <span>Пулемёт</span>
+                  <input
+                    className="ui-num"
+                    type="number"
+                    min={1}
+                    max={getMaxWeaponLevelForWeapon(balance, 'machineGun')}
+                    value={mgLevel}
+                    onChange={(e) => setMgLevel(Number(e.target.value) || 1)}
+                  />
+                </div>
+                <span>DPS мгн. {mg.dps.toFixed(1)} · уст. {mg.sustainedDps.toFixed(1)}</span>
+                <div className="ui-field">
+                  <span>Hydra-70</span>
+                  <input
+                    className="ui-num"
+                    type="number"
+                    min={1}
+                    max={getMaxWeaponLevelForWeapon(balance, 'hydra70')}
+                    value={hydraLevel}
+                    onChange={(e) => setHydraLevel(Number(e.target.value) || 1)}
+                  />
+                </div>
+                <span>DPS мгн. {hydra.dps.toFixed(1)} · уст. {hydra.sustainedDps.toFixed(1)}</span>
+                <div className="ui-field">
+                  <span>Hellfire</span>
+                  <input
+                    className="ui-num"
+                    type="number"
+                    min={1}
+                    max={getMaxWeaponLevelForWeapon(balance, 'hellfire')}
+                    value={hellfireLevel}
+                    onChange={(e) => setHellfireLevel(Number(e.target.value) || 1)}
+                  />
+                </div>
+                <span>DPS мгн. {hellfire.dps.toFixed(1)} · уст. {hellfire.sustainedDps.toFixed(1)}</span>
+                <strong>
+                  Σ уст. DPS: {(mg.sustainedDps + hydra.sustainedDps + hellfire.sustainedDps).toFixed(1)}
+                </strong>
+              </div>
+            </div>
+
+            <div className="ui-combat-block ui-subcard" style={{ marginTop: 0, marginBottom: 0 }}>
+              <h3>Волна</h3>
+              <div className="ui-field">
+                <span>Уровень</span>
+                <input
+                  className="ui-num"
+                  type="number"
+                  min={1}
+                  max={balance.meta.gameLevels}
+                  value={levelIndex}
+                  onChange={(e) => setLevelIndex(Number(e.target.value) || 1)}
+                />
+              </div>
+              <div className="ui-field">
+                <span>Волна</span>
+                <input
+                  className="ui-num"
+                  type="number"
+                  min={1}
+                  max={balance.economy.wavesPerLevel ?? 2}
+                  value={waveIndex}
+                  onChange={(e) => setWaveIndex(Number(e.target.value) || 1)}
+                />
+              </div>
+              <div className="ui-kv" style={{ marginTop: 6 }}>
+                {wave.enemies.map((group) => (
+                  <div key={group.enemyId}>
+                    {balance.enemies[group.enemyId as EnemyId]?.displayName ?? group.enemyId}: ×{group.count}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h3>Результат</h3>
+            <div className="ui-kv">
+              <div>
+                Время волны:{' '}
+                {Number.isFinite(combatResult.timeToKillSec)
+                  ? `${combatResult.timeToKillSec.toFixed(1)} с`
+                  : '∞'}
+              </div>
+              <div>Входящий DPS: {combatResult.incomingDps.toFixed(1)}</div>
+              <div>HP вертолёта: {combatResult.playerHp}</div>
+              <div>
+                Исход:{' '}
+                <strong style={{ color: combatResult.victory ? '#4ade80' : '#f87171' }}>
+                  {combatResult.victory ? 'победа' : 'поражение'}
+                </strong>
+              </div>
+              <div>Звёзды: {combatResult.stars}</div>
+              <div>Монеты: {combatResult.rewardSoft.toFixed(0)}</div>
+            </div>
+            <p className="ui-hint" style={{ marginTop: 10, marginBottom: 0 }}>
+              Скилл (исх. урон): {(combatResult.outgoingSkillDamageMultiplier ?? 1).toFixed(3)} — «Формулы → Бой и референсные волны».
+            </p>
+          </section>
         </>
       )}
 

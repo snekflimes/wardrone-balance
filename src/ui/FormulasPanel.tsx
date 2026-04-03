@@ -63,30 +63,7 @@ function updateWeapon(
   }));
 }
 
-const blockStyle: React.CSSProperties = {
-  marginBottom: 24,
-  padding: 12,
-  border: '1px solid rgba(148, 163, 184, 0.35)',
-  borderRadius: 8,
-  background: 'rgba(15, 23, 42, 0.72)',
-};
-
-/** Заметный блок: настройки именно вкладки «Прогноз». */
-const forecastBlockStyle: React.CSSProperties = {
-  ...blockStyle,
-  border: '2px solid rgba(56, 189, 248, 0.55)',
-  background: 'rgba(12, 74, 110, 0.22)',
-};
-
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  marginBottom: 6,
-  flexWrap: 'wrap',
-};
-
-const labelStyle: React.CSSProperties = { minWidth: 220, fontSize: 13, color: '#cbd5e1' };
+const labelStyle: React.CSSProperties = { minWidth: 180, fontSize: 13, color: '#cbd5e1' };
 
 interface FormulasPanelProps {
   balance: BalanceConstants;
@@ -99,23 +76,19 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
   const outgoingSkillMult = getOutgoingSkillDamageMultiplier(economy);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="ui-stack">
       <FormulaConstructor balance={balance} setBalance={setBalance} />
 
-      <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>
-        Параметры, подставляемые в формулы и встроенные расчёты:
-      </p>
+      <p className="ui-hint">Параметры для формул и встроенных расчётов:</p>
 
-      <section style={forecastBlockStyle}>
-        <h4 style={{ marginTop: 0, marginBottom: 6, color: '#7dd3fc' }}>
-          Прогноз прогрессии (вкладка «Прогноз»)
-        </h4>
+      <section className="ui-block ui-block--accent">
+        <h4 style={{ color: '#7dd3fc' }}>Прогноз (вкладка «Прогноз»)</h4>
         <p style={{ margin: '0 0 10px 0', fontSize: 12, color: '#94a3b8', lineHeight: 1.45 }}>
           Колонка «День прохода»: лимит попыток в день. Бесплатные сундуки в прогнозе: ровно столько открытий в день, сколько
           указано ниже — по порядку первые записи в <code style={{ color: '#cbd5e1' }}>economy.freeChests</code> (1-й, 2-й,
           3-й сундук и т.д.), без таймеров от ожидания энергии.
         </p>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Макс. попыток уровня в календарный день прогноза</span>
           <input
             type="number"
@@ -132,7 +105,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             }
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>
             Бесплатных сундуков за календарный день прогноза (по порядку из economy.freeChests)
           </span>
@@ -153,9 +126,9 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
         </div>
       </section>
 
-      <section style={blockStyle}>
-        <h4 style={{ marginTop: 0, marginBottom: 10 }}>Мета (глобальные лимиты)</h4>
-        <div style={rowStyle}>
+      <section className="ui-block">
+        <h4 style={{ marginBottom: 10 }}>Мета (глобальные лимиты)</h4>
+        <div className="ui-field">
           <span style={labelStyle}>Макс. уровень (графики / запасной лимит)</span>
           <input
             type="number"
@@ -165,7 +138,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateMeta(setBalance, 'maxWeaponLevel', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Макс. ур. пулемёта</span>
           <input
             type="number"
@@ -175,7 +148,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateMeta(setBalance, 'maxMachineGunLevel', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Макс. ур. Hydra-70</span>
           <input
             type="number"
@@ -185,7 +158,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateMeta(setBalance, 'maxHydraLevel', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Макс. ур. Hellfire</span>
           <input
             type="number"
@@ -195,7 +168,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateMeta(setBalance, 'maxHellfireLevel', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Макс. уровень игрока</span>
           <input
             type="number"
@@ -205,7 +178,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateMeta(setBalance, 'maxPlayerLevel', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Число игровых уровней (миссии)</span>
           <input
             type="number"
@@ -215,7 +188,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateMeta(setBalance, 'gameLevels', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Длительность волны (сек) — для устойчивого DPS</span>
           <input
             type="number"
@@ -225,7 +198,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateMeta(setBalance, 'baseWaveTimeSec', num(e.target.value) || 45)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>
             Дистанция спавна до VIP (юниты) — влияет на порядок «кто раньше выходит на стрельбу»; секунды урона
             нормализуются в окно ниже
@@ -244,7 +217,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             }
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>
             Подход волны: первые типы начинают бить VIP через (сек)
           </span>
@@ -263,7 +236,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             }
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Подход волны: последние типы — полный DPS через (сек)</span>
           <input
             type="number"
@@ -282,9 +255,9 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
         </div>
       </section>
 
-      <section style={blockStyle}>
-        <h4 style={{ marginTop: 0, marginBottom: 10 }}>Игрок / вертолёт</h4>
-        <div style={rowStyle}>
+      <section className="ui-block">
+        <h4 style={{ marginBottom: 10 }}>Игрок / вертолёт</h4>
+        <div className="ui-field">
           <span style={labelStyle}>Базовое HP вертолёта</span>
           <input
             type="number"
@@ -293,7 +266,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updatePlayer(setBalance, 'baseAllyHp', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>HP союзной пехоты</span>
           <input
             type="number"
@@ -302,7 +275,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updatePlayer(setBalance, 'baseAllyInfantryHp', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Урон союзной пехоты</span>
           <input
             type="number"
@@ -313,13 +286,13 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
         </div>
       </section>
 
-      <section style={blockStyle}>
-        <h4 style={{ marginTop: 0, marginBottom: 10 }}>Формулы наград (миссии)</h4>
+      <section className="ui-block">
+        <h4 style={{ marginBottom: 10 }}>Формулы наград (миссии)</h4>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>
           Награда за волну (софт) = baseMissionReward × baseLevelRewardMultiplier^(уровень−1) ×
           missionDifficultyMultiplier^(волна−1). На силу врагов в бою это не влияет. За уровень = сумма по волнам.
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Базовая награда за миссию (монеты)</span>
           <input
             type="number"
@@ -328,7 +301,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'baseMissionReward', num(e.target.value))}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Множитель награды за уровень (baseLevelRewardMultiplier)</span>
           <input
             type="number"
@@ -338,7 +311,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'baseLevelRewardMultiplier', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Множитель награды между волнами (missionDifficultyMultiplier)</span>
           <input
             type="number"
@@ -348,7 +321,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'missionDifficultyMultiplier', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Волн на один игровой уровень (wavesPerLevel)</span>
           <input
             type="number"
@@ -358,7 +331,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'wavesPerLevel', num(e.target.value) || 2)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Миссий в одной сессии (missionsPerSession)</span>
           <input
             type="number"
@@ -368,7 +341,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'missionsPerSession', num(e.target.value) || 3)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Штраф за поражение (%)</span>
           <input
             type="number"
@@ -380,15 +353,15 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
         </div>
       </section>
 
-      <section style={blockStyle}>
-        <h4 style={{ marginTop: 0, marginBottom: 10 }}>Бой и волны</h4>
+      <section className="ui-block">
+        <h4 style={{ marginBottom: 10 }}>Бой и волны</h4>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, lineHeight: 1.4 }}>
           Состав и численность врагов задаются в конструкторе волн (и референсом CreateSheets). Параметры юнитов в бою не
           масштабируются от номера уровня или волны. Скилл: ожидаемый множитель исходящего DPS = (1 − промах%) ×
           ((доля слабых × сила слабого) + (1 − доля слабых)). Сейчас:{' '}
           <strong style={{ color: '#e2e8f0' }}>{outgoingSkillMult.toFixed(4)}</strong>.
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Промах (нет урона), %</span>
           <input
             type="number"
@@ -398,7 +371,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateCombatSkill(setBalance, 'missChancePercent', num(e.target.value))}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Слабое попадание (доля среди не-промахов), %</span>
           <input
             type="number"
@@ -408,7 +381,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateCombatSkill(setBalance, 'partialHitChancePercent', num(e.target.value))}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Урон слабого попадания, % от полного</span>
           <input
             type="number"
@@ -420,9 +393,9 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
         </div>
       </section>
 
-      <section style={blockStyle}>
-        <h4 style={{ marginTop: 0, marginBottom: 10 }}>Квесты и слоты карт</h4>
-        <div style={rowStyle}>
+      <section className="ui-block">
+        <h4 style={{ marginBottom: 10 }}>Квесты и слоты карт</h4>
+        <div className="ui-field">
           <span style={labelStyle}>Награда за квест (монеты)</span>
           <input
             type="number"
@@ -431,7 +404,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'questBaseReward', num(e.target.value))}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Миссий на уровень игрока</span>
           <input
             type="number"
@@ -440,7 +413,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'missionsPerPlayerLevel', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Квестов на уровень</span>
           <input
             type="number"
@@ -449,7 +422,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'questsPerLevel', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Стоимость слота карт (монеты)</span>
           <input
             type="number"
@@ -458,7 +431,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'cardSlotCost', num(e.target.value))}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Макс. слотов карт</span>
           <input
             type="number"
@@ -467,7 +440,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'maxCardSlots', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Стартовые слоты деки (startingCardSlots)</span>
           <input
             type="number"
@@ -476,7 +449,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'startingCardSlots', num(e.target.value) || 1)}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Карт за уровень (cardSlotsPerLevel)</span>
           <input
             type="number"
@@ -485,7 +458,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'cardSlotsPerLevel', num(e.target.value))}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Базовая стоимость улучшения карты</span>
           <input
             type="number"
@@ -494,7 +467,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             onChange={(e) => updateEconomy(setBalance, 'cardBaseCost', num(e.target.value))}
           />
         </div>
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Бонус карты (%)</span>
           <input
             type="number"
@@ -505,15 +478,15 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
         </div>
       </section>
 
-      <section style={blockStyle}>
-        <h4 style={{ marginTop: 0, marginBottom: 10 }}>Базовые значения оружия (уровень 1)</h4>
+      <section className="ui-block">
+        <h4 style={{ marginBottom: 10 }}>Базовые значения оружия (уровень 1)</h4>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>
           Индивидуальные коэффициенты роста теперь редактируются в разделе «Оружие и карты» у каждого ствола отдельно.
         </div>
         {(['machineGun', 'hydra70', 'hellfire'] as const).map((id) => (
           <div key={id} style={{ marginBottom: 12 }}>
             <strong>{weapons[id].displayName}</strong>
-            <div style={rowStyle}>
+            <div className="ui-field">
               <span style={labelStyle}>Базовый урон</span>
               <input
                 type="number"
@@ -522,7 +495,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
                 onChange={(e) => updateWeapon(setBalance, id, 'baseDamage', num(e.target.value))}
               />
             </div>
-            <div style={rowStyle}>
+            <div className="ui-field">
               <span style={labelStyle}>Выстрелов в минуту</span>
               <input
                 type="number"
@@ -531,7 +504,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
                 onChange={(e) => updateWeapon(setBalance, id, 'baseFireRatePerMin', num(e.target.value))}
               />
             </div>
-            <div style={rowStyle}>
+            <div className="ui-field">
               <span style={labelStyle}>Боезапас</span>
               <input
                 type="number"
@@ -545,9 +518,9 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
       </section>
 
       {economy.usdAnchor && (
-        <section style={blockStyle}>
-          <h4 style={{ marginTop: 0, marginBottom: 10 }}>Якорь USD (VIP)</h4>
-          <div style={rowStyle}>
+        <section className="ui-block">
+          <h4 style={{ marginBottom: 10 }}>Якорь USD (VIP)</h4>
+          <div className="ui-field">
             <span style={labelStyle}>Цена VIP в золоте (для курса gold→USD)</span>
             <input
               type="number"

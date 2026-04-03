@@ -55,29 +55,6 @@ function localizeExpression(expression: string, variableKeys: string[]): string 
   return out;
 }
 
-const blockStyle: React.CSSProperties = {
-  marginBottom: 24,
-  padding: 16,
-  border: '1px solid rgba(148, 163, 184, 0.28)',
-  borderRadius: 14,
-  background: 'rgba(15, 23, 42, 0.55)',
-};
-
-const cardStyle: React.CSSProperties = {
-  border: '1px solid rgba(148, 163, 184, 0.24)',
-  borderRadius: 12,
-  background: 'rgba(2, 6, 23, 0.55)',
-  padding: 12,
-  marginTop: 12,
-};
-
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: 8,
-  flexWrap: 'wrap',
-  alignItems: 'center',
-};
-
 const labelStyle: React.CSSProperties = {
   fontSize: 12,
   color: '#cbd5e1',
@@ -385,7 +362,7 @@ function SourceEditor({
 }) {
   return (
     <div style={{ display: 'grid', gap: 8 }}>
-      <div style={rowStyle}>
+      <div className="ui-field">
         <span style={labelStyle}>Источник</span>
         <select
           style={fieldStyle}
@@ -404,7 +381,7 @@ function SourceEditor({
         </select>
       </div>
       {atom.source.sourceType === 'entity' ? (
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Сущность</span>
           <select
             style={fieldStyle}
@@ -426,7 +403,7 @@ function SourceEditor({
           </select>
         </div>
       ) : (
-        <div style={rowStyle}>
+        <div className="ui-field">
           <span style={labelStyle}>Константа</span>
           <input
             type="number"
@@ -443,7 +420,7 @@ function SourceEditor({
           />
         </div>
       )}
-      <div style={rowStyle}>
+      <div className="ui-field">
         <span style={labelStyle}>Смещение</span>
         <input
           type="number"
@@ -480,7 +457,7 @@ function FunctionEditor({
 
   return (
     <div style={{ display: 'grid', gap: 10 }}>
-      <div style={rowStyle}>
+      <div className="ui-field">
         <span style={labelStyle}>Функция</span>
         <select
           style={fieldStyle}
@@ -494,7 +471,7 @@ function FunctionEditor({
           <option value="max">max (максимум)</option>
         </select>
       </div>
-      <div style={cardStyle}>
+      <div className="ui-subcard">
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>Аргумент A</div>
         <SourceEditor
           atom={{ id: 'arg-a', kind: 'source', source: atom.args[0] }}
@@ -502,7 +479,7 @@ function FunctionEditor({
           onChange={(patch) => setArg(0, patch.source ?? atom.args[0])}
         />
       </div>
-      <div style={cardStyle}>
+      <div className="ui-subcard">
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>Аргумент B</div>
         <SourceEditor
           atom={{ id: 'arg-b', kind: 'source', source: atom.args[1] }}
@@ -524,9 +501,9 @@ export const FormulaConstructor: React.FC<FormulaConstructorProps> = ({
   setBalance,
 }) => {
   return (
-    <section style={blockStyle}>
-      <h3 style={{ marginTop: 0, marginBottom: 8 }}>Конструктор формул</h3>
-      <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>
+    <section className="ui-block">
+      <h3>Конструктор формул</h3>
+      <p className="ui-hint" style={{ marginBottom: 12 }}>
         Формула теперь собирается из нод: можно выбирать сущность или константу, добавлять операторы и функции, а справа сразу видеть готовое выражение и превью.
       </p>
       {FORMULA_DEFINITIONS.map((def) => (
@@ -581,14 +558,13 @@ function FormulaEditor({
   }, [balance, def, expression]);
 
   return (
-    <div style={cardStyle}>
+    <div className="ui-subcard">
       <div
+        className="ui-toolbar"
         style={{
-          display: 'flex',
           justifyContent: 'space-between',
-          gap: 12,
           alignItems: 'flex-start',
-          flexWrap: 'wrap',
+          marginBottom: 0,
         }}
       >
         <div>

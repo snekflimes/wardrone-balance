@@ -52,22 +52,6 @@ function getWeaponUpgradeCostMultiplier(balance: BalanceConstants, weaponId: Wea
 type PrecisionMap = Record<string, boolean>;
 type DisplayPreset = 'full' | 'compact' | 'minimal';
 
-const sectionStyle: React.CSSProperties = {
-  marginTop: 0,
-  padding: 14,
-  border: '1px solid rgba(148, 163, 184, 0.26)',
-  borderRadius: 14,
-  background: 'rgba(15, 23, 42, 0.55)',
-};
-
-const cardStyle: React.CSSProperties = {
-  marginTop: 12,
-  padding: 12,
-  border: '1px solid rgba(148, 163, 184, 0.22)',
-  borderRadius: 12,
-  background: 'rgba(2, 6, 23, 0.55)',
-};
-
 const tableStyle: React.CSSProperties = {
   width: '100%',
   borderCollapse: 'separate',
@@ -459,12 +443,12 @@ function WeaponCardSection({
   const upgradeBase = getWeaponUpgradeBaseSoft(balance, weaponId);
   const upgradeMult = getWeaponUpgradeCostMultiplier(balance, weaponId);
   return (
-    <div style={cardStyle}>
-      <h4 style={{ marginTop: 0, marginBottom: 10 }}>
+    <div className="ui-subcard">
+      <h4 style={{ marginBottom: 10 }}>
         {weapon.displayName}
         <span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 400, marginLeft: 8 }}>макс. ур. {maxLv}</span>
       </h4>
-      <p style={{ margin: '0 0 10px 0', fontSize: 12, color: '#94a3b8' }}>
+      <p className="ui-hint" style={{ marginBottom: 10 }}>
         Апгрейд (софт): база <strong style={{ color: '#e2e8f0' }}>{upgradeBase.toLocaleString('ru-RU')}</strong>
         , рост стоимости <strong style={{ color: '#e2e8f0' }}>+{upgradeMult}×</strong> за уровень (линейно, как в референсе).
       </p>
@@ -1141,14 +1125,14 @@ export const WeaponCardsPanel: React.FC<{
   const allCollapsed = cardIds.length > 0 && cardIds.every((id) => collapsedCards[id]);
 
   return (
-    <section style={sectionStyle}>
-      <h3 style={{ marginTop: 0 }}>Оружие</h3>
-      <p style={{ color: '#94a3b8', fontSize: 13, marginTop: 0 }}>
+    <section>
+      <h3>Оружие</h3>
+      <p className="ui-hint">
         У каждого оружия свои базовые параметры и коэффициенты. Урон и боезапас растут линейно от базы; в шапке карточки —{' '}
         <strong>база софта</strong> и <strong>множитель роста стоимости</strong> апгрейда (референс Weapons).
       </p>
 
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+      <div className="ui-toolbar">
         {(['full', 'compact', 'minimal'] as DisplayPreset[]).map((preset) => (
           <button
             key={preset}
@@ -1165,7 +1149,7 @@ export const WeaponCardsPanel: React.FC<{
         ))}
       </div>
 
-      <div style={{ display: 'grid', gap: 16 }}>
+      <div className="ui-stack">
         {weapons.map((weaponId) => (
           <WeaponCardSection
             key={weaponId}
@@ -1181,14 +1165,14 @@ export const WeaponCardsPanel: React.FC<{
         ))}
       </div>
 
-      <div style={cardStyle}>
-        <h3 style={{ marginTop: 0 }}>Карточки поддержки</h3>
-        <p style={{ color: '#94a3b8', fontSize: 13, marginTop: 0, maxWidth: 720, lineHeight: 1.5 }}>
+      <div className="ui-subcard">
+        <h3>Карточки поддержки</h3>
+        <p className="ui-hint" style={{ maxWidth: 720 }}>
           В шапке таблицы у каждого столбца — выбор параметра из списка, стрелки порядка, удаление; справа «Добавить…» для нового столбца.
           Новый смысл поля — только через пресет в коде. Метаданные карточки — в таблице выше; стоимость прокачки — ниже.
         </p>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+        <div className="ui-toolbar">
           <button
             type="button"
             style={smallButtonStyle}

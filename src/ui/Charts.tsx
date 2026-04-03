@@ -65,10 +65,11 @@ export const Charts: React.FC<ChartsProps> = ({ balance }) => {
   }, [balance, gameLevels]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+    <div className="ui-stack">
       <section>
-        <h3 style={{ marginBottom: 8 }}>DPS оружия по уровням (устойчивый)</h3>
-        <div style={{ width: '100%', height: 320 }}>
+        <h3>DPS оружия (устойчивый)</h3>
+        <p className="ui-hint">По уровням стволов из баланса.</p>
+        <div style={{ width: '100%', height: 260 }}>
           <ResponsiveContainer>
             <LineChart data={dpsData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -86,8 +87,8 @@ export const Charts: React.FC<ChartsProps> = ({ balance }) => {
       </section>
 
       <section>
-        <h3 style={{ marginBottom: 8 }}>Награда за миссию по уровню</h3>
-        <div style={{ width: '100%', height: 280 }}>
+        <h3>Награда за миссию</h3>
+        <div style={{ width: '100%', height: 240 }}>
           <ResponsiveContainer>
             <LineChart data={missionRewardCurve} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -101,8 +102,8 @@ export const Charts: React.FC<ChartsProps> = ({ balance }) => {
       </section>
 
       <section>
-        <h3 style={{ marginBottom: 8 }}>Награда по волнам и за уровень</h3>
-        <div style={{ width: '100%', height: 320 }}>
+        <h3>Награды по волнам и уровню</h3>
+        <div style={{ width: '100%', height: 260 }}>
           <ResponsiveContainer>
             <BarChart data={rewardByLevelData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />

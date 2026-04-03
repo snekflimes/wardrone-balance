@@ -4,28 +4,12 @@ import { getBestGoldPerUsd, getBestSoftPerUsd } from '../progression/iapAndChest
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 
-const sectionStyle: React.CSSProperties = {
-  marginTop: 0,
-  padding: 14,
-  border: '1px solid rgba(148, 163, 184, 0.26)',
-  borderRadius: 14,
-  background: 'rgba(15, 23, 42, 0.55)',
-};
-
-const blockStyle: React.CSSProperties = {
-  marginBottom: 14,
-  padding: 12,
-  border: '1px solid rgba(148, 163, 184, 0.35)',
-  borderRadius: 10,
-  background: 'rgba(15, 23, 42, 0.72)',
-};
-
 const rowStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 10,
   flexWrap: 'wrap',
-  marginBottom: 8,
+  marginBottom: 6,
 };
 
 const inputStyle: React.CSSProperties = {
@@ -39,7 +23,7 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
-const labelStyle: React.CSSProperties = { minWidth: 260, fontSize: 13, color: '#cbd5e1' };
+const labelStyle: React.CSSProperties = { minWidth: 200, fontSize: 13, color: '#cbd5e1' };
 
 function n(v: unknown): number {
   const x = Number(v);
@@ -113,16 +97,16 @@ export const TrafficPanel: React.FC<{ balance: BalanceConstants; setBalance: Set
   ]);
 
   return (
-    <section style={sectionStyle}>
-      <h3 style={{ marginTop: 0, marginBottom: 8 }}>Трафик</h3>
-      <p style={{ margin: 0, color: '#94a3b8', fontSize: 13, lineHeight: 1.45, maxWidth: 980 }}>
+    <section>
+      <h3>Трафик</h3>
+      <p className="ui-hint" style={{ maxWidth: 980 }}>
         Настройки трафика и доната, чтобы было видно, <strong style={{ color: '#e2e8f0' }}>почему</strong> меняется прогноз
         при переключении сегмента. Значения USD/день используются в прогнозе для притока софта у payer/whale.
       </p>
 
-      <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-        <section style={blockStyle}>
-          <h4 style={{ marginTop: 0, marginBottom: 8 }}>Сегменты: донат в день</h4>
+      <div className="ui-stack" style={{ marginTop: 10 }}>
+        <div className="ui-subcard">
+          <h4>Сегменты: донат в день</h4>
           <div style={rowStyle}>
             <span style={labelStyle}>Payer USD/день</span>
             <input
@@ -149,10 +133,10 @@ export const TrafficPanel: React.FC<{ balance: BalanceConstants; setBalance: Set
             Конвертация по лучшим IAP-пакам: soft/USD ≈ {Math.round(rates.softPerUsd * 10) / 10},{' '}
             gold/USD ≈ {Math.round(rates.goldPerUsd * 10) / 10}
           </div>
-        </section>
+        </div>
 
-        <section style={blockStyle}>
-          <h4 style={{ marginTop: 0, marginBottom: 8 }}>Трафик: аудитория и реклама</h4>
+        <div className="ui-subcard">
+          <h4>Трафик: аудитория и реклама</h4>
           <div style={rowStyle}>
             <span style={labelStyle}>DAU</span>
             <input
@@ -213,10 +197,10 @@ export const TrafficPanel: React.FC<{ balance: BalanceConstants; setBalance: Set
               onChange={(e) => patchMeta(setBalance, { trafficViewsPerDay: Math.max(0, n(e.target.value)) })}
             />
           </div>
-        </section>
+        </div>
 
-        <section style={blockStyle}>
-          <h4 style={{ marginTop: 0, marginBottom: 8 }}>Комиссии (как в CSV)</h4>
+        <div className="ui-subcard">
+          <h4>Комиссии (как в CSV)</h4>
           <div style={rowStyle}>
             <span style={labelStyle}>Market fee (0..1)</span>
             <input
@@ -256,10 +240,10 @@ export const TrafficPanel: React.FC<{ balance: BalanceConstants; setBalance: Set
           <div style={{ fontSize: 12, color: '#94a3b8' }}>
             Итого удержаний: {Math.round(metrics.fee * 1000) / 10}%
           </div>
-        </section>
+        </div>
 
-        <section style={{ ...blockStyle, border: '2px solid rgba(34, 197, 94, 0.5)', background: 'rgba(22, 101, 52, 0.18)' }}>
-          <h4 style={{ marginTop: 0, marginBottom: 8, color: '#86efac' }}>Расчёт (в стиле вкладки «Заработок»)</h4>
+        <div className="ui-subcard ui-subcard--highlight">
+          <h4 style={{ color: '#86efac' }}>Расчёт (в стиле вкладки «Заработок»)</h4>
           <div style={{ display: 'grid', gap: 6, color: '#e2e8f0', fontSize: 13, lineHeight: 1.55 }}>
             <div>IAP income: <strong>${Math.round(metrics.iapUsdPerDay).toLocaleString('ru-RU')}</strong> / день</div>
             <div>Adv income: <strong>${Math.round(metrics.adsUsdPerDay).toLocaleString('ru-RU')}</strong> / день</div>
@@ -272,7 +256,7 @@ export const TrafficPanel: React.FC<{ balance: BalanceConstants; setBalance: Set
               <strong>{Math.round(metrics.goldPerDay).toLocaleString('ru-RU')}</strong> gold/день
             </div>
           </div>
-        </section>
+        </div>
       </div>
     </section>
   );

@@ -11,22 +11,6 @@ import type { ForecastUiState } from './ProgressionForecastPanel';
 
 type SetReferenceWavesConfig = React.Dispatch<React.SetStateAction<ReferenceWavesConfig>>;
 
-const sectionStyle: React.CSSProperties = {
-  marginTop: 0,
-  padding: 14,
-  border: '1px solid rgba(148, 163, 184, 0.26)',
-  borderRadius: 14,
-  background: 'rgba(15, 23, 42, 0.55)',
-};
-
-const cardStyle: React.CSSProperties = {
-  marginTop: 12,
-  padding: 12,
-  border: '1px solid rgba(148, 163, 184, 0.22)',
-  borderRadius: 12,
-  background: 'rgba(2, 6, 23, 0.55)',
-};
-
 const tableStyle: React.CSSProperties = {
   width: '100%',
   borderCollapse: 'separate',
@@ -363,43 +347,23 @@ export const LevelsConstructorPanel: React.FC<{
   };
 
   return (
-    <section style={sectionStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+    <section>
+      <div className="ui-toolbar" style={{ justifyContent: 'space-between', marginBottom: 0 }}>
         <div>
-          <h3 style={{ marginTop: 0, marginBottom: 6 }}>Конструктор уровней</h3>
-          <p style={{ margin: 0, color: '#94a3b8', fontSize: 13, lineHeight: 1.45 }}>
-            Редактирование <strong style={{ color: '#e2e8f0' }}>базового</strong> состава врагов по уровню и волне. В бою и в
-            «Прогнозе» используются те же числа; параметры типов врагов (HP, урон и т.д.) не меняются от уровня или номера
-            волны — сложность задаётся составом и таблицей врагов.
+          <h3>Конструктор уровней</h3>
+          <p className="ui-hint" style={{ maxWidth: 640, marginBottom: 0 }}>
+            Состав врагов по уровню и волне — те же данные в бою и «Прогнозе». Сложность — состав и таблица врагов, не HP/DPS
+            «на уровень».
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            style={{
-              border: '1px solid rgba(148, 163, 184, 0.35)',
-              borderRadius: 999,
-              background: 'rgba(30, 41, 59, 0.9)',
-              color: '#e2e8f0',
-              padding: '6px 10px',
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
-            onClick={() => setCollapsed((v) => !v)}
-          >
+          <button type="button" className="btn-ghost" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => setCollapsed((v) => !v)}>
             {collapsed ? 'Развернуть' : 'Свернуть'}
           </button>
           <button
             type="button"
-            style={{
-              border: '1px solid rgba(148, 163, 184, 0.35)',
-              borderRadius: 999,
-              background: 'rgba(30, 41, 59, 0.9)',
-              color: '#e2e8f0',
-              padding: '6px 10px',
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
+            className="btn-ghost"
+            style={{ fontSize: 12, padding: '5px 12px' }}
             onClick={() => setReferenceWavesConfig(defaultCfg)}
             title="Сбросить состав врагов к значениям по умолчанию"
           >
@@ -408,9 +372,9 @@ export const LevelsConstructorPanel: React.FC<{
         </div>
       </div>
 
-      <div style={{ ...cardStyle, marginTop: 14 }}>
-        <h4 style={{ marginTop: 0, marginBottom: 8 }}>Отладка: симуляция прогрессии</h4>
-        <p style={{ margin: '0 0 10px 0', fontSize: 12, color: '#94a3b8', lineHeight: 1.45 }}>
+      <div className="ui-subcard" style={{ marginTop: 12 }}>
+        <h4>Отладка: симуляция прогрессии</h4>
+        <p className="ui-hint" style={{ marginBottom: 10 }}>
           Параметры <strong style={{ color: '#e2e8f0' }}>те же, что на «Прогноз»</strong> (поля ниже синхронизированы).
           «Симулировать 1–K» даёт те же попытки на уровне K, что строка K в таблице прогноза при полном прогоне всех
           уровней.
@@ -511,8 +475,8 @@ export const LevelsConstructorPanel: React.FC<{
 
       {!collapsed && (
         <div style={{ marginTop: 18, display: 'grid', gap: 14 }}>
-          <div style={cardStyle}>
-            <h4 style={{ marginTop: 0, marginBottom: 10 }}>Конструктор вражеских юнитов</h4>
+          <div className="ui-subcard">
+            <h4 style={{ marginBottom: 10 }}>Конструктор вражеских юнитов</h4>
             <table style={tableStyle}>
               <thead>
                 <tr>
@@ -594,8 +558,8 @@ export const LevelsConstructorPanel: React.FC<{
           </div>
 
           {Array.from({ length: gameLevels }, (_, i) => i + 1).map((levelIndex) => (
-              <div key={levelIndex} style={cardStyle}>
-                <h4 style={{ marginTop: 0, marginBottom: 10 }}>Уровень {levelIndex}</h4>
+              <div key={levelIndex} className="ui-subcard">
+                <h4 style={{ marginBottom: 10 }}>Уровень {levelIndex}</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: wavesPerLevel >= 2 ? '1fr 1fr' : '1fr', gap: 12 }}>
                   {Array.from({ length: wavesPerLevel }, (_, i) => i + 1).map((waveIndex) => (
                     <div key={waveIndex}>

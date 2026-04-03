@@ -62,14 +62,6 @@ function sumObjectValues(obj: Record<string, number> | null | undefined): number
   return Object.values(obj).reduce((sum, v) => sum + v, 0);
 }
 
-const sectionStyle: React.CSSProperties = {
-  marginTop: 0,
-  padding: 14,
-  border: '1px solid rgba(148, 163, 184, 0.26)',
-  borderRadius: 14,
-  background: 'rgba(15, 23, 42, 0.55)',
-};
-
 const tableStyle: React.CSSProperties = {
   width: '100%',
   borderCollapse: 'separate',
@@ -880,17 +872,14 @@ export const ProgressionForecastPanel: React.FC<{
   }, [attemptPowerYMin, attemptPowerYMax]);
 
   return (
-    <section style={sectionStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+    <section>
+      <div className="ui-toolbar" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <h3 style={{ marginTop: 0, marginBottom: 6 }}>Прогноз прогрессии</h3>
-          <p style={{ margin: 0, color: '#94a3b8', fontSize: 13 }}>
-            Ожидаемое число попыток, награды и итоговая прокачка по референсным волнам. Сегмент, ур. игрока, лимит попыток
-            и энергия{' '}
-            <strong style={{ color: '#e2e8f0' }}>общие с вкладкой «Уровни»</strong>: для уровня K число попыток в строке
-            ниже совпадает с кнопкой «Симулировать 1–K» там. Численность на ранних уровнях усиливается множителями из
-            «Формулы → Бой и референсные волны» (буст + глобальный множитель), чтобы в симуляции было больше награды за
-            юнитов в начале.
+          <h3>Прогноз прогрессии</h3>
+          <p className="ui-hint" style={{ maxWidth: 640, marginBottom: 0 }}>
+            Попытки, награды и прокачка по референсным волнам. Сегмент, энергия и лимит попыток —{' '}
+            <strong style={{ color: '#e2e8f0' }}>как на «Уровни»</strong> (строка K = «Симулировать 1–K»). Ранние уровни
+            усиливаются множителями из «Формулы → Бой и референсные волны».
           </p>
         </div>
         <div style={{ display: 'grid', gap: 8, justifyItems: 'end' }}>
