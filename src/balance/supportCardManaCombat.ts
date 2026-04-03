@@ -220,13 +220,11 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
             } else if (card.id === 16) {
               const u = constants.enemies.rpgInfantry;
               if (u) {
-                const sc = levelScale(lv);
-                addHp = count * u.baseHp * sc;
-                addDps =
-                  count *
-                  u.baseDamage *
-                  ((u.baseFireRatePerMin ?? 60) / 60) *
-                  sc;
+                const dmg = v2 > 1e-6 ? v2 : u.baseDamage;
+                const rpm = u.baseFireRatePerMin ?? 60;
+                const hpScale = Math.min(2.2, Math.max(0.85, dmg / Math.max(1, u.baseDamage)));
+                addHp = count * u.baseHp * hpScale;
+                addDps = count * dmg * (rpm / 60);
               }
             } else if (card.id === 4) {
               const u = constants.enemies.jeep;
