@@ -1,7 +1,7 @@
 import type { BalanceConstants, WeaponId } from '../balance/model';
 import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import { getWeaponLevelStats } from '../balance/simulator';
-import type { ProgressionState, UpgradePolicy } from './types';
+import type { ProgressionState, SegmentId, UpgradePolicy } from './types';
 import { getWeaponUpgradeSoftCost } from './upgradeCosts';
 
 type WeaponKey = WeaponId;
@@ -36,6 +36,37 @@ function computeTotalCombatDps(constants: BalanceConstants, weaponLevels: Progre
     // поэтому и выбор апгрейда должен опираться на sustainedDps.
     return sum + stats.sustainedDps;
   }, 0);
+}
+
+/** Для платящих: не заливаем весь донат только в пулемёт — штрафуем ветку, сильно ушедшую вперёд по уровню. */
+function pickWeaponUpgradeWithDiversity(
+  segmentId: SegmentId,
+  candidates: Array<{ weaponId: WeaponKey; nextLevel: number; cost: number; dpsGain: number }>,
+  weaponLevels: ProgressionState['weaponLevels'],
+  unlocked: { machineGun: boolean; hydra70: boolean; hellfire: boolean }
+): (typeof candidates)[0] | null {
+  if (candidates.length === 0) return null;
+  if (segmentId === 'free') {
+    candidates.sort((a, b) => b.dpsGain - a.dpsGain);
+    return candidates[0];
+  }
+
+  const levels: number[] = [];
+  if (unlocked.machineGun) levels.push(getWeaponLevelValue(weaponLevels, 'machineGun'));
+  if (unlocked.hydra70) levels.push(getWeaponLevelValue(weaponLevels, 'hydra70'));
+  if (unlocked.hellfire) levels.push(getWeaponLevelValue(weaponLevels, 'hellfire'));
+  const avg = levels.reduce((s, n) => s + n, 0) / Math.max(1, levels.length);
+
+  const diversityWeight = segmentId === 'whale' ? 0.42 : 0.28;
+
+  const scored = candidates.map((c) => {
+    const cur = getWeaponLevelValue(weaponLevels, c.weaponId);
+    const ahead = Math.max(0, cur - avg);
+    const diversity = 1 / (1 + diversityWeight * ahead);
+    return { c, score: c.dpsGain * diversity };
+  });
+  scored.sort((a, b) => b.score - a.score || b.c.dpsGain - a.c.dpsGain);
+  return scored[0].c;
 }
 
 export const weaponOnlyUpgradePolicy: UpgradePolicy = ({ constants, state, ctx }) => {
@@ -91,9 +122,13 @@ export const weaponOnlyUpgradePolicy: UpgradePolicy = ({ constants, state, ctx }
 
     if (candidates.length === 0) break;
 
-    // Берем апгрейд с максимальным приростом устойчивого DPS.
-    candidates.sort((a, b) => b.dpsGain - a.dpsGain);
-    const best = candidates[0];
+    const best = pickWeaponUpgradeWithDiversity(
+      state.segmentId,
+      candidates,
+      nextState.weaponLevels,
+      unlocked
+    );
+    if (!best) break;
 
     nextState = {
       ...nextState,

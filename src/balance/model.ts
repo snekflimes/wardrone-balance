@@ -4,6 +4,7 @@ export type WeaponId = 'machineGun' | 'hydra70' | 'hellfire';
 
 export type EnemyId =
   | 'infantry'
+  | 'rpgInfantry'
   | 'jeep'
   | 'apc'
   | 'lightTank'

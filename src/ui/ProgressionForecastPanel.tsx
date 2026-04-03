@@ -655,7 +655,7 @@ export const ProgressionForecastPanel: React.FC<{
           unitsTotal,
           unitsRawSumFromEditor: row.unitsRawSumFromEditor,
           totalEnemyHpScaled: row.totalEnemyHpScaled,
-          totalEnemyThreatScaled: row.totalEnemyThreatScaled,
+          totalEnemyLevelPowerScaled: row.totalEnemyLevelPowerScaled,
           attemptsTotal: row.attemptsTotal,
           avgRewardPerAttempt: row.avgRewardPerAttempt,
           totalRewardSoft: row.totalRewardSoft,
@@ -1014,9 +1014,21 @@ export const ProgressionForecastPanel: React.FC<{
           </div>
           {((forecast.segmentSoftIncomePerDay ?? 0) > 0.0001) && (
             <div>
-              Донатный софт сегмента: <strong>{Math.round((forecast.segmentSoftIncomePerDay ?? 0) * 10) / 10} / день</strong>
+              Донатный софт сегмента (iap_soft):{' '}
+              <strong>{Math.round((forecast.segmentSoftIncomePerDay ?? 0) * 10) / 10} / день</strong>
             </div>
           )}
+          {((forecast.segmentHardIncomePerDay ?? 0) > 0.0001) && (
+            <div>
+              Донатное золото сегмента (iap_gold, доля недельного USD):{' '}
+              <strong>{Math.round((forecast.segmentHardIncomePerDay ?? 0) * 10) / 10} / день</strong> — в прогнозе целиком
+              тратится на сундуки с карточками (хард).
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+            Бесплатник: весь хард из логина и бесплатных сундуков тоже уходит в сундуки с картами. Платящие: часть USD в софт на
+            оружие, часть в золото на сундуки; апгрейд оружия не только в «лучший DPS».
+          </div>
           <div>
             Лимит попыток в календарный день (meta): <strong>{balance.meta.forecastMaxAttemptsPerDay ?? 10}</strong> ·
             Макс. «День прохода» в таблице:{' '}
@@ -1927,8 +1939,11 @@ export const ProgressionForecastPanel: React.FC<{
                   <th style={thStyle} title="Σ HP (baseHp × N) по волнам">
                     Σ HP
                   </th>
-                  <th style={thStyle} title="Σ базовая угроза (DPS×N) по волнам">
-                    Σ угр.
+                  <th
+                    style={thStyle}
+                    title="Σ по волнам: 0,7×requiredDps + 0,3×угроза — та же мощь, что «Сложность уровня» на графике"
+                  >
+                    Σ мощь
                   </th>
                   <th style={thStyle}>Пыток (итого)</th>
                   <th style={thStyle}>Средняя награда за попытку</th>
@@ -1977,8 +1992,8 @@ export const ProgressionForecastPanel: React.FC<{
                         : '—'}
                     </td>
                     <td style={tdStyle}>
-                      {r.totalEnemyThreatScaled != null && r.totalEnemyThreatScaled > 0
-                        ? Math.round(r.totalEnemyThreatScaled).toLocaleString('ru-RU')
+                      {r.totalEnemyLevelPowerScaled != null && r.totalEnemyLevelPowerScaled > 0
+                        ? Math.round(r.totalEnemyLevelPowerScaled).toLocaleString('ru-RU')
                         : '—'}
                     </td>
                     <td style={tdStyle}>{r.unitsTotal > 0 ? r.attemptsTotal : '—'}</td>

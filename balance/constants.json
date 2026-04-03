@@ -6,7 +6,7 @@
     "maxHellfireLevel": 20,
     "maxPlayerLevel": 50,
     "gameLevels": 15,
-    "enemyTypes": 10,
+    "enemyTypes": 11,
     "baseWaveTimeSec": 45,
     "forecastMaxAttemptsPerDay": 10,
     "forecastFreeChestsPerDay": 3,
@@ -83,7 +83,7 @@
     "cardSlotsPerLevel": 1,
     "cardSlotCost": 200,
     "maxCardSlots": 24,
-    "startingCardSlots": 4,
+    "startingCardSlots": 6,
     "baseLevelRewardMultiplier": 1.1,
     "cardRarityWeights": {
       "common": 1.5,
@@ -253,6 +253,17 @@
       "speed": 70,
       "reward": 10
     },
+    "rpgInfantry": {
+      "id": "rpgInfantry",
+      "displayName": "Пехота с РПГ",
+      "baseHp": 40,
+      "baseDamage": 28,
+      "baseFireRatePerMin": 20,
+      "range": 95,
+      "speed": 58,
+      "reward": 22,
+      "attackWindupFraction": 0.12
+    },
     "jeep": {
       "id": "jeep",
       "displayName": "Джип",
@@ -344,6 +355,7 @@
   "weaponVsEnemyModifiers": {
     "machineGun": {
       "infantry": 1.0,
+      "rpgInfantry": 1.05,
       "jeep": 0.8,
       "apc": 0.5,
       "lightTank": 0.42,
@@ -356,6 +368,7 @@
     },
     "hydra70": {
       "infantry": 1.5,
+      "rpgInfantry": 1.55,
       "jeep": 1.2,
       "apc": 1.0,
       "lightTank": 1.05,
@@ -368,6 +381,7 @@
     },
     "hellfire": {
       "infantry": 2.0,
+      "rpgInfantry": 2.05,
       "jeep": 1.8,
       "apc": 1.5,
       "lightTank": 1.38,
@@ -394,7 +408,8 @@
     { "id": 12, "name": "ЭМИ", "rarity": "rare", "type": "spell", "param1Name": "Длительность (сек)", "param2Name": "Бонус урона (%)", "param1Growth": { "kind": "linear", "base": 3, "inc": 0.5 }, "param2Growth": { "kind": "linear", "base": 50, "inc": 5 } },
     { "id": 13, "name": "Ремонтный дрон", "rarity": "rare", "type": "support", "param1Name": "Лечение (ХП/сек)", "param2Name": "Длительность (сек)", "param1Growth": { "kind": "exp", "base": 20, "mult": 1.15 }, "param2Growth": { "kind": "linear", "base": 5, "inc": 1 } },
     { "id": 14, "name": "Отражающее поле", "rarity": "epic", "type": "defence", "param1Name": "Длительность (сек)", "param2Name": "Отражение (%)", "param1Growth": { "kind": "linear", "base": 3, "inc": 0.5 }, "param2Growth": { "kind": "linear", "base": 50, "inc": 5 } },
-    { "id": 15, "name": "Кассетная бомба", "rarity": "legendary", "type": "spell", "param1Name": "Количество взрывов", "param2Name": "Урон взрыва", "param1Growth": { "kind": "linear", "base": 6, "inc": 1 }, "param2Growth": { "kind": "exp", "base": 30, "mult": 1.2 } }
+    { "id": 15, "name": "Кассетная бомба", "rarity": "legendary", "type": "spell", "param1Name": "Количество взрывов", "param2Name": "Урон взрыва", "param1Growth": { "kind": "linear", "base": 6, "inc": 1 }, "param2Growth": { "kind": "exp", "base": 30, "mult": 1.2 } },
+    { "id": 16, "name": "Пехота с РПГ", "rarity": "uncommon", "type": "summon", "param1Name": "Количество бойцов", "param2Name": "Уровень бойца", "param1Growth": { "kind": "linear", "base": 2, "inc": 1 }, "param2Growth": { "kind": "linear", "base": 1, "inc": 1 }, "unlockAfterLevel": 3, "firstBlueprints": 0, "chestBaseWeight": 1 }
   ],
   "cardUpgradeCosts": {
     "1": { "cards": 0, "uncommon": 0, "common": 0, "rare": 0, "epic": 0, "legendary": 0 },

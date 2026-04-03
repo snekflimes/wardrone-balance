@@ -57,13 +57,22 @@ function findBestIapSoftPackForUsd(constants: BalanceConstants): { packSoft: num
   return best;
 }
 
-export function getSoftIncomeFromSegmentPerWeek(
+/**
+ * Доля недельного доната в «золото» (хард) в прогнозе: остальное конвертируется в софт через iap_soft.
+ * Киты сильнее уходят в сундуки за хард; платящие — смешанная модель.
+ */
+export function getForecastSegmentGoldShare(segmentId: SegmentId): number {
+  if (segmentId === 'payer') return 0.3;
+  if (segmentId === 'whale') return 0.55;
+  return 0;
+}
+
+function getExpectedWeeklyUsdForSegmentForecast(
   constants: BalanceConstants,
   segmentId: SegmentId,
-  profiles: SegmentUsdProfile[] = DEFAULT_SEGMENT_USD_PROFILES
+  profiles: SegmentUsdProfile[]
 ): number {
   if (segmentId === 'free') return 0;
-
   const meta = constants.meta ?? ({} as any);
   const usdPerDay =
     segmentId === 'payer'
@@ -71,15 +80,27 @@ export function getSoftIncomeFromSegmentPerWeek(
       : segmentId === 'whale'
         ? meta.trafficUsdPerDayWhale
         : 0;
-  const expectedUsd =
-    typeof usdPerDay === 'number' && Number.isFinite(usdPerDay) && usdPerDay > 0
-      ? usdPerDay * 7
-      : getExpectedWeeklyUsdForSegment(segmentId, profiles);
+  if (typeof usdPerDay === 'number' && Number.isFinite(usdPerDay) && usdPerDay > 0) {
+    return usdPerDay * 7;
+  }
+  return getExpectedWeeklyUsdForSegment(segmentId, profiles);
+}
+
+export function getSoftIncomeFromSegmentPerWeek(
+  constants: BalanceConstants,
+  segmentId: SegmentId,
+  profiles: SegmentUsdProfile[] = DEFAULT_SEGMENT_USD_PROFILES
+): number {
+  if (segmentId === 'free') return 0;
+
+  const expectedUsd = getExpectedWeeklyUsdForSegmentForecast(constants, segmentId, profiles);
+  const goldShare = getForecastSegmentGoldShare(segmentId);
+  const softUsd = expectedUsd * (1 - goldShare);
   const bestPack = findBestIapSoftPackForUsd(constants);
   if (!bestPack) return 0;
 
   const softPerUsd = bestPack.packSoft / bestPack.priceUsd;
-  return Math.max(0, expectedUsd * softPerUsd);
+  return Math.max(0, softUsd * softPerUsd);
 }
 
 export function getBestSoftPerUsd(constants: BalanceConstants): number {
@@ -99,6 +120,20 @@ export function getBestGoldPerUsd(constants: BalanceConstants): number {
     best = Math.max(best, qty / usd);
   }
   return best;
+}
+
+export function getHardIncomeFromSegmentPerWeek(
+  constants: BalanceConstants,
+  segmentId: SegmentId,
+  profiles: SegmentUsdProfile[] = DEFAULT_SEGMENT_USD_PROFILES
+): number {
+  if (segmentId === 'free') return 0;
+  const expectedUsd = getExpectedWeeklyUsdForSegmentForecast(constants, segmentId, profiles);
+  const goldShare = getForecastSegmentGoldShare(segmentId);
+  const hardUsd = expectedUsd * goldShare;
+  const goldPerUsd = getBestGoldPerUsd(constants);
+  if (goldPerUsd <= 0) return 0;
+  return Math.max(0, hardUsd * goldPerUsd);
 }
 
 export function getIapSoftIncomeForUsd(
@@ -204,6 +239,28 @@ export function pickBestChestByRarityEfficiency(
   let bestEff = -Infinity;
   for (const chestId of chestIds) {
     const eff = getExpectedCopiesOfSingleCardPerSoftSpent(constants, chestId, targetRarity);
+    if (eff > bestEff) {
+      bestEff = eff;
+      bestChest = chestId;
+    }
+  }
+  return bestChest;
+}
+
+/** Сундук с максимальной EV копий карты данной редкости на 1 хард (если priceHard > 0). */
+export function pickBestChestByRarityHardEfficiency(
+  constants: BalanceConstants,
+  targetRarity: CardRarity
+): string {
+  const chestIds = Object.keys(constants.economy.chests).filter((id) => Boolean(constants.economy.chests[id]));
+  if (chestIds.length === 0) return 'common';
+  let bestChest = chestIds[0];
+  let bestEff = -Infinity;
+  for (const chestId of chestIds) {
+    const chest = constants.economy.chests[chestId];
+    const ph = chest?.priceHard ?? 0;
+    if (ph <= 0) continue;
+    const eff = getExpectedCopiesOfSingleCardPerChest(constants, chestId, targetRarity) / ph;
     if (eff > bestEff) {
       bestEff = eff;
       bestChest = chestId;

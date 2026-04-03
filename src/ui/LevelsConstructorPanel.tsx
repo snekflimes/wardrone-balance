@@ -135,8 +135,11 @@ const ProgressionSimResultBlock: React.FC<{
             <th style={thStyle} title="Суммарное HP (baseHp × кол-во) по всем волнам уровня">
               Σ HP
             </th>
-            <th style={thStyle} title="Суммарная угроза: базовый DPS врага × кол-во по всем волнам">
-              Σ угр.
+            <th
+              style={thStyle}
+              title="Σ по волнам: 0,7×requiredDps + 0,3×угроза — как «Сложность уровня» в прогнозе"
+            >
+              Σ мощь
             </th>
             <th style={thStyle}>Награда ∑</th>
             <th style={thStyle}>Софт после</th>
@@ -167,8 +170,8 @@ const ProgressionSimResultBlock: React.FC<{
                     : '—'}
                 </td>
                 <td style={tdStyle}>
-                  {row.totalEnemyThreatScaled != null && row.totalEnemyThreatScaled > 0
-                    ? Math.round(row.totalEnemyThreatScaled).toLocaleString('ru-RU')
+                  {row.totalEnemyLevelPowerScaled != null && row.totalEnemyLevelPowerScaled > 0
+                    ? Math.round(row.totalEnemyLevelPowerScaled).toLocaleString('ru-RU')
                     : '—'}
                 </td>
                 <td style={tdStyle}>{Math.round(row.totalRewardSoft)}</td>
@@ -186,7 +189,7 @@ const ProgressionSimResultBlock: React.FC<{
       </table>
     </div>
     <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', lineHeight: 1.5, maxWidth: 920 }}>
-      Σ HP и Σ угр. — сумма по волнам из baseHp/baseDamage врагов без масштаба по номеру уровня. С игрового уровня 2 в расчёте
+      Σ HP — сумма baseHp×N по волнам; Σ мощь — Σ (0,7×HP/T волны + 0,3×DPS угрозы×N) по волнам, без масштаба по номеру уровня. С игрового уровня 2 в расчёте
       боя подключаются Гидра и Hellfire; на строке ур. 1 их уровни в таблице не показываются (—), хотя во внутреннем состоянии
       симуляции базовые уровни уже заданы.
     </p>

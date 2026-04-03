@@ -26,8 +26,10 @@ import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import {
   getExpectedBlueprintCopiesOfSingleCardPerFreeChest,
   getExpectedFreeChestCurrencyPerOpen,
+  getHardIncomeFromSegmentPerWeek,
+  getSoftIncomeFromSegmentPerWeek,
 } from './iapAndChestsModel';
-import { getSoftIncomeFromSegmentPerWeek } from './iapAndChestsModel';
+import { spendAllHardOnSupportChestsExpected } from './hardChestSpend';
 
 function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
@@ -189,8 +191,13 @@ export function simulateProgressionForecast(
   let forecastAttemptsToday = 0;
   let starterCardsGranted = false;
 
+  /** Хард из логина, бесплатных сундуков и доли доната (платящие); весь тратится на сундуки с картами. */
+  let hardBalance = 0;
+
   const segmentSoftPerWeek = getSoftIncomeFromSegmentPerWeek(constants, options.segmentId);
   const segmentSoftPerDay = segmentSoftPerWeek > 0 ? segmentSoftPerWeek / 7 : 0;
+  const segmentHardPerWeek = getHardIncomeFromSegmentPerWeek(constants, options.segmentId);
+  const segmentHardPerDay = segmentHardPerWeek > 0 ? segmentHardPerWeek / 7 : 0;
 
   const freeChestsPerForecastDay =
     constants.meta.forecastFreeChestsPerDay != null &&
@@ -212,6 +219,7 @@ export function simulateProgressionForecast(
     freeChestOpensById[chestId] = (freeChestOpensById[chestId] ?? 0) + 1;
     const expectedCurrency = getExpectedFreeChestCurrencyPerOpen(constants, chestId);
     softBalance += expectedCurrency.soft;
+    hardBalance += expectedCurrency.hard;
     for (const card of constants.supportCards) {
       const perOpen = getExpectedBlueprintCopiesOfSingleCardPerFreeChest(constants, chestId, card.rarity);
       if (perOpen <= 0) continue;
@@ -224,13 +232,19 @@ export function simulateProgressionForecast(
     const row = rewards.find((r) => r.day === day);
     if (!row) return;
     if ((row.soft ?? 0) > 0) softBalance += row.soft;
-    // hard пока не моделируем как тратим; но показываем в UI/балансе и можно потом расширить.
+    if ((row.hard ?? 0) > 0) hardBalance += row.hard;
   };
 
-  /** За календарный день прогноза: по одному открытию первых K записей economy.freeChests (K = freeChestsPerForecastDay). */
-  const grantForecastDailyFreeChests = () => {
+  /**
+   * За календарный день прогноза: донатный софт/хард сегмента, логин, K бесплатных сундуков;
+   * весь накопленный хард сразу уходит в платные сундуки с картами (EV чертежей).
+   */
+  const grantForecastDailyFreeChests = (gameLevelIndex: number) => {
     if (segmentSoftPerDay > 0) {
       softBalance += segmentSoftPerDay;
+    }
+    if (segmentHardPerDay > 0) {
+      hardBalance += segmentHardPerDay;
     }
     applyLoginRewardForDay(forecastCalendarDay);
     const list = constants.economy.freeChests ?? [];
@@ -238,6 +252,17 @@ export function simulateProgressionForecast(
     for (let i = 0; i < n; i += 1) {
       applySingleFreeChestOpen(list[i].id);
     }
+
+    const hardSpend = spendAllHardOnSupportChestsExpected(
+      constants,
+      hardBalance,
+      supportCardLevels,
+      supportCardBlueprints,
+      gameLevelIndex,
+      recordPaidChestOpens
+    );
+    hardBalance = hardSpend.hardRemaining;
+    supportCardBlueprints = hardSpend.supportCardBlueprints;
   };
 
   const tryBuyDeckSlots = () => {
@@ -264,14 +289,13 @@ export function simulateProgressionForecast(
     return out;
   };
 
-  grantForecastDailyFreeChests();
+  grantForecastDailyFreeChests(1);
   tryBuyDeckSlots();
 
   for (let levelIndex = 1; levelIndex <= lastSimulatedLevel; levelIndex += 1) {
     if (levelIndex >= 3 && !starterCardsGranted) {
-      // На 3-м уровне игрок получает стартовый набор карт:
-      // рой дронов (1), мины (2), патроны пулемёта (10), десант пехоты (7).
-      for (const cardId of [1, 2, 10, 7]) {
+      // Стартовый набор: рой дронов, мины, десант, патроны МГ/Hydra, пехота с РПГ (6 слотов деки).
+      for (const cardId of [1, 2, 7, 8, 10, 16]) {
         supportCardLevels[cardId] = Math.max(1, supportCardLevels[cardId] ?? 0);
       }
       starterCardsGranted = true;
@@ -313,7 +337,7 @@ export function simulateProgressionForecast(
         unitsByEnemyId: (unitsPerLevelFromCfg?.[levelIndex] ?? unitsPerLevel[levelIndex]) as Record<EnemyId, number>,
         unitsRawSumFromEditor: rawUnitsSum,
         totalEnemyHpScaled: undefined,
-        totalEnemyThreatScaled: undefined,
+        totalEnemyLevelPowerScaled: undefined,
         attemptsTotal: 0,
         avgRewardPerAttempt: 0,
         totalRewardSoft: 0,
@@ -327,10 +351,14 @@ export function simulateProgressionForecast(
       continue;
     }
 
-    const levelEnemyPower = levelWaves.reduce((acc, w) => {
+    let totalEnemyHpScaledForLevel = 0;
+    let totalEnemyLevelPowerScaled = 0;
+    for (const w of levelWaves) {
       const ws = getWaveStats(constants, w);
-      return acc + getWaveLevelPowerContribution(ws);
-    }, 0);
+      totalEnemyHpScaledForLevel += ws.totalEnemyHp;
+      totalEnemyLevelPowerScaled += getWaveLevelPowerContribution(ws);
+    }
+    const levelEnemyPower = totalEnemyLevelPowerScaled;
 
     while (!levelPassed) {
       if (attemptsTotal >= maxAttemptsPerLevel) break;
@@ -348,7 +376,7 @@ export function simulateProgressionForecast(
         forecastCalendarDay += 1;
         forecastAttemptsToday = 0;
         elapsedCalendarHours += 24;
-        grantForecastDailyFreeChests();
+        grantForecastDailyFreeChests(levelIndex);
         tryBuyDeckSlots();
       }
 
@@ -548,20 +576,12 @@ export function simulateProgressionForecast(
         ? aggregateWaveEnemyCounts(levelWaves)
         : ((unitsPerLevelFromCfg?.[levelIndex] ?? unitsPerLevel[levelIndex]) as Record<EnemyId, number>);
 
-    let totalEnemyHpScaled = 0;
-    let totalEnemyThreatScaled = 0;
-    for (const w of levelWaves) {
-      const ws = getWaveStats(constants, w);
-      totalEnemyHpScaled += ws.totalEnemyHp;
-      totalEnemyThreatScaled += ws.totalEnemyDps;
-    }
-
     progressionLevels.push({
       levelIndex,
       unitsByEnemyId: unitsForTable,
       unitsRawSumFromEditor: rawUnitsSum,
-      totalEnemyHpScaled,
-      totalEnemyThreatScaled,
+      totalEnemyHpScaled: totalEnemyHpScaledForLevel,
+      totalEnemyLevelPowerScaled,
       attemptsTotal,
       avgRewardPerAttempt,
       totalRewardSoft: rewardTotal,
@@ -599,6 +619,7 @@ export function simulateProgressionForecast(
     progressionElapsedHours: elapsedEnergyWaitHours,
     progressionElapsedCalendarHours: elapsedCalendarHours,
     segmentSoftIncomePerDay: segmentSoftPerDay,
+    segmentHardIncomePerDay: segmentHardPerDay,
   };
 }
 

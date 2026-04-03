@@ -72,9 +72,9 @@ export interface ProgressionLevelForecast {
    */
   totalEnemyHpScaled?: number;
   /**
-   * Суммарный базовый DPS×кол-во врагов по волнам (без масштаба от номера уровня).
+   * Суммарная «мощь» уровня по волнам: Σ (0,7×requiredDps + 0,3×входящая угроза), как «Сложность уровня» в графике.
    */
-  totalEnemyThreatScaled?: number;
+  totalEnemyLevelPowerScaled?: number;
   attemptsTotal: number;
   avgRewardPerAttempt: number;
   totalRewardSoft: number;
@@ -107,6 +107,8 @@ export interface ProgressionForecastResult {
   finalState: ProgressionState;
   /** Сколько софта (EV) добавляется в сутки от платежей сегмента. */
   segmentSoftIncomePerDay?: number;
+  /** Сколько харда (золота) добавляется в сутки от доли доната в iap_gold (прогноз). */
+  segmentHardIncomePerDay?: number;
   /**
    * Ожидаемое число открытий бесплатных сундуков за прогон (ключ = id из economy.freeChests).
    * Каждый календарный день прогноза: по одному открытию первых meta.forecastFreeChestsPerDay слотов в порядке списка (по умолч. 3).

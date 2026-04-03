@@ -217,6 +217,17 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
                 inf.baseDamage *
                 ((inf.baseFireRatePerMin ?? 60) / 60) *
                 sc;
+            } else if (card.id === 16) {
+              const u = constants.enemies.rpgInfantry;
+              if (u) {
+                const sc = levelScale(lv);
+                addHp = count * u.baseHp * sc;
+                addDps =
+                  count *
+                  u.baseDamage *
+                  ((u.baseFireRatePerMin ?? 60) / 60) *
+                  sc;
+              }
             } else if (card.id === 4) {
               const u = constants.enemies.jeep;
               const sc = levelScale(lv);

@@ -50,6 +50,7 @@ function createReferenceWaveEnemies(levelIndex: number, waveIndex: number): Part
     const oldT = legacyTankCountWave1(L);
     return {
       infantry: 5 * L,
+      rpgInfantry: L >= 3 ? Math.min(5, 1 + Math.floor((L - 2) / 2)) : 0,
       jeep: 2 * L,
       apc: L <= 1 ? 0 : 2 * (L - 1),
       heavyTank: oldT <= 0 ? 0 : Math.ceil(oldT * 0.55),
@@ -61,6 +62,7 @@ function createReferenceWaveEnemies(levelIndex: number, waveIndex: number): Part
   const oldT2 = legacyTankCountWave2(L);
   return {
     infantry: wave2InfantryCount(L),
+    rpgInfantry: L >= 3 ? Math.min(8, 2 + Math.floor((L - 2) / 2)) : 0,
     jeep: 2 * L + 1,
     apc: Math.max(0, 2 * L - 1),
     heavyTank: oldT2 <= 0 ? 0 : Math.ceil(oldT2 * 0.55),
@@ -72,6 +74,7 @@ function createReferenceWaveEnemies(levelIndex: number, waveIndex: number): Part
 
 const EMPTY_ENEMY_TOTALS: Record<EnemyId, number> = {
   infantry: 0,
+  rpgInfantry: 0,
   jeep: 0,
   apc: 0,
   lightTank: 0,
