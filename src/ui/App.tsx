@@ -221,11 +221,18 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
       storedManualLevels[0] !== null &&
       'values' in storedManualLevels[0];
 
+    const defaultLen = (defaultCard.manualLevels ?? []).length;
+    const storedLen = hasModernManualLevels ? storedManualLevels.length : 0;
+    // Сохранённые таблицы с меньшим числом строк, чем в текущей сборке, не затирают новые уровни
+    // (устаревший balance.json на сервере / localStorage после добавления строк в support_cards_sheet).
+    const useStoredManualLevels =
+      hasModernManualLevels && storedLen > 0 && (defaultLen === 0 || storedLen >= defaultLen);
+
     return {
       ...defaultCard,
       ...(storedCard ?? {}),
       tableColumns: defaultCard.tableColumns,
-      manualLevels: hasModernManualLevels ? storedManualLevels : defaultCard.manualLevels,
+      manualLevels: useStoredManualLevels ? storedManualLevels : defaultCard.manualLevels,
     };
   });
 
