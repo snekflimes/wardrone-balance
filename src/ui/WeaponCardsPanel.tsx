@@ -10,9 +10,13 @@ import { getReferenceWaveFromConfig, type ReferenceWavesConfig } from '../balanc
 import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import { getWeaponUpgradeSoftCost } from '../progression/upgradeCosts';
 import {
-  getSupportCardLevels,
-  snapshotSupportCardManualLevels,
+  getSupportCardLevelsForEditor,
+  snapshotSupportCardManualLevelsForEditor,
 } from '../balance/cards';
+import {
+  getSupportCardColumnOrder,
+  SUPPORT_CARD_BATTLE_COLUMN_HINT,
+} from '../balance/supportCardRowSemantics';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 type WeaponId = 'machineGun' | 'hydra70' | 'hellfire';
@@ -152,7 +156,7 @@ function getCurrentManualLevels(
   card: SupportCardConfig
 ): SupportCardManualLevel[] {
   if (card.manualLevels?.length) return card.manualLevels;
-  return snapshotSupportCardManualLevels(balance, card.id);
+  return snapshotSupportCardManualLevelsForEditor(balance, card.id);
 }
 
 function updateManualLevelField(
@@ -167,7 +171,7 @@ function updateManualLevelField(
     if (!card) return prev;
     const baseLevels = card.manualLevels?.length
       ? card.manualLevels
-      : snapshotSupportCardManualLevels(prev, cardId);
+      : snapshotSupportCardManualLevelsForEditor(prev, cardId);
     const nextLevels = baseLevels.map((row) => ({ ...row }));
     nextLevels[levelIndex] = {
       ...nextLevels[levelIndex],
@@ -659,15 +663,144 @@ function WeaponCardSection({
 }
 
 function getCardColumns(card: SupportCardConfig): string[] {
-  if (card.tableColumns?.length) return card.tableColumns;
-  const columns = [card.param1Name];
-  if (card.param2Name && card.param2Name !== '-') columns.push(card.param2Name);
-  return columns;
+  return getSupportCardColumnOrder(card);
+}
+
+function addSupportCardColumn(setBalance: SetBalance, cardId: number, rawName: string) {
+  const name = rawName.trim();
+  if (!name) return;
+  setBalance((prev) => {
+    const card = prev.supportCards.find((c) => c.id === cardId);
+    if (!card) return prev;
+    const order = getSupportCardColumnOrder(card);
+    if (order.includes(name)) return prev;
+    const nextOrder = [...order, name];
+    const baseLevels = card.manualLevels?.length
+      ? card.manualLevels.map((r) => ({ ...r, values: { ...r.values } }))
+      : snapshotSupportCardManualLevelsForEditor(prev, cardId);
+    const nextLevels = baseLevels.map((row) => ({
+      ...row,
+      values: { ...row.values, [name]: row.values?.[name] ?? 0 },
+    }));
+    return {
+      ...prev,
+      supportCards: prev.supportCards.map((c) =>
+        c.id === cardId ? { ...c, tableColumns: nextOrder, manualLevels: nextLevels } : c
+      ),
+    };
+  });
+}
+
+function removeSupportCardColumn(setBalance: SetBalance, cardId: number, columnName: string) {
+  setBalance((prev) => {
+    const card = prev.supportCards.find((c) => c.id === cardId);
+    if (!card) return prev;
+    const order = getSupportCardColumnOrder(card);
+    const nextOrder = order.filter((c) => c !== columnName);
+    if (nextOrder.length === order.length || nextOrder.length === 0) return prev;
+    const baseLevels = card.manualLevels?.length
+      ? card.manualLevels.map((r) => ({ ...r, values: { ...r.values } }))
+      : snapshotSupportCardManualLevelsForEditor(prev, cardId);
+    const nextLevels = baseLevels.map((row) => {
+      const { [columnName]: _rm, ...rest } = row.values ?? {};
+      return { ...row, values: rest };
+    });
+    return {
+      ...prev,
+      supportCards: prev.supportCards.map((c) =>
+        c.id === cardId ? { ...c, tableColumns: nextOrder, manualLevels: nextLevels } : c
+      ),
+    };
+  });
 }
 
 function formatCellInputValue(value: number | null | undefined, integer: boolean): string {
   if (value == null || Number.isNaN(value)) return '';
   return integer ? String(Math.round(value)) : String(value);
+}
+
+function CardColumnsManager({
+  card,
+  setBalance,
+}: {
+  card: SupportCardConfig;
+  setBalance: SetBalance;
+}) {
+  const [draft, setDraft] = useState('');
+  const cols = getSupportCardColumnOrder(card);
+  return (
+    <div
+      style={{
+        marginBottom: 12,
+        padding: 10,
+        background: 'rgba(0,0,0,0.22)',
+        borderRadius: 10,
+        border: '1px solid rgba(148,163,184,0.15)',
+      }}
+    >
+      <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.45, marginBottom: 10, whiteSpace: 'pre-wrap' }}>
+        {SUPPORT_CARD_BATTLE_COLUMN_HINT}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+        <input
+          style={{ ...inputStyle, flex: '1 1 180px', maxWidth: 360 }}
+          placeholder="Новая колонка (заголовок, как в бою)"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              addSupportCardColumn(setBalance, card.id, draft);
+              setDraft('');
+            }
+          }}
+        />
+        <button
+          type="button"
+          style={smallButtonStyle}
+          onClick={() => {
+            addSupportCardColumn(setBalance, card.id, draft);
+            setDraft('');
+          }}
+        >
+          Добавить колонку
+        </button>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        {cols.map((col) => (
+          <span
+            key={col}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 10px',
+              borderRadius: 999,
+              background: 'rgba(51, 65, 85, 0.8)',
+              fontSize: 12,
+              color: '#e2e8f0',
+            }}
+          >
+            {col}
+            <button
+              type="button"
+              title={cols.length <= 1 ? 'Нужна хотя бы одна колонка' : 'Удалить колонку'}
+              style={{
+                ...smallButtonStyle,
+                padding: '2px 8px',
+                lineHeight: 1.2,
+                opacity: cols.length <= 1 ? 0.35 : 1,
+                cursor: cols.length <= 1 ? 'not-allowed' : 'pointer',
+              }}
+              disabled={cols.length <= 1}
+              onClick={() => removeSupportCardColumn(setBalance, card.id, col)}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function CardLevelsEditor({
@@ -683,7 +816,7 @@ function CardLevelsEditor({
   onTogglePrecision: (key: string) => void;
   setBalance: SetBalance;
 }) {
-  const levels = getSupportCardLevels(balance, card.id);
+  const levels = getSupportCardLevelsForEditor(balance, card.id);
   const columns = getCardColumns(card);
   const columnKeys = columns.map((column) => `card.${card.id}.${column}`);
 
@@ -990,7 +1123,7 @@ export const WeaponCardsPanel: React.FC<{
                 </td>
                 <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
                   <div style={{ color: '#94a3b8', fontSize: 12 }}>
-                    {(card.tableColumns ?? [card.param1Name, card.param2Name].filter((name) => name && name !== '-')).join(', ')}
+                    {getSupportCardColumnOrder(card).join(', ') || '—'}
                   </div>
                 </td>
               </tr>
@@ -1017,6 +1150,7 @@ export const WeaponCardsPanel: React.FC<{
               <>
                 <div style={{ marginTop: 12 }}>
                   <h5 style={{ margin: '0 0 8px 0', color: '#e2e8f0' }}>Скалируемые параметры карточки</h5>
+                  <CardColumnsManager card={card} setBalance={setBalance} />
                   <CardLevelsEditor
                     balance={balance}
                     card={card}

@@ -1,5 +1,6 @@
 import type { BalanceConstants, SupportCardConfig, SupportCardManualLevel } from './model';
 import type { ThreatEngagementSegment, WeaponLevelStats } from './schema';
+import { parseSupportCardBattleRow, type ParsedSupportCardBattleRow } from './supportCardRowSemantics';
 
 function activeIncomingThreatDps(segments: ThreatEngagementSegment[], t: number): number {
   let s = 0;
@@ -59,6 +60,54 @@ function p1(row: SupportCardManualLevel, card: SupportCardConfig): number {
 function p2(row: SupportCardManualLevel, card: SupportCardConfig): number {
   if (card.param2Name === '-' || !card.param2Name) return 0;
   return num(row.values?.[card.param2Name]);
+}
+
+/**
+ * Урон в секунду из урона за попадание и колонки скорострельности.
+ * ≤20 — считаем выстрелы/сек; иначе — выстр./мин (RPM).
+ */
+function dpsFromShotDamageAndFireColumn(dmgPerShot: number, fireCol: number, fallbackRpm: number): number {
+  if (dmgPerShot <= 0) return 0;
+  if (fireCol <= 1e-6) return dmgPerShot * (fallbackRpm / 60);
+  if (fireCol <= 20) return dmgPerShot * fireCol;
+  return dmgPerShot * (fireCol / 60);
+}
+
+/** Множители от скорости/дальности/радиуса для союзников на поле. */
+function allyStatMultipliers(st: {
+  speed: number;
+  attackRange: number;
+  fireRate: number;
+  blastRadius: number;
+}): { hpMult: number; dpsMult: number } {
+  let hpM = 1;
+  let dpsM = 1;
+  if (st.speed > 0) {
+    dpsM *= 1 + Math.min(0.35, st.speed / 200);
+    hpM *= 1 + Math.min(0.22, st.speed / 260);
+  }
+  if (st.attackRange > 0) {
+    dpsM *= 1 + Math.min(0.28, st.attackRange / 420);
+    hpM *= 1 + Math.min(0.18, st.attackRange / 550);
+  }
+  if (st.blastRadius > 0) {
+    dpsM *= 1 + Math.min(0.38, st.blastRadius / 16);
+  }
+  return { hpMult: hpM, dpsMult: dpsM };
+}
+
+function allyStatMultipliersFromParsed(p: ParsedSupportCardBattleRow): { hpMult: number; dpsMult: number } {
+  return allyStatMultipliers({
+    speed: p.speed,
+    attackRange: p.attackRange,
+    fireRate: p.fireRate,
+    blastRadius: p.blastRadius,
+  });
+}
+
+function spellBlastMultiplier(blastRadius: number): number {
+  if (blastRadius <= 0) return 1;
+  return 1 + Math.min(0.55, blastRadius / 12);
 }
 
 function levelScale(level: number): number {
@@ -159,103 +208,163 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
 
         const v1 = p1(row, card);
         const v2 = p2(row, card);
+        const parsed = parseSupportCardBattleRow(row, card);
+        const allyM = allyStatMultipliersFromParsed(parsed);
 
         switch (card.type) {
           case 'spell': {
             if (card.id === 2) {
-              const mines = Math.max(0, Math.round(v1));
-              const dmg = Math.max(0, v2);
-              enemyHp -= mines * dmg;
+              const mines = Math.max(0, Math.round(parsed.count > 0 ? parsed.count : v1));
+              const dmg = Math.max(0, parsed.damagePerHit > 0 ? parsed.damagePerHit : v2);
+              const blast = spellBlastMultiplier(parsed.blastRadius);
+              const spd = parsed.speed > 0 ? 1 + Math.min(0.2, parsed.speed / 220) : 1;
+              enemyHp -= mines * dmg * blast * spd;
             } else if (card.id === 12) {
-              const dur = Math.max(0.1, v1);
-              const pct = Math.max(0, v2);
+              const dur = Math.max(
+                0.1,
+                (parsed.durationSec > 0 ? parsed.durationSec : v1) *
+                  (parsed.attackRange > 0 ? 1 + Math.min(0.15, parsed.attackRange / 500) : 1)
+              );
+              const pct =
+                Math.max(0, parsed.damageBonusPercent > 0 ? parsed.damageBonusPercent : v2) *
+                (parsed.blastRadius > 0 ? 1 + Math.min(0.12, parsed.blastRadius / 40) : 1);
               empBuffs.push({ until: t + dur, value: pct / 100 });
             } else if (card.id === 15) {
-              const n = Math.max(0, Math.round(v1));
-              const dmg = Math.max(0, v2);
-              enemyHp -= n * dmg;
+              const n = Math.max(0, Math.round(parsed.count > 0 ? parsed.count : v1));
+              const dmg = Math.max(0, parsed.damagePerHit > 0 ? parsed.damagePerHit : v2);
+              enemyHp -= n * dmg * spellBlastMultiplier(parsed.blastRadius);
             }
             break;
           }
           case 'defence': {
             if (card.id === 14) {
-              const dur = Math.max(0.1, v1);
-              const pct = Math.max(0, Math.min(95, v2));
+              const dur = Math.max(
+                0.1,
+                (parsed.durationSec > 0 ? parsed.durationSec : v1) *
+                  (parsed.speed > 0 ? 1 + Math.min(0.12, parsed.speed / 300) : 1)
+              );
+              const pctRaw = parsed.reflectPercent > 0 ? parsed.reflectPercent : v2;
+              const pct = Math.max(0, Math.min(95, pctRaw * (parsed.blastRadius > 0 ? 1 + Math.min(0.1, parsed.blastRadius / 35) : 1)));
               reflectBuffs.push({ until: t + dur, value: pct / 100 });
             }
             break;
           }
           case 'support': {
             if (card.id === 13) {
-              repairHps = Math.max(0, v1);
-              repairUntil = t + Math.max(0.1, v2);
+              const spd = parsed.speed > 0 ? 1 + Math.min(0.18, parsed.speed / 180) : 1;
+              const rng = parsed.attackRange > 0 ? 1 + Math.min(0.12, parsed.attackRange / 450) : 1;
+              repairHps = Math.max(0, parsed.healPerSec > 0 ? parsed.healPerSec : v1) * spd * rng;
+              repairUntil =
+                t +
+                Math.max(
+                  0.1,
+                  (parsed.durationSec > 0 ? parsed.durationSec : v2) *
+                    (parsed.blastRadius > 0 ? 1 + Math.min(0.1, parsed.blastRadius / 50) : 1)
+                );
             }
             break;
           }
           case 'resource': {
+            const resMult =
+              (parsed.speed > 0 ? 1 + Math.min(0.12, parsed.speed / 220) : 1) *
+              (parsed.fireRate > 0 ? 1 + Math.min(0.14, parsed.fireRate / 90) : 1) *
+              (parsed.attackRange > 0 ? 1 + Math.min(0.08, parsed.attackRange / 600) : 1) *
+              (parsed.blastRadius > 0 ? 1 + Math.min(0.1, parsed.blastRadius / 45) : 1);
+            const ammo = Math.max(0, parsed.count > 0 ? parsed.count : v1);
             if (card.id === 10 && unlocked.machineGun) {
-              enemyHp -= Math.max(0, v1) * mg.damagePerShot;
+              enemyHp -= ammo * mg.damagePerShot * resMult;
             } else if (card.id === 8 && unlocked.hydra70) {
-              enemyHp -= Math.max(0, v1) * hydra.damagePerShot;
+              enemyHp -= ammo * hydra.damagePerShot * resMult;
             } else if (card.id === 9 && unlocked.hellfire) {
-              enemyHp -= Math.max(0, v1) * hellfire.damagePerShot;
+              enemyHp -= ammo * hellfire.damagePerShot * resMult;
             }
             break;
           }
           case 'summon': {
             let addHp = 0;
             let addDps = 0;
-            const count = Math.max(0, Math.round(v1));
-            const lv = Math.max(1, Math.round(v2 || 1));
+            const count = Math.max(0, Math.round(parsed.count > 0 ? parsed.count : v1));
+            const lvLegacy = Math.max(1, Math.round(parsed.param2 > 0 ? parsed.param2 : v2 || 1));
 
             if (card.id === 7) {
               const inf = constants.enemies.infantry;
-              const sc = levelScale(lv);
-              addHp = count * inf.baseHp * sc;
-              addDps =
-                count *
-                inf.baseDamage *
-                ((inf.baseFireRatePerMin ?? 60) / 60) *
-                sc;
+              const sc = levelScale(lvLegacy);
+              const fbRpm = inf.baseFireRatePerMin ?? 60;
+              if (parsed.allyHpTotal > 0) {
+                addHp = parsed.allyHpTotal * allyM.hpMult;
+              } else if (parsed.allyHpEach > 0 && count > 0) {
+                addHp = count * parsed.allyHpEach * allyM.hpMult;
+              } else {
+                addHp = count * inf.baseHp * sc * allyM.hpMult;
+              }
+              const dmg =
+                parsed.damagePerHit > 0 ? parsed.damagePerHit : inf.baseDamage * sc;
+              const dpsPer = dpsFromShotDamageAndFireColumn(dmg, parsed.fireRate, fbRpm);
+              addDps = count * dpsPer * allyM.dpsMult;
             } else if (card.id === 16) {
               const u = constants.enemies.rpgInfantry;
               if (u) {
-                const dmg = v2 > 1e-6 ? v2 : u.baseDamage;
-                const rpm = u.baseFireRatePerMin ?? 60;
+                const fbRpm = u.baseFireRatePerMin ?? 60;
+                const dmg =
+                  parsed.damagePerHit > 0 ? parsed.damagePerHit : v2 > 1e-6 ? v2 : u.baseDamage;
                 const hpScale = Math.min(2.2, Math.max(0.85, dmg / Math.max(1, u.baseDamage)));
-                addHp = count * u.baseHp * hpScale;
-                addDps = count * dmg * (rpm / 60);
+                if (parsed.allyHpTotal > 0) {
+                  addHp = parsed.allyHpTotal * allyM.hpMult;
+                } else if (parsed.allyHpEach > 0 && count > 0) {
+                  addHp = count * parsed.allyHpEach * allyM.hpMult;
+                } else {
+                  addHp = count * u.baseHp * hpScale * allyM.hpMult;
+                }
+                const dpsPer = dpsFromShotDamageAndFireColumn(dmg, parsed.fireRate, fbRpm);
+                addDps = count * dpsPer * allyM.dpsMult;
               }
             } else if (card.id === 4) {
               const u = constants.enemies.jeep;
-              const sc = levelScale(lv);
-              addHp = count * u.baseHp * sc;
-              addDps =
-                count * u.baseDamage * ((u.baseFireRatePerMin ?? 60) / 60) * sc;
+              const sc = levelScale(lvLegacy);
+              const fbRpm = u.baseFireRatePerMin ?? 60;
+              if (parsed.allyHpTotal > 0) addHp = parsed.allyHpTotal * allyM.hpMult;
+              else if (parsed.allyHpEach > 0 && count > 0) addHp = count * parsed.allyHpEach * allyM.hpMult;
+              else addHp = count * u.baseHp * sc * allyM.hpMult;
+              const dmg = parsed.damagePerHit > 0 ? parsed.damagePerHit : u.baseDamage * sc;
+              addDps = count * dpsFromShotDamageAndFireColumn(dmg, parsed.fireRate, fbRpm) * allyM.dpsMult;
             } else if (card.id === 5) {
               const u = constants.enemies.apc;
-              const sc = levelScale(lv);
-              addHp = count * u.baseHp * sc;
-              addDps =
-                count * u.baseDamage * ((u.baseFireRatePerMin ?? 60) / 60) * sc;
+              const sc = levelScale(lvLegacy);
+              const fbRpm = u.baseFireRatePerMin ?? 60;
+              if (parsed.allyHpTotal > 0) addHp = parsed.allyHpTotal * allyM.hpMult;
+              else if (parsed.allyHpEach > 0 && count > 0) addHp = count * parsed.allyHpEach * allyM.hpMult;
+              else addHp = count * u.baseHp * sc * allyM.hpMult;
+              const dmg = parsed.damagePerHit > 0 ? parsed.damagePerHit : u.baseDamage * sc;
+              addDps = count * dpsFromShotDamageAndFireColumn(dmg, parsed.fireRate, fbRpm) * allyM.dpsMult;
             } else if (card.id === 6) {
               const u = constants.enemies.heavyTank;
-              const sc = levelScale(lv);
-              addHp = count * u.baseHp * sc;
-              addDps =
-                count * u.baseDamage * ((u.baseFireRatePerMin ?? 60) / 60) * sc;
+              const sc = levelScale(lvLegacy);
+              const fbRpm = u.baseFireRatePerMin ?? 60;
+              if (parsed.allyHpTotal > 0) addHp = parsed.allyHpTotal * allyM.hpMult;
+              else if (parsed.allyHpEach > 0 && count > 0) addHp = count * parsed.allyHpEach * allyM.hpMult;
+              else addHp = count * u.baseHp * sc * allyM.hpMult;
+              const dmg = parsed.damagePerHit > 0 ? parsed.damagePerHit : u.baseDamage * sc;
+              addDps = count * dpsFromShotDamageAndFireColumn(dmg, parsed.fireRate, fbRpm) * allyM.dpsMult;
             } else if (card.id === 3) {
-              addHp = Math.max(0, v1);
-              addDps = Math.max(0, v2) * 1.2;
+              const shot = Math.max(0, parsed.damagePerHit > 0 ? parsed.damagePerHit : v2) * 1.2;
+              const dpsPer = dpsFromShotDamageAndFireColumn(shot, parsed.fireRate, 45);
+              if (parsed.allyHpTotal > 0) addHp = parsed.allyHpTotal * allyM.hpMult;
+              else if (parsed.allyHpEach > 0) addHp = parsed.allyHpEach * allyM.hpMult;
+              else addHp = Math.max(0, v1) * allyM.hpMult;
+              addDps = dpsPer * allyM.dpsMult;
             } else if (card.id === 1) {
-              const perHp = 18 + lv * 2;
-              const perDps = Math.max(0, v2);
-              addHp = count * perHp;
-              addDps = count * perDps;
+              const dmg = Math.max(0, parsed.damagePerHit > 0 ? parsed.damagePerHit : v2);
+              let perHp =
+                parsed.allyHpEach > 0 ? parsed.allyHpEach : 18 + lvl * 2;
+              if (parsed.allyHpTotal > 0 && count > 0) {
+                perHp = parsed.allyHpTotal / count;
+              }
+              addHp = count * perHp * allyM.hpMult;
+              addDps = count * dpsFromShotDamageAndFireColumn(dmg, parsed.fireRate, 60) * allyM.dpsMult;
             } else if (card.id === 11) {
-              const rockets = Math.max(0, Math.round(v1));
-              const dmg = Math.max(0, v2);
-              enemyHp -= rockets * dmg;
+              const rockets = Math.max(0, Math.round(parsed.count > 0 ? parsed.count : v1));
+              const dmg = Math.max(0, parsed.damagePerHit > 0 ? parsed.damagePerHit : v2);
+              enemyHp -= rockets * dmg * spellBlastMultiplier(parsed.blastRadius);
             }
             if (addHp > 0 || addDps > 0) {
               ally.hpMax += addHp;
@@ -265,7 +374,12 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
             break;
           }
           default: {
-            if (v1 > 0) enemyHp -= Math.max(0, v1) * 2;
+            if (v1 > 0) {
+              const m =
+                spellBlastMultiplier(parsed.blastRadius) *
+                (parsed.speed > 0 ? 1 + Math.min(0.15, parsed.speed / 250) : 1);
+              enemyHp -= Math.max(0, v1) * 2 * m;
+            }
             break;
           }
         }
