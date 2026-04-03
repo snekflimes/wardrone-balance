@@ -14,6 +14,7 @@ import {
   snapshotSupportCardManualLevelsForEditor,
 } from '../balance/cards';
 import {
+  dedupeSupportCardPresetsByColumnTitle,
   getSupportCardColumnOrder,
   getSupportCardParameterPresetsForCard,
   isSupportCardColumnRecognized,
@@ -737,6 +738,36 @@ function moveSupportCardColumn(setBalance: SetBalance, cardId: number, fromIndex
   });
 }
 
+function renameSupportCardColumn(setBalance: SetBalance, cardId: number, fromName: string, toName: string) {
+  const fromT = fromName.trim();
+  const toT = toName.trim();
+  if (!toT || fromT === toT) return;
+  setBalance((prev) => {
+    const card = prev.supportCards.find((c) => c.id === cardId);
+    if (!card) return prev;
+    const order = getSupportCardColumnOrder(card);
+    if (!order.includes(fromT)) return prev;
+    if (order.some((c) => c !== fromT && c.trim().toLowerCase() === toT.toLowerCase())) return prev;
+    const nextOrder = order.map((c) => (c === fromT ? toT : c));
+    const baseLevels = card.manualLevels?.length
+      ? card.manualLevels.map((r) => ({ ...r, values: { ...r.values } }))
+      : snapshotSupportCardManualLevelsForEditor(prev, cardId);
+    const nextLevels = baseLevels.map((row) => {
+      const vals = { ...(row.values ?? {}) };
+      const val = vals[fromT];
+      delete vals[fromT];
+      vals[toT] = val ?? 0;
+      return { ...row, values: vals };
+    });
+    return {
+      ...prev,
+      supportCards: prev.supportCards.map((c) =>
+        c.id === cardId ? { ...c, tableColumns: nextOrder, manualLevels: nextLevels } : c
+      ),
+    };
+  });
+}
+
 function groupPresetsByGroup(presets: SupportCardBattleParameterPreset[]): Map<string, SupportCardBattleParameterPreset[]> {
   const m = new Map<string, SupportCardBattleParameterPreset[]>();
   for (const p of presets) {
@@ -747,168 +778,136 @@ function groupPresetsByGroup(presets: SupportCardBattleParameterPreset[]): Map<s
   return m;
 }
 
+function getDedupedPresetsGrouped(card: SupportCardConfig) {
+  return groupPresetsByGroup(dedupeSupportCardPresetsByColumnTitle(getSupportCardParameterPresetsForCard(card)));
+}
+
 function formatCellInputValue(value: number | null | undefined, integer: boolean): string {
   if (value == null || Number.isNaN(value)) return '';
   return integer ? String(Math.round(value)) : String(value);
 }
 
-const primaryActionStyle: React.CSSProperties = {
-  border: '1px solid rgba(56, 189, 248, 0.55)',
-  borderRadius: 8,
-  background: 'linear-gradient(180deg, rgba(14, 165, 233, 0.35), rgba(2, 132, 199, 0.25))',
-  color: '#f0f9ff',
-  padding: '8px 16px',
-  fontSize: 13,
-  fontWeight: 600,
+const supportCardThStyle: React.CSSProperties = {
+  border: '1px solid rgba(148, 163, 184, 0.24)',
+  padding: 6,
+  verticalAlign: 'top',
+  minWidth: 108,
+  maxWidth: 240,
 };
 
-function CardColumnsManager({
+const microCtrlStyle: React.CSSProperties = {
+  ...smallButtonStyle,
+  padding: '1px 6px',
+  minWidth: 26,
+  fontSize: 12,
+  lineHeight: 1.2,
+};
+
+function SupportCardColumnHeader({
   card,
+  column,
+  columnIndex,
+  columnCount,
+  keyName,
+  precision,
+  onTogglePrecision,
   setBalance,
 }: {
   card: SupportCardConfig;
+  column: string;
+  columnIndex: number;
+  columnCount: number;
+  keyName: string;
+  precision: PrecisionMap;
+  onTogglePrecision: (key: string) => void;
   setBalance: SetBalance;
 }) {
-  const [selectedPresetId, setSelectedPresetId] = useState('');
-  const cols = getSupportCardColumnOrder(card);
-  const presets = useMemo(
-    () => getSupportCardParameterPresetsForCard(card),
+  const flatPresets = useMemo(
+    () => dedupeSupportCardPresetsByColumnTitle(getSupportCardParameterPresetsForCard(card)),
     [card.id, card.param1Name, card.param2Name]
   );
-  const grouped = useMemo(() => groupPresetsByGroup(presets), [presets]);
-
-  const selectedPreset = presets.find((p) => p.id === selectedPresetId);
-  const canAdd =
-    Boolean(selectedPresetId && selectedPreset && !supportCardHasColumnTitle(card, selectedPreset.columnTitle));
+  const grouped = useMemo(() => groupPresetsByGroup(flatPresets), [flatPresets]);
+  const inPresetList = flatPresets.some((p) => p.columnTitle === column);
+  const recognized = isSupportCardColumnRecognized(card, column);
 
   return (
-    <div
-      style={{
-        marginBottom: 14,
-        padding: '12px 14px',
-        background: 'rgba(2, 6, 23, 0.5)',
-        borderRadius: 12,
-        border: '1px solid rgba(148,163,184,0.2)',
-      }}
-    >
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 10, marginBottom: 12 }}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 240px', minWidth: 200 }}>
-          <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Добавить параметр
+    <th style={supportCardThStyle}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+          <span style={{ display: 'inline-flex', gap: 2 }}>
+            <button
+              type="button"
+              style={microCtrlStyle}
+              title="Столбец влево"
+              disabled={columnIndex === 0}
+              onClick={() => moveSupportCardColumn(setBalance, card.id, columnIndex, -1)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              style={microCtrlStyle}
+              title="Столбец вправо"
+              disabled={columnIndex >= columnCount - 1}
+              onClick={() => moveSupportCardColumn(setBalance, card.id, columnIndex, 1)}
+            >
+              ›
+            </button>
           </span>
-          <select
-            className="input-stretch"
-            style={{ ...inputStyle, width: '100%', minWidth: 0 }}
-            value={selectedPresetId}
-            onChange={(e) => setSelectedPresetId(e.target.value)}
+          <button
+            type="button"
+            style={microCtrlStyle}
+            title={columnCount <= 1 ? 'Нужен хотя бы один столбец' : 'Удалить столбец'}
+            disabled={columnCount <= 1}
+            onClick={() => removeSupportCardColumn(setBalance, card.id, column)}
           >
-            <option value="">Выберите из списка…</option>
-            {[...grouped.entries()].map(([group, list]) => (
-              <optgroup key={group} label={group}>
-                {list.map((p) => {
-                  const taken = supportCardHasColumnTitle(card, p.columnTitle);
-                  return (
-                    <option key={`${p.id}:${p.columnTitle}`} value={p.id} disabled={taken}>
-                      {p.label}
-                      {taken ? ' — уже в таблице' : ''}
-                    </option>
-                  );
-                })}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          style={primaryActionStyle}
-          disabled={!canAdd}
-          title={canAdd ? selectedPreset?.effectHint : ''}
-          onClick={() => {
-            if (!selectedPreset || supportCardHasColumnTitle(card, selectedPreset.columnTitle)) return;
-            addSupportCardColumn(setBalance, card.id, selectedPreset.columnTitle);
-            setSelectedPresetId('');
+            ×
+          </button>
+        </div>
+        <select
+          className="input-stretch support-card-col-select"
+          style={{ ...inputStyle, width: '100%', minWidth: 0, fontSize: 11, maxWidth: '100%' }}
+          value={column}
+          title={!recognized ? 'Заголовок не из пресетов — смените на пункт из списка или добавьте пресет в коде' : undefined}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (next === column) return;
+            renameSupportCardColumn(setBalance, card.id, column, next);
           }}
         >
-          Добавить
+          {!inPresetList && (
+            <optgroup label="Текущий заголовок">
+              <option value={column}>
+                {column}
+                {!recognized ? ' ⚠' : ''}
+              </option>
+            </optgroup>
+          )}
+          {[...grouped.entries()].map(([group, list]) => (
+            <optgroup key={group} label={group}>
+              {list.map((p) => {
+                const isCurr = p.columnTitle === column;
+                const taken = supportCardHasColumnTitle(card, p.columnTitle);
+                return (
+                  <option key={p.id} value={p.columnTitle} disabled={!isCurr && taken}>
+                    {p.label}
+                    {!isCurr && taken ? ' (есть)' : ''}
+                  </option>
+                );
+              })}
+            </optgroup>
+          ))}
+        </select>
+        <button
+          type="button"
+          style={{ ...smallButtonStyle, fontSize: 10, padding: '3px 6px' }}
+          onClick={() => onTogglePrecision(keyName)}
+          title="Округление в ячейках этого столбца"
+        >
+          {precision[keyName] ? 'Целые' : 'Дробные'}
         </button>
       </div>
-
-      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>
-        Порядок колонок влияет на приоритет, если несколько подходят под один шаблон. Стрелки — сдвиг влево/вправо.
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'stretch' }}>
-        {cols.map((col, index) => {
-          const known = isSupportCardColumnRecognized(card, col);
-          return (
-            <span
-              key={col}
-              title={known ? undefined : 'Заголовок не из списка пресетов — симулятор учитывает только по шаблону текста; новый параметр добавляйте через разработку.'}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '6px 8px 6px 10px',
-                borderRadius: 10,
-                background: known ? 'rgba(51, 65, 85, 0.85)' : 'rgba(120, 53, 15, 0.35)',
-                border: known ? '1px solid rgba(148, 163, 184, 0.25)' : '1px dashed rgba(251, 191, 36, 0.45)',
-                fontSize: 12,
-                color: '#e2e8f0',
-              }}
-            >
-              <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{col}</span>
-              {!known && (
-                <span style={{ fontSize: 10, color: '#fbbf24', flexShrink: 0 }}>нет в списке</span>
-              )}
-              <span style={{ display: 'inline-flex', gap: 2, marginLeft: 4 }}>
-                <button
-                  type="button"
-                  title="Влево"
-                  style={{ ...smallButtonStyle, padding: '2px 6px', minWidth: 28 }}
-                  disabled={index === 0}
-                  onClick={() => moveSupportCardColumn(setBalance, card.id, index, -1)}
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  title="Вправо"
-                  style={{ ...smallButtonStyle, padding: '2px 6px', minWidth: 28 }}
-                  disabled={index >= cols.length - 1}
-                  onClick={() => moveSupportCardColumn(setBalance, card.id, index, 1)}
-                >
-                  ›
-                </button>
-                <button
-                  type="button"
-                  title={cols.length <= 1 ? 'Нужна хотя бы одна колонка' : 'Удалить колонку'}
-                  style={{
-                    ...smallButtonStyle,
-                    padding: '2px 8px',
-                    lineHeight: 1.2,
-                    opacity: cols.length <= 1 ? 0.35 : 1,
-                    cursor: cols.length <= 1 ? 'not-allowed' : 'pointer',
-                  }}
-                  disabled={cols.length <= 1}
-                  onClick={() => removeSupportCardColumn(setBalance, card.id, col)}
-                >
-                  ×
-                </button>
-              </span>
-            </span>
-          );
-        })}
-      </div>
-
-      <details style={{ marginTop: 12 }}>
-        <summary style={{ cursor: 'pointer', fontSize: 12, color: '#94a3b8', userSelect: 'none' }}>
-          Как симулятор читает заголовки колонок
-        </summary>
-        <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5, marginTop: 8, whiteSpace: 'pre-wrap' }}>
-          {SUPPORT_CARD_BATTLE_COLUMN_HINT}
-        </div>
-      </details>
-    </div>
+    </th>
   );
 }
 
@@ -925,59 +924,107 @@ function CardLevelsEditor({
   onTogglePrecision: (key: string) => void;
   setBalance: SetBalance;
 }) {
+  const [addPick, setAddPick] = useState('');
   const levels = getSupportCardLevelsForEditor(balance, card.id);
   const columns = getCardColumns(card);
   const columnKeys = columns.map((column) => `card.${card.id}.${column}`);
+  const groupedAdd = useMemo(() => getDedupedPresetsGrouped(card), [card.id, card.param1Name, card.param2Name]);
 
   return (
-    <table style={tableStyle}>
-      <thead>
-        <tr>
-          <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Ур.</th>
-          {columns.map((column, index) => (
-            <PrecisionHeader
-              key={column}
-              label={column}
-              keyName={columnKeys[index]}
-              precision={precision}
-              onToggle={onTogglePrecision}
-            />
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {levels.map((row, index) => {
-          const currentManual = getCurrentManualLevels(balance, card)[index] ?? row;
-          return (
-            <tr key={row.level}>
-              <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{row.level}</td>
-              {columns.map((column, columnIndex) => {
-                const key = columnKeys[columnIndex];
-                return (
-                  <td key={column} style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
-                    <input
-                      style={inputStyle}
-                      type="number"
-                      step="0.01"
-                      value={formatCellInputValue(currentManual.values?.[column], precision[key])}
-                      onChange={(e) =>
-                        updateManualLevelField(
-                          setBalance,
-                          card.id,
-                          index,
-                          column,
-                          e.target.value === '' ? null : Number(e.target.value) || 0
-                        )
-                      }
-                    />
-                  </td>
-                );
-              })}
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div>
+      <table style={{ ...tableStyle, tableLayout: 'auto' }}>
+        <thead>
+          <tr>
+            <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, width: 48 }}>Ур.</th>
+            {columns.map((column, index) => (
+              <SupportCardColumnHeader
+                key={`${card.id}-${column}`}
+                card={card}
+                column={column}
+                columnIndex={index}
+                columnCount={columns.length}
+                keyName={columnKeys[index]}
+                precision={precision}
+                onTogglePrecision={onTogglePrecision}
+                setBalance={setBalance}
+              />
+            ))}
+            <th style={{ ...supportCardThStyle, background: 'rgba(2, 6, 23, 0.35)' }}>
+              <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4, fontWeight: 600 }}>Новый</div>
+              <select
+                className="input-stretch support-card-col-select"
+                style={{ ...inputStyle, width: '100%', minWidth: 0, fontSize: 11 }}
+                value={addPick}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) return;
+                  addSupportCardColumn(setBalance, card.id, v);
+                  setAddPick('');
+                }}
+              >
+                <option value="">Добавить…</option>
+                {[...groupedAdd.entries()].map(([group, list]) => (
+                  <optgroup key={group} label={group}>
+                    {list.map((p) => (
+                      <option key={p.id} value={p.columnTitle} disabled={supportCardHasColumnTitle(card, p.columnTitle)}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {levels.map((row, index) => {
+            const currentManual = getCurrentManualLevels(balance, card)[index] ?? row;
+            return (
+              <tr key={row.level}>
+                <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{row.level}</td>
+                {columns.map((column, columnIndex) => {
+                  const key = columnKeys[columnIndex];
+                  return (
+                    <td key={column} style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
+                      <input
+                        style={inputStyle}
+                        type="number"
+                        step="0.01"
+                        value={formatCellInputValue(currentManual.values?.[column], precision[key])}
+                        onChange={(e) =>
+                          updateManualLevelField(
+                            setBalance,
+                            card.id,
+                            index,
+                            column,
+                            e.target.value === '' ? null : Number(e.target.value) || 0
+                          )
+                        }
+                      />
+                    </td>
+                  );
+                })}
+                <td
+                  style={{
+                    border: '1px solid rgba(148, 163, 184, 0.16)',
+                    padding: 4,
+                    background: 'rgba(2, 6, 23, 0.25)',
+                  }}
+                />
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <details style={{ marginTop: 10 }}>
+        <summary style={{ cursor: 'pointer', fontSize: 12, color: '#94a3b8', userSelect: 'none' }}>
+          Как читаются заголовки (порядок столбцов = приоритет парсера)
+        </summary>
+        <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.5, marginTop: 8, whiteSpace: 'pre-wrap' }}>
+          {SUPPORT_CARD_BATTLE_COLUMN_HINT}
+        </div>
+      </details>
+    </div>
   );
 }
 
@@ -1137,8 +1184,8 @@ export const WeaponCardsPanel: React.FC<{
       <div style={cardStyle}>
         <h3 style={{ marginTop: 0 }}>Карточки поддержки</h3>
         <p style={{ color: '#94a3b8', fontSize: 13, marginTop: 0, maxWidth: 720, lineHeight: 1.5 }}>
-          В таблице уровней колонки добавляются только из списка пресетов — так симулятор и прогноз гарантированно знают смысл поля.
-          Нужен новый параметр — попросите добавить пресет и разбор в коде. Сверху — метаданные карточки; внизу — стоимость прокачки.
+          В шапке таблицы у каждого столбца — выбор параметра из списка, стрелки порядка, удаление; справа «Добавить…» для нового столбца.
+          Новый смысл поля — только через пресет в коде. Метаданные карточки — в таблице выше; стоимость прокачки — ниже.
         </p>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
@@ -1259,8 +1306,7 @@ export const WeaponCardsPanel: React.FC<{
             {!collapsedCards[card.id] && (
               <>
                 <div style={{ marginTop: 12 }}>
-                  <h5 style={{ margin: '0 0 8px 0', color: '#e2e8f0' }}>Скалируемые параметры карточки</h5>
-                  <CardColumnsManager card={card} setBalance={setBalance} />
+                  <h5 style={{ margin: '0 0 8px 0', color: '#e2e8f0', fontSize: 14 }}>Таблица уровней</h5>
                   <CardLevelsEditor
                     balance={balance}
                     card={card}

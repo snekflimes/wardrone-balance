@@ -178,11 +178,25 @@ export const SUPPORT_CARD_BATTLE_PARAMETER_PRESETS: SupportCardBattleParameterPr
     effectHint: 'Кулдаун после применения',
   },
   {
+    id: 'cooldown_sheet',
+    group: 'Стоимость и тайминг карты',
+    label: 'Перезарядка, сек',
+    columnTitle: 'Перезарядка, сек',
+    effectHint: 'Тот же смысл, что «Перезарядка (сек)»',
+  },
+  {
     id: 'count_units',
     group: 'Призыв и урон',
     label: 'Количество (юнитов)',
     columnTitle: 'Количество',
     effectHint: 'Численность; не путать с «Количество маны»',
+  },
+  {
+    id: 'count_drones',
+    group: 'Призыв и урон',
+    label: 'Количество дронов',
+    columnTitle: 'Количество дронов',
+    effectHint: 'Численность (шаблон «количество»)',
   },
   {
     id: 'mana_amount',
@@ -211,6 +225,13 @@ export const SUPPORT_CARD_BATTLE_PARAMETER_PRESETS: SupportCardBattleParameterPr
     label: 'Урон (за попадание)',
     columnTitle: 'Урон',
     effectHint: 'Урон за выстрел; DPS вместе со скорострельностью',
+  },
+  {
+    id: 'damage_drone',
+    group: 'Призыв и урон',
+    label: 'Урон дрона',
+    columnTitle: 'Урон дрона',
+    effectHint: 'Урон за попадание (шаблон «урон»)',
   },
   {
     id: 'emp_bonus',
@@ -255,6 +276,13 @@ export const SUPPORT_CARD_BATTLE_PARAMETER_PRESETS: SupportCardBattleParameterPr
     effectHint: 'Дистанция атаки',
   },
   {
+    id: 'range_attack',
+    group: 'Характеристики на поле',
+    label: 'Дальность атаки',
+    columnTitle: 'Дальность атаки',
+    effectHint: 'Как колонка «Дальность»',
+  },
+  {
     id: 'fire_rate',
     group: 'Характеристики на поле',
     label: 'Скорострельность',
@@ -267,6 +295,13 @@ export const SUPPORT_CARD_BATTLE_PARAMETER_PRESETS: SupportCardBattleParameterPr
     label: 'Радиус',
     columnTitle: 'Радиус',
     effectHint: 'Взрыв / зона поражения',
+  },
+  {
+    id: 'radius_damage',
+    group: 'Характеристики на поле',
+    label: 'Радиус урона',
+    columnTitle: 'Радиус урона',
+    effectHint: 'Как колонка «Радиус»',
   },
   {
     id: 'econ_cards',
@@ -283,6 +318,21 @@ export const SUPPORT_CARD_BATTLE_PARAMETER_PRESETS: SupportCardBattleParameterPr
     effectHint: 'Только для таблицы прогрессии',
   },
 ];
+
+/** Один вариант на заголовок колонки (для выпадающих списков без дублирующихся value). */
+export function dedupeSupportCardPresetsByColumnTitle(
+  presets: SupportCardBattleParameterPreset[]
+): SupportCardBattleParameterPreset[] {
+  const seen = new Set<string>();
+  const out: SupportCardBattleParameterPreset[] = [];
+  for (const p of presets) {
+    const k = p.columnTitle.trim().toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(p);
+  }
+  return out;
+}
 
 /** Колонка уже есть в карточке (без учёта регистра и лишних пробелов). */
 export function supportCardHasColumnTitle(card: SupportCardConfig, columnTitle: string): boolean {
