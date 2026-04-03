@@ -230,10 +230,14 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
     const useStoredManualLevels =
       hasModernManualLevels && storedLen > 0 && (defaultLen === 0 || storedLen >= defaultLen);
 
+    const storedCols = storedCard?.tableColumns;
+    const useStoredTableColumns =
+      Array.isArray(storedCols) && storedCols.some((c) => c != null && String(c).trim().length > 0);
+
     return {
       ...defaultCard,
       ...(storedCard ?? {}),
-      tableColumns: defaultCard.tableColumns,
+      tableColumns: useStoredTableColumns ? storedCols : defaultCard.tableColumns,
       manualLevels: useStoredManualLevels ? storedManualLevels : defaultCard.manualLevels,
     };
   });
@@ -665,6 +669,31 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     void loadFromDb();
+  }, []);
+
+  /** Не менять значение number-полей стрелками / PageUp/PageDown / колёсиком (шагование не нужно). */
+  useEffect(() => {
+    const isNumberInput = (el: EventTarget | null): el is HTMLInputElement =>
+      el instanceof HTMLInputElement && el.type === 'number';
+
+    const stepKeys = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown']);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!stepKeys.has(e.key)) return;
+      if (isNumberInput(e.target)) e.preventDefault();
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (!isNumberInput(e.target)) return;
+      if (document.activeElement === e.target) e.preventDefault();
+    };
+
+    document.addEventListener('keydown', onKeyDown, true);
+    document.addEventListener('wheel', onWheel, { capture: true, passive: false });
+    return () => {
+      document.removeEventListener('keydown', onKeyDown, true);
+      document.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions);
+    };
   }, []);
 
   const loadFromRemoteServer = async () => {
