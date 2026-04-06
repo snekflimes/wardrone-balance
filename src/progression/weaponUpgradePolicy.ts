@@ -72,7 +72,7 @@ function pickWeaponUpgradeWithDiversity(
 
 export const weaponOnlyUpgradePolicy: UpgradePolicy = ({ constants, state, ctx }) => {
   const ids: WeaponKey[] = ['machineGun', 'hydra70', 'hellfire'];
-  const wavesPerLevel = Math.max(1, Math.min(2, getWavesPerLevel(constants)));
+  const wavesPerLevel = getWavesPerLevel(constants);
   const unlocked = state.unlockedWeapons ?? { machineGun: true, hydra70: false, hellfire: false };
 
   // Раньше у платящих было до 5 апгрейдов оружия за бой — весь софт уходил в стволы,

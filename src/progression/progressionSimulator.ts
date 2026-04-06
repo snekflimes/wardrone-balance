@@ -116,10 +116,8 @@ export function simulateProgressionForecast(
   options: ProgressionSimulatorOptions
 ): ProgressionForecastResult {
   const wavesPerLevel = getWavesPerLevel(constants);
-  // В референсе/таблицах сейчас есть только 2 волны на уровень.
-  // Поэтому если wavesPerLevel отличается (из-за localStorage/настроек),
-  // мы не падём: ограничим симуляцию двумя волнами и пустые волны будут "не состоятся".
-  const wavesToSimulate = Math.max(1, Math.min(2, wavesPerLevel));
+  /** Столько боёв подряд на уровень симулируем (как meta.wavesPerLevel, макс. 10 в getWavesPerLevel). Ниже: если этап 1..N пустой в reference-конфиге, уровень не симулируется (0 попыток). */
+  const wavesToSimulate = Math.max(1, wavesPerLevel);
   const hasPremiumReward = options.segmentId !== 'free';
 
   const lastSimulatedLevel = Math.min(

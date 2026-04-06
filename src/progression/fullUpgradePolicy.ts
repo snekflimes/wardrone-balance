@@ -13,7 +13,7 @@ export const fullWeaponAndSupportUpgradePolicy: UpgradePolicy = ({ constants, st
 
   if (!outcome.victory) return next;
 
-  const wavesPerLevel = Math.max(1, Math.min(2, getWavesPerLevel(constants)));
+  const wavesPerLevel = getWavesPerLevel(constants);
   if (ctx.waveIndex >= 1 && ctx.waveIndex < wavesPerLevel) {
     return next;
   }
