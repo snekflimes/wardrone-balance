@@ -427,18 +427,13 @@ export function simulateCombat(
     else stars = 1;
   }
 
-  // В текущей модели симуляции нет частичного "добивания" волны по врагам.
-  // Чтобы не было бесконечного фарма на повторных поражениях, награду за юнитов
-  // выдаём только за успешное завершение волны.
-  const killRewardSoft = victory ? killRewardBase : 0;
+  // Нет частичного добивания по врагам: killReward считается по полному составу волны.
+  // Поражение: база×премиум + убийства, без бонуса за победу. Победа: + бонус от суммы базы и убийств.
+  const killRewardSoft = killRewardBase;
   const vb = getVictoryBonusMultiplier(economy);
-  let victoryBonusSoft = 0;
-  let rewardSoft = 0;
-  if (victory) {
-    const core = baseMissionWithPremiumSoft + killRewardSoft;
-    victoryBonusSoft = Math.round(vb * core);
-    rewardSoft = core + victoryBonusSoft;
-  }
+  const core = baseMissionWithPremiumSoft + killRewardSoft;
+  const victoryBonusSoft = victory ? Math.round(vb * core) : 0;
+  const rewardSoft = core + victoryBonusSoft;
   const waveRewardSoft = baseMissionWithPremiumSoft + victoryBonusSoft;
 
   return {

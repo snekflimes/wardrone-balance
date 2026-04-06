@@ -467,7 +467,6 @@ export function simulateProgressionForecast(
       });
 
       let attemptVictory = true;
-      let defeatRewardGrantedInAttempt = false;
       let attemptReward = 0;
 
       for (const wave of levelWaves) {
@@ -491,12 +490,7 @@ export function simulateProgressionForecast(
           wave,
         });
 
-        const effectiveRewardSoft = combat.victory
-          ? combat.rewardSoft
-          : (defeatRewardGrantedInAttempt ? 0 : combat.rewardSoft);
-        if (!combat.victory && !defeatRewardGrantedInAttempt) {
-          defeatRewardGrantedInAttempt = true;
-        }
+        const effectiveRewardSoft = combat.rewardSoft;
 
         const outcome: CombatOutcome = {
           victory: combat.victory,

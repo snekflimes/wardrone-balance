@@ -81,11 +81,11 @@ export interface CombatSimulationResult {
   incomingDps: number;
   victory: boolean;
   stars: number;
-  /** Отдельная награда за юнитов в волне (сумма enemy.reward * count). */
+  /** Сумма enemy.reward × count по составу волны (входит в итог и при поражении). */
   killRewardSoft: number;
   /** Базовая награда за уровень с учётом премиума (без убийств и без бонуса победы). */
   baseMissionWithPremiumSoft: number;
-  /** Бонус за победу: victoryBonusMultiplier × (baseMissionWithPremiumSoft + killRewardSoft). */
+  /** Бонус за победу (при поражении 0): victoryBonusMultiplier × (baseMissionWithPremiumSoft + killRewardSoft). */
   victoryBonusSoft: number;
   /** База с премиумом + бонус победы (без строки убийств). Для совместимости с подписями «волна». */
   waveRewardSoft: number;
