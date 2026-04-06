@@ -559,6 +559,7 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
   delete legacyEcon.lossPenaltyPercent;
   delete legacyEcon.questsPerLevel;
   delete legacyEcon.questBaseReward;
+  delete legacyEcon.baseLevelRewardMultiplier;
 
   return merged;
 }

@@ -82,7 +82,6 @@
     "cardSlotCost": 200,
     "maxCardSlots": 24,
     "startingCardSlots": 6,
-    "baseLevelRewardMultiplier": 1.1,
     "cardRarityWeights": {
       "common": 1.5,
       "uncommon": 1,

@@ -14,16 +14,14 @@ import {
   type FormulaSourceAtom,
   type FormulaValueInput,
 } from '../balance/formulaEvaluator';
-import { getMissionRewardSoft } from '../balance/economy';
 import { getMaxWeaponLevelAcross } from '../balance/weaponMeta';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 
 const VARIABLE_LABELS: Record<string, string> = {
   // Economy
-  baseMissionReward: 'Базовая награда за бой (до премиума/убийств/бонуса)',
-  baseLevelRewardMultiplier: 'Множитель за уровень (награда)',
-  levelIndex: 'Индекс уровня',
+  baseMissionReward: 'Глобальная база награды за бой',
+  levelIndex: 'Индекс уровня (только для старых формул)',
   // Weapons
   baseDamage: 'Базовый урон',
   damageMultiplierPerLevel: 'Коэфф. роста урона (линейно, × levelIndex)',
@@ -148,7 +146,7 @@ function buildScopeForPreview(
     if (def.id === 'missionReward') {
       return {
         baseMissionReward: economy.baseMissionReward,
-        baseLevelRewardMultiplier: economy.baseLevelRewardMultiplier,
+        baseLevelRewardMultiplier: 1,
         levelIndex: rowIndex,
       };
     }

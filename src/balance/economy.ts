@@ -87,30 +87,23 @@ export function getEconomyUsdRates(
   };
 }
 
-/** Базовая часть награды по игровому уровню (до премиума/убийств/бонуса за бой). Кастомная формула — из конструктора. */
+/** Глобальная база награды за бой (одинакова на всех игровых уровнях; до премиума/убийств/бонуса). */
 export function getMissionRewardSoft(
   constants: BalanceConstants,
   levelIndex: number
 ): number {
   const { economy } = constants;
-  const expr = getFormulaExpression(
-    constants,
-    'economy',
-    'missionReward',
-    'baseMissionReward * pow(baseLevelRewardMultiplier, levelIndex)'
-  );
+  const expr = getFormulaExpression(constants, 'economy', 'missionReward', 'baseMissionReward');
   if (expr) {
     const scope = {
       baseMissionReward: economy.baseMissionReward,
-      baseLevelRewardMultiplier: economy.baseLevelRewardMultiplier,
+      /** Старые формулы с pow(baseLevelRewardMultiplier, levelIndex) дают плоскую базу при 1. */
+      baseLevelRewardMultiplier: 1,
       levelIndex: levelIndex - 1,
     };
     return Math.round(evaluateFormula(expr, scope));
   }
-  return (
-    economy.baseMissionReward *
-    Math.pow(economy.baseLevelRewardMultiplier, levelIndex - 1)
-  );
+  return economy.baseMissionReward;
 }
 
 /** Сколько боёв подряд симулируется на один игровой уровень (не множитель базы в формуле награды). */

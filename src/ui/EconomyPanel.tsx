@@ -457,7 +457,6 @@ export const EconomyPanel: React.FC<{
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
               {[
                 ['baseMissionReward', 'База награды за бой'],
-                ['baseLevelRewardMultiplier', 'Множитель награды за уровень'],
                 ['premiumRewardMultiplier', 'Коэфф. премиума к базе'],
                 ['victoryBonusMultiplier', 'Бонус победы (доля от база+убийства)'],
                 ['cardSlotCost', 'Цена слота карты'],
@@ -469,11 +468,7 @@ export const EconomyPanel: React.FC<{
                     style={inputStyle}
                     type="number"
                     step={
-                      key === 'baseLevelRewardMultiplier' ||
-                      key === 'premiumRewardMultiplier' ||
-                      key === 'victoryBonusMultiplier'
-                        ? '0.01'
-                        : '1'
+                      key === 'premiumRewardMultiplier' || key === 'victoryBonusMultiplier' ? '0.01' : '1'
                     }
                     value={(balance.economy as unknown as Record<string, number>)[key as string] ?? 0}
                     onChange={(e) =>

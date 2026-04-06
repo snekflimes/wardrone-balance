@@ -289,7 +289,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
       <section className="ui-block">
         <h4 style={{ marginBottom: 10 }}>Формулы наград (бой)</h4>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, lineHeight: 1.45 }}>
-          База за игровой уровень задаётся формулой ниже (конструктор). Награда начисляется за весь бой: база × премиум
+          Глобальная база (одинаковая на всех уровнях) задаётся полем ниже и конструктором формулы. Награда за бой: база × премиум
           (если есть) + награда за убийства; при победе дополнительно бонус victoryBonusMultiplier × (база×премиум +
           убийства). При поражении бонус не начисляется, база и убийства — да. Номер этапа в симуляторе базу не множит —
           только состав противников (геймплей).
@@ -301,16 +301,6 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             min={0}
             value={economy.baseMissionReward}
             onChange={(e) => updateEconomy(setBalance, 'baseMissionReward', num(e.target.value))}
-          />
-        </div>
-        <div className="ui-field">
-          <span style={labelStyle}>Множитель награды за уровень (baseLevelRewardMultiplier)</span>
-          <input
-            type="number"
-            min={0.1}
-            step={0.05}
-            value={economy.baseLevelRewardMultiplier}
-            onChange={(e) => updateEconomy(setBalance, 'baseLevelRewardMultiplier', num(e.target.value) || 1)}
           />
         </div>
         <div className="ui-field">

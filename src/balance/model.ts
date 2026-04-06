@@ -206,7 +206,6 @@ export interface EconomyConfig {
   maxCardSlots: number;
   /** Сколько слотов деки доступно изначально (до покупок). @default 4 */
   startingCardSlots?: number;
-  baseLevelRewardMultiplier: number;
   /** Веса редкостей для симулятора сундуков (как в Spreadsheet SimulatorChest). */
   cardRarityWeights?: Partial<Record<CardRarity, number>>;
   chests: ChestsBlock;
