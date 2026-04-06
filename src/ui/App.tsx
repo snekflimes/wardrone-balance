@@ -31,6 +31,56 @@ type TabId = 'combat' | 'economy' | 'weapons' | 'shop' | 'formulas' | 'charts' |
 
 type TabConfig = { id: TabId; label: string; hint: string };
 
+const TAB_IDS = new Set<TabId>([
+  'combat',
+  'economy',
+  'weapons',
+  'shop',
+  'formulas',
+  'charts',
+  'traffic',
+  'forecast',
+  'levels',
+]);
+
+function viteBaseNoTrailingSlash(): string {
+  const b = import.meta.env.BASE_URL;
+  return b.endsWith('/') ? b.slice(0, -1) : b;
+}
+
+/** Убирает двойные слэши в пути (например /wardrone//levels). */
+function normalizePathname(pathname: string): string {
+  return pathname.replace(/\/+/g, '/');
+}
+
+/** Сегмент после base, без слэшей по краям; пустая строка = корень приложения. */
+function pathSegmentAfterBase(pathname: string): string {
+  const base = viteBaseNoTrailingSlash();
+  const p = normalizePathname(pathname);
+  if (p === base || p === `${base}/`) return '';
+  const prefix = `${base}/`;
+  if (!p.startsWith(prefix)) return '';
+  return p.slice(prefix.length).replace(/\/+$/, '');
+}
+
+function readTabFromPathname(pathname: string): TabId {
+  const seg = pathSegmentAfterBase(pathname);
+  if (!seg || seg === 'combat') return 'combat';
+  if (TAB_IDS.has(seg as TabId)) return seg as TabId;
+  return 'combat';
+}
+
+/** Путь для history (совпадает с base Vite: /wardrone/ или /wardrone/levels). */
+function urlPathForTab(tab: TabId): string {
+  const base = import.meta.env.BASE_URL;
+  if (tab === 'combat') return base.endsWith('/') ? base : `${base}/`;
+  return `${viteBaseNoTrailingSlash()}/${tab}`;
+}
+
+function canonicalAppPathForCompare(path: string): string {
+  return normalizePathname(path).replace(/\/+$/, '') || '/';
+}
+
 /** JSON.stringify с сортировкой ключей — надёжное сравнение снимков после hydrate/parse. */
 function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object') {
@@ -565,7 +615,18 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
 }
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('combat');
+  const [activeTab, setActiveTab] = useState<TabId>(() =>
+    typeof window !== 'undefined' ? readTabFromPathname(window.location.pathname) : 'combat'
+  );
+
+  const navigateToTab = useCallback((id: TabId) => {
+    setActiveTab(id);
+    const next = urlPathForTab(id);
+    if (typeof window === 'undefined') return;
+    if (canonicalAppPathForCompare(window.location.pathname) !== canonicalAppPathForCompare(next)) {
+      window.history.pushState(null, '', next);
+    }
+  }, []);
   const [balance, setBalance] = useState<BalanceConstants>(BALANCE_CONSTANTS);
   const [storageReady, setStorageReady] = useState(false);
 
@@ -603,6 +664,14 @@ export const App: React.FC = () => {
     if (typeof window === 'undefined') return false;
     const host = window.location.hostname;
     return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setActiveTab(readTabFromPathname(window.location.pathname));
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   // На localhost используем Vite middleware (локальный файл .balance-db.json),
@@ -1054,7 +1123,7 @@ export const App: React.FC = () => {
               key={id}
               type="button"
               className={activeTab === id ? 'app-tab app-tab--active' : 'app-tab'}
-              onClick={() => setActiveTab(id)}
+              onClick={() => navigateToTab(id)}
             >
               {label}
             </button>
