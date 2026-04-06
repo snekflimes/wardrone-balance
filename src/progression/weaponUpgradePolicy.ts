@@ -74,7 +74,11 @@ export const weaponOnlyUpgradePolicy: UpgradePolicy = ({ constants, state, ctx }
   const wavesPerLevel = Math.max(1, Math.min(2, constants.economy.wavesPerLevel ?? 2));
   const unlocked = state.unlockedWeapons ?? { machineGun: true, hydra70: false, hellfire: false };
 
-  const maxUpgradesPerAttempt = state.segmentId === 'free' ? 1 : 5;
+  // Раньше у платящих было до 5 апгрейдов оружия за волну — весь софт уходил в стволы,
+  // а прокачка карт от софта отставала от бесплатника (у него лимит 1). Оставляем платящим
+  // запас на монеты/сундуки карт, но всё ещё больше 1, чем у free.
+  const maxUpgradesPerAttempt =
+    state.segmentId === 'free' ? 1 : state.segmentId === 'payer' ? 2 : 3;
 
   let nextState: ProgressionState = {
     ...state,

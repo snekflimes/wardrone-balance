@@ -5,7 +5,8 @@ import {
 } from './iapAndChestsModel';
 import { pickBestSupportCardFeedCandidate } from './supportCardFeedCandidates';
 
-const MAX_HARD_SPEND_STEPS = 5000;
+/** Покупаем по 1 сундуку за шаг, чтобы хард распределялся между картами, а не вливался в одну «лучшую». */
+const MAX_HARD_SPEND_STEPS = 25000;
 
 /**
  * Весь накопленный хард тратим на платные сундуки (EV чертежей на выбранную карту), пока хватает priceHard.
@@ -41,9 +42,10 @@ export function spendAllHardOnSupportChestsExpected(
     const affordable = Math.floor(h / priceHard);
     if (affordable <= 0) break;
 
-    h -= affordable * priceHard;
-    bp[candidate.card.id] = (bp[candidate.card.id] ?? 0) + perChest * affordable;
-    recordPaidChestOpens?.(chestId, affordable);
+    const buy = Math.min(1, affordable);
+    h -= buy * priceHard;
+    bp[candidate.card.id] = (bp[candidate.card.id] ?? 0) + perChest * buy;
+    recordPaidChestOpens?.(chestId, buy);
   }
 
   return { hardRemaining: h, supportCardBlueprints: bp };
