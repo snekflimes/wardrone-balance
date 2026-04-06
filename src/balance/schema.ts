@@ -63,6 +63,8 @@ export interface CombatLoadout {
    * Опционально: в бою могут учитываться эффекты карт (например защита).
    */
   supportCardLevels?: Record<number, number>;
+  /** Учитывать premiumRewardMultiplier в базовой части награды (прогноз: payer/whale). */
+  hasPremiumReward?: boolean;
 }
 
 export interface CombatSimulationInput {
@@ -71,11 +73,6 @@ export interface CombatSimulationInput {
   meta: MetaConfig;
   loadout: CombatLoadout;
   wave: WaveDefinition;
-  /**
-   * Политика умножения награды за победу по количеству звёзд.
-   * Ключи: 1..3. Для defeat и stars=0 применяется 1.
-   */
-  starRewardPolicy?: StarRewardPolicy;
 }
 
 export interface CombatSimulationResult {
@@ -86,16 +83,16 @@ export interface CombatSimulationResult {
   stars: number;
   /** Отдельная награда за юнитов в волне (сумма enemy.reward * count). */
   killRewardSoft: number;
-  /** Отдельная награда за результат волны (база волны * resultMultiplier). */
+  /** Базовая награда за уровень с учётом премиума (без убийств и без бонуса победы). */
+  baseMissionWithPremiumSoft: number;
+  /** Бонус за победу: victoryBonusMultiplier × (baseMissionWithPremiumSoft + killRewardSoft). */
+  victoryBonusSoft: number;
+  /** База с премиумом + бонус победы (без строки убийств). Для совместимости с подписями «волна». */
   waveRewardSoft: number;
-  /** Множитель результата: победа/поражение (+ звёзды при победе). */
-  resultMultiplier: number;
   rewardSoft: number;
   /** Ожидаемый множитель исходящего DPS из-за промахов/слабых попаданий (economy.combatSkill). */
   outgoingSkillDamageMultiplier?: number;
 }
-
-export type StarRewardPolicy = Partial<Record<1 | 2 | 3, number>>;
 
 export type WeaponsIndex = Record<WeaponId, WeaponConfig>;
 export type EnemiesIndex = Record<EnemyId, EnemyConfig>;

@@ -1,3 +1,4 @@
+import { getWavesPerLevel } from '../balance/economy';
 import type { BalanceConstants, WeaponId } from '../balance/model';
 import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import { getWeaponLevelStats } from '../balance/simulator';
@@ -71,7 +72,7 @@ function pickWeaponUpgradeWithDiversity(
 
 export const weaponOnlyUpgradePolicy: UpgradePolicy = ({ constants, state, ctx }) => {
   const ids: WeaponKey[] = ['machineGun', 'hydra70', 'hellfire'];
-  const wavesPerLevel = Math.max(1, Math.min(2, constants.economy.wavesPerLevel ?? 2));
+  const wavesPerLevel = Math.max(1, Math.min(2, getWavesPerLevel(constants)));
   const unlocked = state.unlockedWeapons ?? { machineGun: true, hydra70: false, hellfire: false };
 
   // Раньше у платящих было до 5 апгрейдов оружия за волну — весь софт уходил в стволы,

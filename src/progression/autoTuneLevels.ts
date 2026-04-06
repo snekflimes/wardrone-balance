@@ -1,3 +1,4 @@
+import { getWavesPerLevel } from '../balance/economy';
 import type { BalanceConstants, EnemyId } from '../balance/model';
 import type { ReferenceWavesConfig } from '../balance/referenceWaves';
 import { simulateProgressionForecast } from './progressionSimulator';
@@ -128,7 +129,7 @@ function getLevelResult(
   });
   const row = forecast.levels.find((l) => l.levelIndex === levelIndex);
   if (!row) return { score: 0, attempts: 0, passed: false };
-  const wavesPerLevel = constants.economy.wavesPerLevel ?? 2;
+  const wavesPerLevel = getWavesPerLevel(constants);
   return {
     score: levelScoreFromAttempts(row.passed, row.attemptsTotal, wavesPerLevel),
     attempts: row.attemptsTotal,

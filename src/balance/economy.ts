@@ -1,4 +1,6 @@
-import type { BalanceConstants, ShopItemConfig } from './model';
+import type { BalanceConstants, EnemyId, ShopItemConfig } from './model';
+import type { WaveDefinition } from './schema';
+import { getReferenceWave, getReferenceWaveFromConfig, type ReferenceWavesConfig } from './referenceWaves';
 import {
   getFormulaExpression,
   evaluateFormula,
@@ -111,43 +113,79 @@ export function getMissionRewardSoft(
   );
 }
 
-/** Награда за одну волну с учётом номера волны. Если задана кастомная формула — используем её. */
-export function getWaveRewardSoft(
-  constants: BalanceConstants,
-  levelIndex: number,
-  waveIndex: number
-): number {
-  const { economy } = constants;
-  const expr = getFormulaExpression(
-    constants,
-    'economy',
-    'waveReward',
-    'missionRewardBase * pow(missionDifficultyMultiplier, waveIndex - 1)'
-  );
-  if (expr) {
-    const missionRewardBase = getMissionRewardSoft(constants, levelIndex);
-    const scope = {
-      missionRewardBase,
-      missionDifficultyMultiplier: economy.missionDifficultyMultiplier ?? 1.3,
-      waveIndex,
-    };
-    return Math.round(evaluateFormula(expr, scope));
-  }
-  const base = getMissionRewardSoft(constants, levelIndex);
-  const mult = economy.missionDifficultyMultiplier ?? 1.3;
-  return base * Math.pow(mult, waveIndex - 1);
+/** Сколько боевых волн на один игровой уровень в симуляции (не множитель награды). */
+export function getWavesPerLevel(constants: BalanceConstants): number {
+  const m = constants.meta.wavesPerLevel;
+  if (m != null && Number.isFinite(m) && m >= 1) return Math.min(10, Math.floor(m));
+  const legacy = (constants.economy as { wavesPerLevel?: number }).wavesPerLevel;
+  if (legacy != null && Number.isFinite(legacy) && legacy >= 1) return Math.min(10, Math.floor(legacy));
+  return 2;
 }
 
-/** Суммарная награда за прохождение уровня (все волны уровня) */
+export function getPremiumRewardMultiplier(economy: BalanceConstants['economy']): number {
+  const m = economy.premiumRewardMultiplier;
+  return m != null && Number.isFinite(m) && m > 0 ? m : 2;
+}
+
+export function getVictoryBonusMultiplier(economy: BalanceConstants['economy']): number {
+  const v = economy.victoryBonusMultiplier;
+  return v != null && Number.isFinite(v) && v >= 0 ? v : 0.75;
+}
+
+/** Сумма enemy.reward × count по составу волны. */
+export function getKillRewardSoftForWave(constants: BalanceConstants, wave: WaveDefinition): number {
+  return wave.enemies.reduce((sum, group) => {
+    const enemyCfg = constants.enemies[group.enemyId as EnemyId];
+    const per = enemyCfg?.reward ?? 0;
+    return sum + per * group.count;
+  }, 0);
+}
+
+/**
+ * Базовая награда за уровень с учётом премиума (без убийств, без бонуса победы).
+ */
+export function getBaseMissionRewardWithPremiumSoft(
+  constants: BalanceConstants,
+  levelIndex: number,
+  hasPremium: boolean
+): number {
+  const base = getMissionRewardSoft(constants, levelIndex);
+  if (!hasPremium) return base;
+  const mult = getPremiumRewardMultiplier(constants.economy);
+  return Math.round(base * mult);
+}
+
+/**
+ * Полная награда за волну при победе:
+ * база×премиум + убийства + victoryBonus×(база×премиум + убийства).
+ */
+export function getWinRewardSoftForWaveDef(
+  constants: BalanceConstants,
+  wave: WaveDefinition,
+  hasPremium: boolean
+): number {
+  const basePrem = getBaseMissionRewardWithPremiumSoft(constants, wave.levelIndex, hasPremium);
+  const kill = getKillRewardSoftForWave(constants, wave);
+  const vb = getVictoryBonusMultiplier(constants.economy);
+  const core = basePrem + kill;
+  return Math.round(core + vb * core);
+}
+
+/** Суммарная ожидаемая награда за уровень при победе во всех волнах (референсный состав волн). */
 export function getLevelRewardSoft(
   constants: BalanceConstants,
   levelIndex: number,
-  wavesCount?: number
+  opts?: { hasPremium?: boolean; referenceWavesConfig?: ReferenceWavesConfig; wavesCount?: number }
 ): number {
-  const n = wavesCount ?? constants.economy.wavesPerLevel ?? 2;
+  const n = opts?.wavesCount ?? getWavesPerLevel(constants);
+  const hasPremium = opts?.hasPremium ?? false;
+  const cfg = opts?.referenceWavesConfig;
   let total = 0;
   for (let w = 1; w <= n; w++) {
-    total += getWaveRewardSoft(constants, levelIndex, w);
+    const wave = cfg
+      ? getReferenceWaveFromConfig(cfg, levelIndex, w)
+      : getReferenceWave(levelIndex, w);
+    total += getWinRewardSoftForWaveDef(constants, wave, hasPremium);
   }
   return total;
 }
@@ -162,14 +200,15 @@ export function getAverageRewardPerLevel(constants: BalanceConstants): number {
   return levels > 0 ? sum / levels : 0;
 }
 
-/** Средняя награда за одну волну (миссию) по всем уровням и волнам. */
+/** Средняя награда за одну волну (миссию) по всем уровням и волнам (победа, без премиума, референсные волны). */
 function getAverageWaveRewardSoft(constants: BalanceConstants): number {
   const levels = constants.meta.gameLevels;
-  const wavesPerLevel = constants.economy.wavesPerLevel ?? 2;
+  const wavesPerLevel = getWavesPerLevel(constants);
   let sum = 0;
   for (let l = 1; l <= levels; l++) {
     for (let w = 1; w <= wavesPerLevel; w++) {
-      sum += getWaveRewardSoft(constants, l, w);
+      const wave = getReferenceWave(l, w);
+      sum += getWinRewardSoftForWaveDef(constants, wave, false);
     }
   }
   const totalWaves = levels * wavesPerLevel;
@@ -262,21 +301,10 @@ export function getRewardEconomyComparison(
   };
 }
 
-/** Награда за квест (фиксированная в константах) */
-export function getQuestRewardSoft(constants: BalanceConstants): number {
-  return constants.economy.questBaseReward;
-}
-
-/** Пример: сколько софта получает игрок за день (миссии + квесты), грубая оценка */
+/** Пример: сколько софта получает игрок за день (только миссии), грубая оценка по средней награде за волну. */
 export function getDailyFreeSoftEstimate(constants: BalanceConstants): number {
-  const { economy } = constants;
-  const avgMissionReward =
-    economy.baseMissionReward *
-    (1 - Math.pow(economy.baseLevelRewardMultiplier, 7)) /
-    (1 - economy.baseLevelRewardMultiplier) / 7;
   const missionsDaily = 6;
-  const questsDaily = 5;
-  return missionsDaily * avgMissionReward + questsDaily * economy.questBaseReward;
+  return missionsDaily * getAverageWaveRewardSoft(constants);
 }
 
 /** Цена позиции магазина в USD (по золоту, по монетам или по priceUsd для IAP) */

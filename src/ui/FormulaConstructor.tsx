@@ -24,9 +24,6 @@ const VARIABLE_LABELS: Record<string, string> = {
   baseMissionReward: 'Базовая награда за миссию',
   baseLevelRewardMultiplier: 'Множитель за уровень (награда)',
   levelIndex: 'Индекс уровня',
-  missionRewardBase: 'База награды за миссию',
-  missionDifficultyMultiplier: 'Множитель награды между волнами (софт)',
-  waveIndex: 'Номер волны',
   // Weapons
   baseDamage: 'Базовый урон',
   damageMultiplierPerLevel: 'Коэфф. роста урона (линейно, × levelIndex)',
@@ -103,7 +100,6 @@ function defaultSource(def: FormulaDefinition): FormulaValueInput {
 }
 
 function defaultFunction(def: FormulaDefinition): FormulaFunctionAtom {
-  const isWaveReward = def.id === 'waveReward';
   return {
     id: createId('fn'),
     kind: 'function',
@@ -113,8 +109,8 @@ function defaultFunction(def: FormulaDefinition): FormulaFunctionAtom {
       { sourceType: 'entity', entityKey: def.variables[1] ?? def.variables[0] ?? 'x', offset: 0 },
       {
         sourceType: 'entity',
-        entityKey: isWaveReward ? 'waveIndex' : 'levelIndex',
-        offset: isWaveReward ? -1 : 0,
+        entityKey: 'levelIndex',
+        offset: 0,
       },
     ],
   };
@@ -130,7 +126,7 @@ function getStoredBuilder(
 ): FormulaAtomsBuilder {
   const stored =
     def.category === 'economy'
-      ? balance.formulas?.builders?.economy?.[def.id as 'missionReward' | 'waveReward']
+      ? balance.formulas?.builders?.economy?.[def.id as 'missionReward']
       : balance.formulas?.builders?.weapons?.[def.id as 'damage' | 'fireRate' | 'ammo'];
   return stored ? cloneBuilder(stored) : defaultBuilder(def);
 }
@@ -154,14 +150,6 @@ function buildScopeForPreview(
         baseMissionReward: economy.baseMissionReward,
         baseLevelRewardMultiplier: economy.baseLevelRewardMultiplier,
         levelIndex: rowIndex,
-      };
-    }
-    if (def.id === 'waveReward') {
-      const missionRewardBase = getMissionRewardSoft(balance, 1);
-      return {
-        missionRewardBase,
-        missionDifficultyMultiplier: economy.missionDifficultyMultiplier ?? 1.3,
-        waveIndex: rowIndex + 1,
       };
     }
   }
@@ -536,11 +524,7 @@ function FormulaEditor({
 
   const previewRows = useMemo(() => {
     const isEconomy = def.category === 'economy';
-    const n = isEconomy
-      ? def.id === 'waveReward'
-        ? 2
-        : balance.meta.gameLevels
-      : getMaxWeaponLevelAcross(balance);
+    const n = isEconomy ? balance.meta.gameLevels : getMaxWeaponLevelAcross(balance);
     const rows: { label: string; value: number; error?: string }[] = [];
     for (let i = 0; i < n; i += 1) {
       const scope = buildScopeForPreview(balance, def, i);
@@ -548,7 +532,7 @@ function FormulaEditor({
       rows.push(
         result.ok
           ? {
-              label: def.id === 'waveReward' ? `Волна ${i + 1}` : `Ур.${i + 1}`,
+              label: `Ур.${i + 1}`,
               value: Math.round(result.value * 100) / 100,
             }
           : { label: `#${i + 1}`, value: 0, error: result.error }

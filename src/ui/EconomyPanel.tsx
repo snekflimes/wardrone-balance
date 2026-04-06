@@ -458,11 +458,9 @@ export const EconomyPanel: React.FC<{
               {[
                 ['baseMissionReward', 'База награды за миссию'],
                 ['baseLevelRewardMultiplier', 'Множитель награды за уровень'],
-                ['missionDifficultyMultiplier', 'Множ. награды между волнами'],
-                ['lossPenaltyPercent', 'Штраф за поражение %'],
-                ['questBaseReward', 'Награда за квест'],
+                ['premiumRewardMultiplier', 'Коэфф. премиума к базе'],
+                ['victoryBonusMultiplier', 'Бонус победы (доля от база+убийства)'],
                 ['cardSlotCost', 'Цена слота карты'],
-                ['wavesPerLevel', 'Волн на уровень'],
                 ['missionsPerSession', 'Миссий в сессии'],
               ].map(([key, label]) => (
                 <label key={key as string}>
@@ -470,9 +468,21 @@ export const EconomyPanel: React.FC<{
                   <input
                     style={inputStyle}
                     type="number"
-                    step={key === 'baseLevelRewardMultiplier' || key === 'missionDifficultyMultiplier' ? '0.01' : '1'}
+                    step={
+                      key === 'baseLevelRewardMultiplier' ||
+                      key === 'premiumRewardMultiplier' ||
+                      key === 'victoryBonusMultiplier'
+                        ? '0.01'
+                        : '1'
+                    }
                     value={(balance.economy as unknown as Record<string, number>)[key as string] ?? 0}
-                    onChange={(e) => setEconomyField(setBalance, key as keyof BalanceConstants['economy'], Number(e.target.value) || 0)}
+                    onChange={(e) =>
+                      setEconomyField(
+                        setBalance,
+                        key as keyof BalanceConstants['economy'],
+                        Number(e.target.value) || 0
+                      )
+                    }
                   />
                 </label>
               ))}

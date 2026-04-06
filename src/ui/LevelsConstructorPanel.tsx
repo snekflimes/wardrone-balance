@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { getWavesPerLevel } from '../balance/economy';
 import type { BalanceConstants, EnemyId } from '../balance/model';
 import { getEnemyLevelPowerBreakdownPerUnit } from '../balance/simulator';
 import type { ReferenceWavesConfig, ReferenceWaveEnemies } from '../balance/referenceWaves';
@@ -325,7 +326,7 @@ export const LevelsConstructorPanel: React.FC<{
     [balance.enemies]
   );
   const gameLevels = balance.meta.gameLevels;
-  const wavesPerLevel = balance.economy.wavesPerLevel ?? 2;
+  const wavesPerLevel = getWavesPerLevel(balance);
 
   const defaultCfg = useMemo(() => getDefaultReferenceWavesConfig(), []);
 

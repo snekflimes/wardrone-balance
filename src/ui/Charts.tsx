@@ -14,7 +14,13 @@ import {
 import type { BalanceConstants } from '../balance/model';
 import { getWeaponLevelStats } from '../balance/simulator';
 import { getMaxWeaponLevelAcross } from '../balance/weaponMeta';
-import { getMissionRewardSoft, getWaveRewardSoft, getLevelRewardSoft } from '../balance/economy';
+import {
+  getMissionRewardSoft,
+  getLevelRewardSoft,
+  getWavesPerLevel,
+  getWinRewardSoftForWaveDef,
+} from '../balance/economy';
+import { getReferenceWave } from '../balance/referenceWaves';
 
 interface ChartsProps {
   balance: BalanceConstants;
@@ -23,6 +29,7 @@ interface ChartsProps {
 export const Charts: React.FC<ChartsProps> = ({ balance }) => {
   const maxLevel = getMaxWeaponLevelAcross(balance);
   const gameLevels = balance.meta.gameLevels;
+  const wavesPerLevelChart = getWavesPerLevel(balance);
 
   const dpsData = React.useMemo(() => {
     const rows = [];
@@ -43,19 +50,18 @@ export const Charts: React.FC<ChartsProps> = ({ balance }) => {
 
   const rewardByLevelData = React.useMemo(() => {
     const rows = [];
+    const n = wavesPerLevelChart;
     for (let level = 1; level <= gameLevels; level++) {
-      const wave1 = getWaveRewardSoft(balance, level, 1);
-      const wave2 = getWaveRewardSoft(balance, level, 2);
-      const levelTotal = getLevelRewardSoft(balance, level);
-      rows.push({
-        level: 'Ур.' + level,
-        'Волна 1': Math.round(wave1),
-        'Волна 2': Math.round(wave2),
-        'За уровень': Math.round(levelTotal),
-      });
+      const row: Record<string, string | number> = { level: 'Ур.' + level };
+      for (let w = 1; w <= n; w++) {
+        const wave = getReferenceWave(level, w);
+        row[`Волна ${w}`] = Math.round(getWinRewardSoftForWaveDef(balance, wave, false));
+      }
+      row['За уровень'] = Math.round(getLevelRewardSoft(balance, level));
+      rows.push(row);
     }
     return rows;
-  }, [balance, gameLevels]);
+  }, [balance, gameLevels, wavesPerLevelChart]);
 
   const missionRewardCurve = React.useMemo(() => {
     return Array.from({ length: gameLevels }, (_, i) => ({
@@ -111,8 +117,13 @@ export const Charts: React.FC<ChartsProps> = ({ balance }) => {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="Волна 1" fill="#8884d8" />
-              <Bar dataKey="Волна 2" fill="#82ca9d" />
+              {Array.from({ length: wavesPerLevelChart }, (_, i) => (
+                <Bar
+                  key={i + 1}
+                  dataKey={`Волна ${i + 1}`}
+                  fill={i % 2 === 0 ? '#8884d8' : '#82ca9d'}
+                />
+              ))}
               <Bar dataKey="За уровень" fill="#ffc658" />
             </BarChart>
           </ResponsiveContainer>

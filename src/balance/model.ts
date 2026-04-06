@@ -89,6 +89,11 @@ export interface MetaConfig {
   trafficRoyalty?: number;
   /** Трафик: налоги (0..1). @default 0.06 */
   trafficTaxes?: number;
+  /**
+   * Сколько боевых «волн» в одном прохождении игрового уровня в симуляторе (состав волн — геймплей, не множитель награды).
+   * @default 2
+   */
+  wavesPerLevel?: number;
 }
 
 export interface WeaponGrowthConfig {
@@ -181,16 +186,19 @@ export interface UpgradeLevelCost {
 
 export interface EconomyConfig {
   baseMissionReward: number;
-  missionDifficultyMultiplier: number;
-  /** Число волн на один игровой уровень (для формулы награды за уровень) */
-  wavesPerLevel?: number;
   /** Число миссий в одной «сессии» (для средней награды за сессию) */
   missionsPerSession?: number;
-  lossPenaltyPercent: number;
+  /**
+   * Множитель базовой награды при активной подписке/премиуме (прогноз: payer/whale).
+   * Итог: база × (премиум ? premiumRewardMultiplier : 1).
+   */
+  premiumRewardMultiplier: number;
+  /**
+   * Доля от (база_с_премиумом + награда_за_убийства), начисляемая бонусом за победу. @default 0.75
+   */
+  victoryBonusMultiplier?: number;
   adMultiplier: number;
   missionsPerPlayerLevel: number;
-  questsPerLevel: number;
-  questBaseReward: number;
   cardBaseCost: number;
   cardBaseBonusPercent: number;
   cardSlotsPerLevel: number;
@@ -418,7 +426,6 @@ export interface ReferencePacks {
 export interface GameFormulas {
   economy?: {
     missionReward?: string;
-    waveReward?: string;
   };
   weapons?: {
     damage?: string;
@@ -428,7 +435,6 @@ export interface GameFormulas {
   builders?: {
     economy?: {
       missionReward?: FormulaAtomsBuilder;
-      waveReward?: FormulaAtomsBuilder;
     };
     weapons?: {
       damage?: FormulaAtomsBuilder;

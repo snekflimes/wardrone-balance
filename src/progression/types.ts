@@ -1,5 +1,4 @@
 import type { BalanceConstants, WeaponId, EnemyId } from '../balance/model';
-import type { StarRewardPolicy } from '../balance/schema';
 import type { WaveDefinition } from '../balance/schema';
 import type { ReferenceWavesConfig } from '../balance/referenceWaves';
 
@@ -171,7 +170,6 @@ export interface ProgressionSimulatorOptions {
    */
   retryPowerGainPerAttempt?: number;
   upgradePolicy: UpgradePolicy;
-  starRewardPolicy?: StarRewardPolicy;
   /**
    * Если задано — симулировать только уровни 1..maxLevelIndex (включительно).
    * По умолчанию — все уровни из meta.gameLevels.

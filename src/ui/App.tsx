@@ -7,6 +7,7 @@ import {
   type EnemyId,
   type WeaponId,
 } from '../balance/model';
+import { getWavesPerLevel } from '../balance/economy';
 import { getWeaponLevelStats, simulateCombat } from '../balance/simulator';
 import { getReferenceWaveFromConfig } from '../balance/referenceWaves';
 import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
@@ -529,6 +530,36 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
   // Раньше здесь была «миграция» вида (1.005; 2) → v-1 для цены и роста урона/боезапаса;
   // легитимные линейные значения вроде 1.1 превращались в 0.1 после каждого «Сохранить» + перезагрузки.
 
+  const legacyEcon = merged.economy as unknown as Record<string, unknown>;
+  if (merged.meta.wavesPerLevel == null || !Number.isFinite(merged.meta.wavesPerLevel)) {
+    const leg = legacyEcon.wavesPerLevel;
+    merged.meta.wavesPerLevel =
+      typeof leg === 'number' && leg >= 1
+        ? Math.min(10, Math.floor(leg))
+        : defMeta.wavesPerLevel ?? 2;
+  }
+  if (merged.economy.premiumRewardMultiplier == null || !(merged.economy.premiumRewardMultiplier > 0)) {
+    merged.economy.premiumRewardMultiplier = BALANCE_CONSTANTS.economy.premiumRewardMultiplier ?? 2;
+  }
+  if (
+    merged.economy.victoryBonusMultiplier == null ||
+    !Number.isFinite(merged.economy.victoryBonusMultiplier)
+  ) {
+    merged.economy.victoryBonusMultiplier = BALANCE_CONSTANTS.economy.victoryBonusMultiplier ?? 0.75;
+  }
+  if (merged.formulas?.economy && 'waveReward' in merged.formulas.economy) {
+    delete (merged.formulas.economy as Record<string, unknown>).waveReward;
+  }
+  if (merged.formulas?.builders?.economy && 'waveReward' in merged.formulas.builders.economy) {
+    delete (merged.formulas.builders.economy as Record<string, unknown>).waveReward;
+  }
+
+  delete legacyEcon.missionDifficultyMultiplier;
+  delete legacyEcon.wavesPerLevel;
+  delete legacyEcon.lossPenaltyPercent;
+  delete legacyEcon.questsPerLevel;
+  delete legacyEcon.questBaseReward;
+
   return merged;
 }
 
@@ -547,6 +578,7 @@ export const App: React.FC = () => {
   const [hellfireLevel, setHellfireLevel] = useState(1);
   const [levelIndex, setLevelIndex] = useState(1);
   const [waveIndex, setWaveIndex] = useState(1);
+  const [combatSandboxPremium, setCombatSandboxPremium] = useState(false);
   const backupInputRef = useRef<HTMLInputElement | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
@@ -933,11 +965,12 @@ export const App: React.FC = () => {
           playerLevel,
           machineGunLevel: mgLevel,
           hydraLevel,
-          hellfireLevel
+          hellfireLevel,
+          hasPremiumReward: combatSandboxPremium,
         },
-        wave
+        wave,
       }),
-    [balance, playerLevel, mgLevel, hydraLevel, hellfireLevel, wave]
+    [balance, playerLevel, mgLevel, hydraLevel, hellfireLevel, wave, combatSandboxPremium]
   );
 
   const mg = getWeaponLevelStats(balance, 'machineGun', mgLevel);
@@ -1118,11 +1151,19 @@ export const App: React.FC = () => {
                   className="ui-num"
                   type="number"
                   min={1}
-                  max={balance.economy.wavesPerLevel ?? 2}
+                  max={getWavesPerLevel(balance)}
                   value={waveIndex}
                   onChange={(e) => setWaveIndex(Number(e.target.value) || 1)}
                 />
               </div>
+              <label className="ui-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={combatSandboxPremium}
+                  onChange={(e) => setCombatSandboxPremium(e.target.checked)}
+                />
+                <span>Премиум (база × коэфф.)</span>
+              </label>
               <div className="ui-kv" style={{ marginTop: 6 }}>
                 {wave.enemies.map((group) => (
                   <div key={group.enemyId}>
@@ -1151,7 +1192,10 @@ export const App: React.FC = () => {
                 </strong>
               </div>
               <div>Звёзды: {combatResult.stars}</div>
-              <div>Монеты: {combatResult.rewardSoft.toFixed(0)}</div>
+              <div>База (с премиумом): {combatResult.baseMissionWithPremiumSoft.toFixed(0)}</div>
+              <div>Убийства: {combatResult.killRewardSoft.toFixed(0)}</div>
+              <div>Бонус победы: {combatResult.victoryBonusSoft.toFixed(0)}</div>
+              <div>Монеты всего: {combatResult.rewardSoft.toFixed(0)}</div>
             </div>
             <p className="ui-hint" style={{ marginTop: 10, marginBottom: 0 }}>
               Скилл (исх. урон): {(combatResult.outgoingSkillDamageMultiplier ?? 1).toFixed(3)} — «Формулы → Бой и референсные волны».

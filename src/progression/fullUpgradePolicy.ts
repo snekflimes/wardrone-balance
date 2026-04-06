@@ -1,3 +1,4 @@
+import { getWavesPerLevel } from '../balance/economy';
 import type { BalanceConstants } from '../balance/model';
 import { weaponOnlyUpgradePolicy } from './weaponUpgradePolicy';
 import type { ProgressionState, UpgradePolicy } from './types';
@@ -12,7 +13,7 @@ export const fullWeaponAndSupportUpgradePolicy: UpgradePolicy = ({ constants, st
 
   if (!outcome.victory) return next;
 
-  const wavesPerLevel = Math.max(1, Math.min(2, constants.economy.wavesPerLevel ?? 2));
+  const wavesPerLevel = Math.max(1, Math.min(2, getWavesPerLevel(constants)));
   if (ctx.waveIndex >= 1 && ctx.waveIndex < wavesPerLevel) {
     return next;
   }

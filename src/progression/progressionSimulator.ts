@@ -15,6 +15,7 @@ import {
   getUnitsPerLevelFromBalance,
   getUnitsPerLevelFromConfig,
 } from '../balance/referenceWaves';
+import { getWavesPerLevel } from '../balance/economy';
 import {
   getOutgoingSkillDamageMultiplier,
   getWaveLevelPowerContribution,
@@ -114,11 +115,12 @@ export function simulateProgressionForecast(
   constants: BalanceConstants,
   options: ProgressionSimulatorOptions
 ): ProgressionForecastResult {
-  const wavesPerLevel = constants.economy.wavesPerLevel ?? 2;
+  const wavesPerLevel = getWavesPerLevel(constants);
   // В референсе/таблицах сейчас есть только 2 волны на уровень.
   // Поэтому если wavesPerLevel отличается (из-за localStorage/настроек),
   // мы не падём: ограничим симуляцию двумя волнами и пустые волны будут "не состоятся".
   const wavesToSimulate = Math.max(1, Math.min(2, wavesPerLevel));
+  const hasPremiumReward = options.segmentId !== 'free';
 
   const lastSimulatedLevel = Math.min(
     constants.meta.gameLevels,
@@ -484,9 +486,9 @@ export function simulateProgressionForecast(
             },
             supportCardLevels: filterSupportCardsByDeckSlots(supportCardLevels),
             combatPowerMultiplier: retryPowerMultiplier,
+            hasPremiumReward,
           },
           wave,
-          starRewardPolicy: options.starRewardPolicy,
         });
 
         const effectiveRewardSoft = combat.victory

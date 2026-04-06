@@ -10,7 +10,12 @@ import {
   getFormulaExpression,
   evaluateFormula,
 } from './formulaEvaluator';
-import { getWaveRewardSoft } from './economy';
+import {
+  getKillRewardSoftForWave,
+  getMissionRewardSoft,
+  getVictoryBonusMultiplier,
+  getPremiumRewardMultiplier,
+} from './economy';
 import type {
   WeaponLevelStats,
   WaveDefinition,
@@ -253,7 +258,7 @@ export function getWaveStats(
   const totalEnemyHp = totalEnemyHpBase;
   const totalEnemyDps = totalEnemyDpsBase;
 
-  const baseRewardSoft = getWaveRewardSoft(constantsForWaves, wave.levelIndex, wave.waveIndex);
+  const baseRewardSoft = getMissionRewardSoft(constantsForWaves, wave.levelIndex);
 
   const requiredDps = totalEnemyHp / meta.baseWaveTimeSec;
 
@@ -297,8 +302,9 @@ export function simulateCombat(
       victory: false,
       stars: 0,
       killRewardSoft: 0,
+      baseMissionWithPremiumSoft: 0,
+      victoryBonusSoft: 0,
       waveRewardSoft: 0,
-      resultMultiplier: 0,
       rewardSoft: 0,
       outgoingSkillDamageMultiplier: getOutgoingSkillDamageMultiplier(economy),
     };
@@ -407,13 +413,11 @@ export function simulateCombat(
     victory = timeToKillSec <= meta.baseWaveTimeSec && incomingDps <= playerHp;
   }
 
-  const baseWaveReward = waveStats.baseRewardSoft;
-  const killRewardBase = input.wave.enemies.reduce((sum, group) => {
-    const enemyCfg = constants.enemies[group.enemyId];
-    const perEnemyReward = enemyCfg?.reward ?? 0;
-    return sum + perEnemyReward * group.count;
-  }, 0);
-  const lossPenalty = (economy.lossPenaltyPercent ?? 15) / 100;
+  const missionBase = getMissionRewardSoft(constants, input.wave.levelIndex);
+  const hasPrem = input.loadout.hasPremiumReward === true;
+  const premMult = hasPrem ? getPremiumRewardMultiplier(economy) : 1;
+  const baseMissionWithPremiumSoft = Math.round(missionBase * premMult);
+  const killRewardBase = getKillRewardSoftForWave(constants, input.wave);
 
   let stars = 0;
   if (victory) {
@@ -423,20 +427,19 @@ export function simulateCombat(
     else stars = 1;
   }
 
-  const defaultStarPolicy: Required<Record<1 | 2 | 3, number>> = {
-    1: 1,
-    2: 1.25,
-    3: 1.5,
-  };
-  const policy = input.starRewardPolicy ?? defaultStarPolicy;
-  const starMultiplier = stars > 0 ? (policy[stars as 1 | 2 | 3] ?? 1) : 1;
-  const resultMultiplier = victory ? starMultiplier : (1 - lossPenalty);
   // В текущей модели симуляции нет частичного "добивания" волны по врагам.
   // Чтобы не было бесконечного фарма на повторных поражениях, награду за юнитов
   // выдаём только за успешное завершение волны.
   const killRewardSoft = victory ? killRewardBase : 0;
-  const waveRewardSoft = baseWaveReward * resultMultiplier;
-  const rewardSoft = killRewardSoft + waveRewardSoft;
+  const vb = getVictoryBonusMultiplier(economy);
+  let victoryBonusSoft = 0;
+  let rewardSoft = 0;
+  if (victory) {
+    const core = baseMissionWithPremiumSoft + killRewardSoft;
+    victoryBonusSoft = Math.round(vb * core);
+    rewardSoft = core + victoryBonusSoft;
+  }
+  const waveRewardSoft = baseMissionWithPremiumSoft + victoryBonusSoft;
 
   return {
     timeToKillSec,
@@ -445,8 +448,9 @@ export function simulateCombat(
     victory,
     stars,
     killRewardSoft,
+    baseMissionWithPremiumSoft,
+    victoryBonusSoft,
     waveRewardSoft,
-    resultMultiplier,
     rewardSoft,
     outgoingSkillDamageMultiplier,
   };

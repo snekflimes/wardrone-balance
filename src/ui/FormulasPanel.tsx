@@ -288,9 +288,10 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
 
       <section className="ui-block">
         <h4 style={{ marginBottom: 10 }}>Формулы наград (миссии)</h4>
-        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>
-          Награда за волну (софт) = baseMissionReward × baseLevelRewardMultiplier^(уровень−1) ×
-          missionDifficultyMultiplier^(волна−1). На силу врагов в бою это не влияет. За уровень = сумма по волнам.
+        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, lineHeight: 1.45 }}>
+          База за игровой уровень задаётся формулой ниже (конструктор). Итог за победную волну: база × премиум (если
+          есть) + награда за убийства + бонус за победу = victoryBonusMultiplier × (база×премиум + убийства). Номер
+          волны на награду не множит — только состав врагов (геймплей).
         </div>
         <div className="ui-field">
           <span style={labelStyle}>Базовая награда за миссию (монеты)</span>
@@ -312,23 +313,36 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
           />
         </div>
         <div className="ui-field">
-          <span style={labelStyle}>Множитель награды между волнами (missionDifficultyMultiplier)</span>
-          <input
-            type="number"
-            min={0.1}
-            step={0.05}
-            value={economy.missionDifficultyMultiplier}
-            onChange={(e) => updateEconomy(setBalance, 'missionDifficultyMultiplier', num(e.target.value) || 1)}
-          />
-        </div>
-        <div className="ui-field">
-          <span style={labelStyle}>Волн на один игровой уровень (wavesPerLevel)</span>
+          <span style={labelStyle}>Волн на уровень в симуляторе (meta.wavesPerLevel)</span>
           <input
             type="number"
             min={1}
             max={10}
-            value={economy.wavesPerLevel ?? 2}
-            onChange={(e) => updateEconomy(setBalance, 'wavesPerLevel', num(e.target.value) || 2)}
+            value={meta.wavesPerLevel ?? 2}
+            onChange={(e) =>
+              updateMeta(setBalance, 'wavesPerLevel', Math.max(1, Math.min(10, num(e.target.value) || 2)))
+            }
+          />
+        </div>
+        <div className="ui-field">
+          <span style={labelStyle}>Коэфф. премиума к базе (premiumRewardMultiplier)</span>
+          <input
+            type="number"
+            min={1}
+            step={0.05}
+            value={economy.premiumRewardMultiplier ?? 2}
+            onChange={(e) => updateEconomy(setBalance, 'premiumRewardMultiplier', num(e.target.value) || 1)}
+          />
+        </div>
+        <div className="ui-field">
+          <span style={labelStyle}>Бонус за победу от суммы базы+убийств (victoryBonusMultiplier)</span>
+          <input
+            type="number"
+            min={0}
+            max={3}
+            step={0.05}
+            value={economy.victoryBonusMultiplier ?? 0.75}
+            onChange={(e) => updateEconomy(setBalance, 'victoryBonusMultiplier', num(e.target.value))}
           />
         </div>
         <div className="ui-field">
@@ -339,16 +353,6 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             max={20}
             value={economy.missionsPerSession ?? 3}
             onChange={(e) => updateEconomy(setBalance, 'missionsPerSession', num(e.target.value) || 3)}
-          />
-        </div>
-        <div className="ui-field">
-          <span style={labelStyle}>Штраф за поражение (%)</span>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={economy.lossPenaltyPercent}
-            onChange={(e) => updateEconomy(setBalance, 'lossPenaltyPercent', num(e.target.value))}
           />
         </div>
       </section>
@@ -394,16 +398,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
       </section>
 
       <section className="ui-block">
-        <h4 style={{ marginBottom: 10 }}>Квесты и слоты карт</h4>
-        <div className="ui-field">
-          <span style={labelStyle}>Награда за квест (монеты)</span>
-          <input
-            type="number"
-            min={0}
-            value={economy.questBaseReward}
-            onChange={(e) => updateEconomy(setBalance, 'questBaseReward', num(e.target.value))}
-          />
-        </div>
+        <h4 style={{ marginBottom: 10 }}>Слоты карт</h4>
         <div className="ui-field">
           <span style={labelStyle}>Миссий на уровень игрока</span>
           <input
@@ -411,15 +406,6 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             min={1}
             value={economy.missionsPerPlayerLevel}
             onChange={(e) => updateEconomy(setBalance, 'missionsPerPlayerLevel', num(e.target.value) || 1)}
-          />
-        </div>
-        <div className="ui-field">
-          <span style={labelStyle}>Квестов на уровень</span>
-          <input
-            type="number"
-            min={1}
-            value={economy.questsPerLevel}
-            onChange={(e) => updateEconomy(setBalance, 'questsPerLevel', num(e.target.value) || 1)}
           />
         </div>
         <div className="ui-field">

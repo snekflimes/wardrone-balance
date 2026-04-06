@@ -39,7 +39,7 @@ export interface FormulaAtomsBuilder {
 }
 
 export interface FormulaBuilderState {
-  economy?: Partial<Record<'missionReward' | 'waveReward', FormulaAtomsBuilder>>;
+  economy?: Partial<Record<'missionReward', FormulaAtomsBuilder>>;
   weapons?: Partial<Record<'damage' | 'fireRate' | 'ammo', FormulaAtomsBuilder>>;
 }
 
@@ -76,7 +76,7 @@ export function validateFormula(
 }
 
 export interface FormulaDefinition {
-  id: 'missionReward' | 'waveReward' | 'damage' | 'fireRate' | 'ammo';
+  id: 'missionReward' | 'damage' | 'fireRate' | 'ammo';
   category: FormulaCategory;
   name: string;
   description: string;
@@ -123,8 +123,9 @@ export const FORMULA_DEFINITIONS: FormulaDefinition[] = [
   {
     id: 'missionReward',
     category: 'economy',
-    name: 'Награда за миссию (базовая по уровню)',
-    description: 'Монеты за одну миссию в зависимости от уровня. levelIndex = 0 для ур.1.',
+    name: 'Базовая награда по игровому уровню',
+    description:
+      'Монеты «базы» до премиума/убийств/бонуса победы. levelIndex = 0 для ур.1. Итог за волну считается в симуляторе.',
     defaultExpression: 'baseMissionReward * pow(baseLevelRewardMultiplier, levelIndex)',
     defaultBuilder: defaultBuilder(
       makeEntity('baseMissionReward'),
@@ -132,19 +133,6 @@ export const FORMULA_DEFINITIONS: FormulaDefinition[] = [
       [makeEntity('baseLevelRewardMultiplier'), makeEntity('levelIndex')]
     ),
     variables: ['baseMissionReward', 'baseLevelRewardMultiplier', 'levelIndex'],
-  },
-  {
-    id: 'waveReward',
-    category: 'economy',
-    name: 'Награда за волну (с учётом номера волны)',
-    description: 'Монеты за волну. missionRewardBase — уже награда за уровень; waveIndex = 1,2,...',
-    defaultExpression: 'missionRewardBase * pow(missionDifficultyMultiplier, waveIndex - 1)',
-    defaultBuilder: defaultBuilder(
-      makeEntity('missionRewardBase'),
-      'pow',
-      [makeEntity('missionDifficultyMultiplier'), makeEntity('waveIndex', -1)]
-    ),
-    variables: ['missionRewardBase', 'missionDifficultyMultiplier', 'waveIndex'],
   },
   {
     id: 'damage',
@@ -226,14 +214,14 @@ export function getFormulaExpression(
 ): string {
   const builder =
     category === 'economy'
-      ? constants.formulas?.builders?.economy?.[id as 'missionReward' | 'waveReward']
+      ? constants.formulas?.builders?.economy?.[id as 'missionReward']
       : constants.formulas?.builders?.weapons?.[id as 'damage' | 'fireRate' | 'ammo'];
   const built = compileFormulaBuilder(builder);
   if (built) return built;
 
   const explicit =
     category === 'economy'
-      ? constants.formulas?.economy?.[id as 'missionReward' | 'waveReward']
+      ? constants.formulas?.economy?.[id as 'missionReward']
       : constants.formulas?.weapons?.[id as 'damage' | 'fireRate' | 'ammo'];
   if (explicit?.trim()) return explicit;
 
