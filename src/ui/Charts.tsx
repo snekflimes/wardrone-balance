@@ -55,7 +55,7 @@ export const Charts: React.FC<ChartsProps> = ({ balance }) => {
       const row: Record<string, string | number> = { level: 'Ур.' + level };
       for (let w = 1; w <= n; w++) {
         const wave = getReferenceWave(level, w);
-        row[`Волна ${w}`] = Math.round(getWinRewardSoftForWaveDef(balance, wave, false));
+        row[`Бой ${w}`] = Math.round(getWinRewardSoftForWaveDef(balance, wave, false));
       }
       row['За уровень'] = Math.round(getLevelRewardSoft(balance, level));
       rows.push(row);
@@ -93,7 +93,7 @@ export const Charts: React.FC<ChartsProps> = ({ balance }) => {
       </section>
 
       <section>
-        <h3>Награда за миссию</h3>
+        <h3>Базовая награда по уровню (формула)</h3>
         <div style={{ width: '100%', height: 240 }}>
           <ResponsiveContainer>
             <LineChart data={missionRewardCurve} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -108,7 +108,7 @@ export const Charts: React.FC<ChartsProps> = ({ balance }) => {
       </section>
 
       <section>
-        <h3>Награды по волнам и уровню</h3>
+        <h3>Награды за бой по уровню</h3>
         <div style={{ width: '100%', height: 260 }}>
           <ResponsiveContainer>
             <BarChart data={rewardByLevelData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -120,7 +120,7 @@ export const Charts: React.FC<ChartsProps> = ({ balance }) => {
               {Array.from({ length: wavesPerLevelChart }, (_, i) => (
                 <Bar
                   key={i + 1}
-                  dataKey={`Волна ${i + 1}`}
+                  dataKey={`Бой ${i + 1}`}
                   fill={i % 2 === 0 ? '#8884d8' : '#82ca9d'}
                 />
               ))}

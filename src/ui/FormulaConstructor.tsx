@@ -21,7 +21,7 @@ type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 
 const VARIABLE_LABELS: Record<string, string> = {
   // Economy
-  baseMissionReward: 'Базовая награда за миссию',
+  baseMissionReward: 'Базовая награда за бой (до премиума/убийств/бонуса)',
   baseLevelRewardMultiplier: 'Множитель за уровень (награда)',
   levelIndex: 'Индекс уровня',
   // Weapons

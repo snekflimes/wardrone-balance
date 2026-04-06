@@ -287,14 +287,15 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
       </section>
 
       <section className="ui-block">
-        <h4 style={{ marginBottom: 10 }}>Формулы наград (миссии)</h4>
+        <h4 style={{ marginBottom: 10 }}>Формулы наград (бой)</h4>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, lineHeight: 1.45 }}>
-          База за игровой уровень задаётся формулой ниже (конструктор). За волну: база × премиум (если есть) + награда
-          за убийства; при победе дополнительно бонус victoryBonusMultiplier × (база×премиум + убийства). При поражении
-          бонус не начисляется, база и убийства — да. Номер волны на награду не множит — только состав врагов (геймплей).
+          База за игровой уровень задаётся формулой ниже (конструктор). Награда начисляется за весь бой: база × премиум
+          (если есть) + награда за убийства; при победе дополнительно бонус victoryBonusMultiplier × (база×премиум +
+          убийства). При поражении бонус не начисляется, база и убийства — да. Номер этапа в симуляторе базу не множит —
+          только состав противников (геймплей).
         </div>
         <div className="ui-field">
-          <span style={labelStyle}>Базовая награда за миссию (монеты)</span>
+          <span style={labelStyle}>Базовая награда за бой (монеты, до премиума/убийств/бонуса)</span>
           <input
             type="number"
             min={0}
@@ -313,7 +314,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
           />
         </div>
         <div className="ui-field">
-          <span style={labelStyle}>Волн на уровень в симуляторе (meta.wavesPerLevel)</span>
+          <span style={labelStyle}>Боёв подряд на уровень в симуляторе (meta.wavesPerLevel)</span>
           <input
             type="number"
             min={1}

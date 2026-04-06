@@ -210,7 +210,7 @@ export const EconomyPanel: React.FC<{
     return [
       ['1 золото', `$${rates.usdPerHard.toFixed(4)} USD`],
       ['1 монета', `$${rates.usdPerSoft.toFixed(6)} USD`],
-      ['Награда за миссию (ур.1)', `${missionRewardLvl1.toFixed(0)} ≈ $${(missionRewardLvl1 * rates.usdPerSoft).toFixed(4)} USD`],
+      ['База награды за бой (ур.1, до премиума/убийств)', `${missionRewardLvl1.toFixed(0)} ≈ $${(missionRewardLvl1 * rates.usdPerSoft).toFixed(4)} USD`],
       ['Средняя награда за уровень', `${avgPerLevel.toFixed(0)} ≈ $${(avgPerLevel * rates.usdPerSoft).toFixed(4)} USD`],
       ['Средняя награда за попытку', `${avgPerAttempt.toFixed(0)} ≈ $${(avgPerAttempt * rates.usdPerSoft).toFixed(4)} USD`],
       ['Средняя награда за сессию', `${avgPerSession.toFixed(0)} ≈ $${(avgPerSession * rates.usdPerSoft).toFixed(4)} USD`],
@@ -456,7 +456,7 @@ export const EconomyPanel: React.FC<{
             <h4>Формулы и базовые значения</h4>
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
               {[
-                ['baseMissionReward', 'База награды за миссию'],
+                ['baseMissionReward', 'База награды за бой'],
                 ['baseLevelRewardMultiplier', 'Множитель награды за уровень'],
                 ['premiumRewardMultiplier', 'Коэфф. премиума к базе'],
                 ['victoryBonusMultiplier', 'Бонус победы (доля от база+убийства)'],

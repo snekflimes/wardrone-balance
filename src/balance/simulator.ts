@@ -427,7 +427,7 @@ export function simulateCombat(
     else stars = 1;
   }
 
-  // Нет частичного добивания по врагам: killReward считается по полному составу волны.
+  // Нет частичного добивания по врагам: killReward — по полному составу противников в бою.
   // Поражение: база×премиум + убийства, без бонуса за победу. Победа: + бонус от суммы базы и убийств.
   const killRewardSoft = killRewardBase;
   const vb = getVictoryBonusMultiplier(economy);

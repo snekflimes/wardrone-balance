@@ -87,7 +87,7 @@ export function getEconomyUsdRates(
   };
 }
 
-/** Награда за одну миссию (волну) по уровню. Если задана кастомная формула — используем её. */
+/** Базовая часть награды по игровому уровню (до премиума/убийств/бонуса за бой). Кастомная формула — из конструктора. */
 export function getMissionRewardSoft(
   constants: BalanceConstants,
   levelIndex: number
@@ -113,7 +113,7 @@ export function getMissionRewardSoft(
   );
 }
 
-/** Сколько боевых волн на один игровой уровень в симуляции (не множитель награды). */
+/** Сколько боёв подряд симулируется на один игровой уровень (не множитель базы в формуле награды). */
 export function getWavesPerLevel(constants: BalanceConstants): number {
   const m = constants.meta.wavesPerLevel;
   if (m != null && Number.isFinite(m) && m >= 1) return Math.min(10, Math.floor(m));
@@ -132,7 +132,7 @@ export function getVictoryBonusMultiplier(economy: BalanceConstants['economy']):
   return v != null && Number.isFinite(v) && v >= 0 ? v : 0.75;
 }
 
-/** Сумма enemy.reward × count по составу волны. */
+/** Сумма enemy.reward × count по составу противников в бою. */
 export function getKillRewardSoftForWave(constants: BalanceConstants, wave: WaveDefinition): number {
   return wave.enemies.reduce((sum, group) => {
     const enemyCfg = constants.enemies[group.enemyId as EnemyId];
@@ -156,7 +156,7 @@ export function getBaseMissionRewardWithPremiumSoft(
 }
 
 /**
- * Полная награда за волну при победе:
+ * Полная награда за один бой при победе:
  * база×премиум + убийства + victoryBonus×(база×премиум + убийства).
  */
 export function getWinRewardSoftForWaveDef(
@@ -171,7 +171,7 @@ export function getWinRewardSoftForWaveDef(
   return Math.round(core + vb * core);
 }
 
-/** Суммарная ожидаемая награда за уровень при победе во всех волнах (референсный состав волн). */
+/** Суммарная награда за уровень при победе во всех боях уровня (референсный состав противников). */
 export function getLevelRewardSoft(
   constants: BalanceConstants,
   levelIndex: number,
@@ -190,7 +190,7 @@ export function getLevelRewardSoft(
   return total;
 }
 
-/** Средняя награда за один игровой уровень (2 волны) по всем уровням 1..gameLevels */
+/** Средняя награда за полный игровой уровень (все бои уровня) по всем уровням 1..gameLevels */
 export function getAverageRewardPerLevel(constants: BalanceConstants): number {
   const levels = constants.meta.gameLevels;
   let sum = 0;
@@ -200,7 +200,7 @@ export function getAverageRewardPerLevel(constants: BalanceConstants): number {
   return levels > 0 ? sum / levels : 0;
 }
 
-/** Средняя награда за одну волну (миссию) по всем уровням и волнам (победа, без премиума, референсные волны). */
+/** Средняя награда за один бой по всем уровням и этапам (победа, без премиума, референсный состав). */
 function getAverageWaveRewardSoft(constants: BalanceConstants): number {
   const levels = constants.meta.gameLevels;
   const wavesPerLevel = getWavesPerLevel(constants);
@@ -215,7 +215,7 @@ function getAverageWaveRewardSoft(constants: BalanceConstants): number {
   return totalWaves > 0 ? sum / totalWaves : 0;
 }
 
-/** Средняя награда за одну игровую сессию. Сессия = economy.missionsPerSession миссий (волн). */
+/** Средняя награда за одну игровую сессию. Сессия = economy.missionsPerSession боёв. */
 export function getAverageRewardPerSession(
   constants: BalanceConstants,
   missionsPerSession?: number
@@ -301,7 +301,7 @@ export function getRewardEconomyComparison(
   };
 }
 
-/** Пример: сколько софта получает игрок за день (только миссии), грубая оценка по средней награде за волну. */
+/** Пример: сколько софта получает игрок за день (только миссии), грубая оценка по средней награде за бой. */
 export function getDailyFreeSoftEstimate(constants: BalanceConstants): number {
   const missionsDaily = 6;
   return missionsDaily * getAverageWaveRewardSoft(constants);

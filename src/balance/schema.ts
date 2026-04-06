@@ -87,7 +87,7 @@ export interface CombatSimulationResult {
   baseMissionWithPremiumSoft: number;
   /** Бонус за победу (при поражении 0): victoryBonusMultiplier × (baseMissionWithPremiumSoft + killRewardSoft). */
   victoryBonusSoft: number;
-  /** База с премиумом + бонус победы (без строки убийств). Для совместимости с подписями «волна». */
+  /** База с премиумом + бонус победы (без строки убийств). Историческое имя поля; по смыслу — часть награды за бой. */
   waveRewardSoft: number;
   rewardSoft: number;
   /** Ожидаемый множитель исходящего DPS из-за промахов/слабых попаданий (economy.combatSkill). */

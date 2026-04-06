@@ -162,7 +162,7 @@ function forecastUiStateFromDb(
 }
 
 const TABS: TabConfig[] = [
-  { id: 'combat', label: 'Бой', hint: 'Быстрая проверка волны: нагрузка, исход, награда.' },
+  { id: 'combat', label: 'Бой', hint: 'Быстрая проверка боя: нагрузка, исход, награда.' },
   { id: 'economy', label: 'Экономика', hint: 'Софт, энергия, награды, множители прогрессии.' },
   { id: 'weapons', label: 'Оружие и карты', hint: 'Стволы, карты поддержки, таблицы уровней.' },
   { id: 'shop', label: 'Сундуки и магазин', hint: 'Витрина, сундуки, веса и цены.' },
@@ -1133,7 +1133,7 @@ export const App: React.FC = () => {
             </div>
 
             <div className="ui-combat-block ui-subcard" style={{ marginTop: 0, marginBottom: 0 }}>
-              <h3>Волна</h3>
+              <h3>Состав боя</h3>
               <div className="ui-field">
                 <span>Уровень</span>
                 <input
@@ -1146,7 +1146,7 @@ export const App: React.FC = () => {
                 />
               </div>
               <div className="ui-field">
-                <span>Волна</span>
+                <span>Этап боя</span>
                 <input
                   className="ui-num"
                   type="number"
@@ -1178,7 +1178,7 @@ export const App: React.FC = () => {
             <h3>Результат</h3>
             <div className="ui-kv">
               <div>
-                Время волны:{' '}
+                Время боя:{' '}
                 {Number.isFinite(combatResult.timeToKillSec)
                   ? `${combatResult.timeToKillSec.toFixed(1)} с`
                   : '∞'}

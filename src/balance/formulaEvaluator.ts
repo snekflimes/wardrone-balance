@@ -123,9 +123,9 @@ export const FORMULA_DEFINITIONS: FormulaDefinition[] = [
   {
     id: 'missionReward',
     category: 'economy',
-    name: 'Базовая награда по игровому уровню',
+    name: 'База награды за бой по игровому уровню',
     description:
-      'Монеты «базы» до премиума/убийств/бонуса победы. levelIndex = 0 для ур.1. Итог за волну считается в симуляторе.',
+      'Монеты «базы» до премиума/убийств/бонуса победы. levelIndex = 0 для ур.1. Полный итог за бой считается в симуляторе.',
     defaultExpression: 'baseMissionReward * pow(baseLevelRewardMultiplier, levelIndex)',
     defaultBuilder: defaultBuilder(
       makeEntity('baseMissionReward'),
