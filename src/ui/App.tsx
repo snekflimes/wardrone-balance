@@ -107,7 +107,8 @@ function createDefaultForecastUiState(gameLevels = 15): ForecastUiState {
     energyPerLevel: 100,
     energyStart: 100,
     energyPerAttempt: 1,
-    energyRegenPerHour: 10,
+    energyRegenIntervalSec: 600,
+    energyRegenIntervalSecPremium: 300,
     tuneTargets,
     tuneMode: 'pass_rate',
     selectedPreset: 'onboarding',
@@ -135,12 +136,39 @@ function normalizeForecastUiState(
 ): ForecastUiState {
   const base = createDefaultForecastUiState(gameLevels);
   if (!raw) return base;
+
+  let energyRegenIntervalSec = raw.energyRegenIntervalSec;
+  let energyRegenIntervalSecPremium = raw.energyRegenIntervalSecPremium;
+  const intervalOk =
+    energyRegenIntervalSec != null &&
+    Number.isFinite(energyRegenIntervalSec) &&
+    energyRegenIntervalSec > 0;
+
+  if (!intervalOk) {
+    const legacyHour = (raw as Partial<ForecastUiState & { energyRegenPerHour?: number }>).energyRegenPerHour;
+    if (legacyHour != null && Number.isFinite(legacyHour) && legacyHour > 0) {
+      energyRegenIntervalSec = Math.max(1, 3600 / legacyHour);
+      energyRegenIntervalSecPremium = Math.max(1, 3600 / (legacyHour * 2));
+    } else {
+      energyRegenIntervalSec = base.energyRegenIntervalSec;
+      energyRegenIntervalSecPremium = base.energyRegenIntervalSecPremium;
+    }
+  } else {
+    energyRegenIntervalSec = Math.max(1, energyRegenIntervalSec!);
+    energyRegenIntervalSecPremium = Math.max(
+      1,
+      energyRegenIntervalSecPremium ?? Math.max(1, Math.round(energyRegenIntervalSec / 2))
+    );
+  }
+
   return {
     ...base,
     ...raw,
     tuneTargets: raw.tuneTargets ?? base.tuneTargets,
     tuneAttemptRanges: raw.tuneAttemptRanges ?? base.tuneAttemptRanges,
     savedPresets: raw.savedPresets ?? base.savedPresets,
+    energyRegenIntervalSec,
+    energyRegenIntervalSecPremium,
   };
 }
 

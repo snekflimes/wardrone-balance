@@ -155,7 +155,19 @@ export interface ProgressionSimulatorOptions {
   energyPerAttempt?: number;
   /** Стартовая энергия в начале прогноза. По умолчанию = energyPerLevel. */
   energyStart?: number;
-  /** Реген энергии в час. Если 0, энергия не восстанавливается. */
+  /**
+   * Секунд реального времени на восстановление 1 ед. энергии (бесплатник).
+   * Референс движка: 600 с.
+   */
+  energyRegenIntervalSec?: number;
+  /**
+   * То же для премиум/VIP (сегменты payer и whale). Референс: 300 с.
+   */
+  energyRegenIntervalSecPremium?: number;
+  /**
+   * Реген энергии в час (внутренняя форма). Если заданы интервалы — вычисляется из них и сегмента.
+   * @deprecated Задавайте energyRegenIntervalSec (+ Premium).
+   */
   energyRegenPerHour?: number;
   /**
    * Сколько подряд попыток без изменения состояния разрешать на одной волне

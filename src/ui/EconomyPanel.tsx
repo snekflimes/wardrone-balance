@@ -132,7 +132,8 @@ export const EconomyPanel: React.FC<{
       energyPerLevel: 100,
       energyPerAttempt: 1,
       energyStart: 100,
-      energyRegenPerHour: 10,
+      energyRegenIntervalSec: 600,
+      energyRegenIntervalSecPremium: 300,
       upgradePolicy: fullWeaponAndSupportUpgradePolicy,
       referenceWavesConfig,
     });

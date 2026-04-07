@@ -14,6 +14,8 @@ export interface AutoTuneOptions {
   energyPerLevel: number;
   energyPerAttempt: number;
   energyStart?: number;
+  energyRegenIntervalSec?: number;
+  energyRegenIntervalSecPremium?: number;
   energyRegenPerHour?: number;
   mode?: 'pass_rate' | 'attempt_range';
   targetsByLevel: Record<number, number>;
@@ -123,6 +125,8 @@ function getLevelResult(
     energyPerLevel: options.energyPerLevel,
     energyPerAttempt: options.energyPerAttempt,
     energyStart: options.energyStart,
+    energyRegenIntervalSec: options.energyRegenIntervalSec,
+    energyRegenIntervalSecPremium: options.energyRegenIntervalSecPremium,
     energyRegenPerHour: options.energyRegenPerHour,
     upgradePolicy: fullWeaponAndSupportUpgradePolicy,
     referenceWavesConfig: config,

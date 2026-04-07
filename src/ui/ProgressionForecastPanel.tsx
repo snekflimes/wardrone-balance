@@ -19,6 +19,7 @@ import type { ReferenceWavesConfig } from '../balance/referenceWaves';
 import { fullWeaponAndSupportUpgradePolicy } from '../progression/fullUpgradePolicy';
 import { simulateProgressionForecast } from '../progression/progressionSimulator';
 import { autoTuneReferenceWaves } from '../progression/autoTuneLevels';
+import { effectiveEnergyRegenIntervalSec, resolveEnergyRegenPerHour } from '../progression/energyRegenForecast';
 import { rocketWeaponLevelDisplay, showRocketLevelsInSummary } from '../progression/weaponLevelDisplay';
 
 export type TuneMode = 'pass_rate' | 'attempt_range';
@@ -36,7 +37,10 @@ export type ForecastUiState = {
   energyPerLevel: number;
   energyStart: number;
   energyPerAttempt: number;
-  energyRegenPerHour: number;
+  /** Секунд на 1 ед. энергии (бесплатник). Референс: 600. */
+  energyRegenIntervalSec: number;
+  /** Секунд на 1 ед. энергии (премиум/VIP: платящий, кит). Референс: 300. */
+  energyRegenIntervalSecPremium: number;
   tuneTargets: Record<number, number>;
   tuneMode: TuneMode;
   selectedPreset: PresetKind;
@@ -178,7 +182,12 @@ export const ProgressionForecastPanel: React.FC<{
   const [energyPerLevel, setEnergyPerLevel] = useState<number>(forecastUiState?.energyPerLevel ?? 100);
   const [energyStart, setEnergyStart] = useState<number>(forecastUiState?.energyStart ?? 100);
   const [energyPerAttempt, setEnergyPerAttempt] = useState<number>(forecastUiState?.energyPerAttempt ?? 1);
-  const [energyRegenPerHour, setEnergyRegenPerHour] = useState<number>(forecastUiState?.energyRegenPerHour ?? 10);
+  const [energyRegenIntervalSec, setEnergyRegenIntervalSec] = useState<number>(
+    forecastUiState?.energyRegenIntervalSec ?? 600
+  );
+  const [energyRegenIntervalSecPremium, setEnergyRegenIntervalSecPremium] = useState<number>(
+    forecastUiState?.energyRegenIntervalSecPremium ?? 300
+  );
   const [tuneTargets, setTuneTargets] = useState<Record<number, number>>(() => {
     if (forecastUiState?.tuneTargets) return forecastUiState.tuneTargets;
     const out: Record<number, number> = {};
@@ -233,7 +242,8 @@ export const ProgressionForecastPanel: React.FC<{
     setEnergyPerLevel(forecastUiState.energyPerLevel ?? 100);
     setEnergyStart(forecastUiState.energyStart ?? 100);
     setEnergyPerAttempt(forecastUiState.energyPerAttempt ?? 1);
-    setEnergyRegenPerHour(forecastUiState.energyRegenPerHour ?? 10);
+    setEnergyRegenIntervalSec(forecastUiState.energyRegenIntervalSec ?? 600);
+    setEnergyRegenIntervalSecPremium(forecastUiState.energyRegenIntervalSecPremium ?? 300);
     setTuneTargets(forecastUiState.tuneTargets ?? {});
     setTuneMode(forecastUiState.tuneMode ?? 'pass_rate');
     setSelectedPreset(forecastUiState.selectedPreset ?? 'onboarding');
@@ -263,7 +273,8 @@ export const ProgressionForecastPanel: React.FC<{
       energyPerLevel,
       energyStart,
       energyPerAttempt,
-      energyRegenPerHour,
+      energyRegenIntervalSec,
+      energyRegenIntervalSecPremium,
       tuneTargets,
       tuneMode,
       selectedPreset,
@@ -289,7 +300,8 @@ export const ProgressionForecastPanel: React.FC<{
     energyPerLevel,
     energyStart,
     energyPerAttempt,
-    energyRegenPerHour,
+    energyRegenIntervalSec,
+    energyRegenIntervalSecPremium,
     tuneTargets,
     tuneMode,
     selectedPreset,
@@ -528,6 +540,26 @@ export const ProgressionForecastPanel: React.FC<{
     return 0;
   }, [initialSoft]);
 
+  const activeEnergyRegenIntervalSec = useMemo(
+    () =>
+      effectiveEnergyRegenIntervalSec({
+        segmentId,
+        energyRegenIntervalSec,
+        energyRegenIntervalSecPremium,
+      }),
+    [segmentId, energyRegenIntervalSec, energyRegenIntervalSecPremium]
+  );
+
+  const energyRegenPerHourForSegment = useMemo(
+    () =>
+      resolveEnergyRegenPerHour({
+        segmentId,
+        energyRegenIntervalSec,
+        energyRegenIntervalSecPremium,
+      }),
+    [segmentId, energyRegenIntervalSec, energyRegenIntervalSecPremium]
+  );
+
   const forecast = useMemo(() => {
     return simulateProgressionForecast(balance, {
       segmentId,
@@ -537,7 +569,8 @@ export const ProgressionForecastPanel: React.FC<{
       energyPerLevel,
       energyPerAttempt,
       energyStart,
-      energyRegenPerHour,
+      energyRegenIntervalSec,
+      energyRegenIntervalSecPremium,
       upgradePolicy: fullWeaponAndSupportUpgradePolicy,
       referenceWavesConfig,
     });
@@ -552,7 +585,8 @@ export const ProgressionForecastPanel: React.FC<{
     energyPerLevel,
     energyPerAttempt,
     energyStart,
-    energyRegenPerHour,
+    energyRegenIntervalSec,
+    energyRegenIntervalSecPremium,
   ]);
 
   const topSupportCards = useMemo(() => {
@@ -690,7 +724,8 @@ export const ProgressionForecastPanel: React.FC<{
       energyPerLevel,
       energyPerAttempt,
       energyStart,
-      energyRegenPerHour,
+      energyRegenIntervalSec,
+      energyRegenIntervalSecPremium,
       mode: effectiveMode,
       targetsByLevel: effectiveTargets,
       attemptRangesByLevel: effectiveMode === 'attempt_range' ? normalizedRanges : effectiveRanges,
@@ -707,7 +742,8 @@ export const ProgressionForecastPanel: React.FC<{
       energyPerLevel,
       energyPerAttempt,
       energyStart,
-      energyRegenPerHour,
+      energyRegenIntervalSec,
+      energyRegenIntervalSecPremium,
       upgradePolicy: fullWeaponAndSupportUpgradePolicy,
       referenceWavesConfig: result.tunedConfig,
     });
@@ -945,14 +981,31 @@ export const ProgressionForecastPanel: React.FC<{
             />
           </label>
           <label style={{ display: 'grid', gap: 4 }}>
-            <span style={{ color: '#94a3b8', fontSize: 12 }}>Реген энергии в час</span>
+            <span style={{ color: '#94a3b8', fontSize: 12 }} title="Референс: 600 с на 1 ед. энергии">
+              Интервал регена, с (бесплатник)
+            </span>
             <input
               style={inputStyle}
               type="number"
-              min={0}
-              max={100000}
-              value={energyRegenPerHour}
-              onChange={(e) => setEnergyRegenPerHour(Math.max(0, Number(e.target.value) || 0))}
+              min={1}
+              max={86400}
+              step={1}
+              value={energyRegenIntervalSec}
+              onChange={(e) => setEnergyRegenIntervalSec(Math.max(1, Number(e.target.value) || 600))}
+            />
+          </label>
+          <label style={{ display: 'grid', gap: 4 }}>
+            <span style={{ color: '#94a3b8', fontSize: 12 }} title="Референс: 300 с (VIP / премиум)">
+              Интервал регена, с (премиум / VIP)
+            </span>
+            <input
+              style={inputStyle}
+              type="number"
+              min={1}
+              max={86400}
+              step={1}
+              value={energyRegenIntervalSecPremium}
+              onChange={(e) => setEnergyRegenIntervalSecPremium(Math.max(1, Number(e.target.value) || 300))}
             />
           </label>
         </div>
@@ -1000,6 +1053,10 @@ export const ProgressionForecastPanel: React.FC<{
           <div>
             Ожидание энергии (реген, без сундуков):{' '}
             <strong>{Math.round((forecast.progressionElapsedHours ?? 0) * 10) / 10} ч</strong>
+            <span style={{ color: '#94a3b8' }}>
+              {' '}
+              · интервал для «{segmentLabelById[segmentId]}»: {Math.round(activeEnergyRegenIntervalSec)} с/ед. энергии
+            </span>
           </div>
           {((forecast.segmentSoftIncomePerDay ?? 0) > 0.0001) && (
             <div>
@@ -1102,7 +1159,8 @@ export const ProgressionForecastPanel: React.FC<{
         <code style={{ color: '#cbd5e1' }}>upgradeCostMultiplier</code>
         ), support-карты — ожидаемыми чертежами через сундуки (сундук с максимальной эффективностью по rarity).
         <br />
-        <strong style={{ color: '#e2e8f0' }}>Не пройдено</strong> = не удалось пройти уровень за лимит попыток ({maxAttemptsPerLevel}) или не хватило энергии (макс: {energyPerLevel}, старт: {energyStart}, реген/ч: {energyRegenPerHour}, цена попытки: {energyPerAttempt}).
+        <strong style={{ color: '#e2e8f0' }}>Не пройдено</strong> = не удалось пройти уровень за лимит попыток ({maxAttemptsPerLevel}) или не хватило энергии (макс: {energyPerLevel}, старт: {energyStart}, интервал регена для «{segmentLabelById[segmentId]}»:{' '}
+        {Math.round(activeEnergyRegenIntervalSec)} с/ед. ≈ {Math.round(energyRegenPerHourForSegment * 10) / 10} ед./ч, цена попытки: {energyPerAttempt}).
       </div>
 
       <div style={{ marginTop: 14, display: 'flex', gap: 14, flexWrap: 'wrap' }}>

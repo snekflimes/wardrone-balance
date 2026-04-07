@@ -294,7 +294,6 @@ export const LevelsConstructorPanel: React.FC<{
       const energyPerLevel = Math.max(0, forecastUiState.energyPerLevel ?? 100);
       const energyPerAttempt = Math.max(1, forecastUiState.energyPerAttempt ?? 1);
       const energyStart = Math.max(0, forecastUiState.energyStart ?? energyPerLevel);
-      const energyRegenPerHour = Math.max(0, forecastUiState.energyRegenPerHour ?? 0);
       const result = simulateProgressionForecast(balance, {
         segmentId,
         playerLevel: Math.max(1, playerLevel),
@@ -303,7 +302,8 @@ export const LevelsConstructorPanel: React.FC<{
         energyPerLevel,
         energyPerAttempt,
         energyStart,
-        energyRegenPerHour,
+        energyRegenIntervalSec: forecastUiState.energyRegenIntervalSec,
+        energyRegenIntervalSecPremium: forecastUiState.energyRegenIntervalSecPremium,
         upgradePolicy: fullWeaponAndSupportUpgradePolicy,
         referenceWavesConfig,
         maxLevelIndex: capped,
@@ -473,14 +473,26 @@ export const LevelsConstructorPanel: React.FC<{
             />
           </label>
           <label style={{ display: 'grid', gap: 4, fontSize: 11, color: '#94a3b8' }}>
-            Реген энергии / ч
+            Интервал регена, с (бесплатник)
             <input
               style={inputStyle}
               type="number"
-              min={0}
-              value={forecastUiState.energyRegenPerHour}
+              min={1}
+              value={forecastUiState.energyRegenIntervalSec ?? 600}
               onChange={(e) =>
-                patchForecastUi({ energyRegenPerHour: Math.max(0, Number(e.target.value) || 0) })
+                patchForecastUi({ energyRegenIntervalSec: Math.max(1, Number(e.target.value) || 600) })
+              }
+            />
+          </label>
+          <label style={{ display: 'grid', gap: 4, fontSize: 11, color: '#94a3b8' }}>
+            Интервал регена, с (премиум)
+            <input
+              style={inputStyle}
+              type="number"
+              min={1}
+              value={forecastUiState.energyRegenIntervalSecPremium ?? 300}
+              onChange={(e) =>
+                patchForecastUi({ energyRegenIntervalSecPremium: Math.max(1, Number(e.target.value) || 300) })
               }
             />
           </label>

@@ -7,6 +7,7 @@ import type {
   ProgressionSimulatorOptions,
   WeaponLevels,
 } from './types';
+import { resolveEnergyRegenPerHour } from './energyRegenForecast';
 import type { WaveDefinition } from '../balance/schema';
 import {
   aggregateWaveEnemyCounts,
@@ -175,7 +176,15 @@ export function simulateProgressionForecast(
 
   const energyCap = Math.max(0, options.energyPerLevel ?? 100);
   const energyPerAttempt = Math.max(1, options.energyPerAttempt ?? 1);
-  const energyRegenPerHour = Math.max(0, options.energyRegenPerHour ?? 0);
+  const energyRegenPerHour = Math.max(
+    0,
+    resolveEnergyRegenPerHour({
+      segmentId: options.segmentId,
+      energyRegenIntervalSec: options.energyRegenIntervalSec,
+      energyRegenIntervalSecPremium: options.energyRegenIntervalSecPremium,
+      energyRegenPerHour: options.energyRegenPerHour,
+    })
+  );
   let energy = Math.max(0, Math.min(energyCap, options.energyStart ?? energyCap));
   /** Суммарное ожидание регенера энергии (бесплатные сундуки в прогнозе не от него). */
   let elapsedEnergyWaitHours = 0;
