@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { getWavesPerLevel } from '../balance/economy';
 import type { BalanceConstants, EnemyId } from '../balance/model';
-import { getEnemyLevelPowerBreakdownPerUnit } from '../balance/simulator';
+import { getEnemyApproachTimeSec, getEnemyLevelPowerBreakdownPerUnit } from '../balance/simulator';
 import type { ReferenceWavesConfig, ReferenceWaveEnemies } from '../balance/referenceWaves';
 import { getDefaultReferenceWavesConfig } from '../balance/referenceWaves';
 import { simulateProgressionForecast } from '../progression/progressionSimulator';
@@ -515,7 +515,7 @@ export const LevelsConstructorPanel: React.FC<{
                   <th style={thStyle}>Скорострельность (в мин)</th>
                   <th
                     style={thStyle}
-                    title="Как «Сложность уровня» в прогнозе: 0,7 × (HP / T волны) + 0,3 × DPS угрозы. Подсказка в ячейке — разложение."
+                    title="0,7×выживание + 0,3×угроза. Подъезд: HP и взрыв делятся на время (spawn−range)/speed. DPS: HP/T_волны и входящий DPS с бонусом за скорость. См. ячейку."
                   >
                     Мощь
                   </th>
@@ -529,6 +529,8 @@ export const LevelsConstructorPanel: React.FC<{
                     balance,
                     enemy
                   );
+                  const tClose = getEnemyApproachTimeSec(balance, enemy);
+                  const reach = (enemy.threatDelivery ?? 'sustained') === 'reach';
                   return (
                     <tr key={enemyId}>
                       <td style={tdStyle}>{enemy.displayName}</td>
@@ -584,7 +586,11 @@ export const LevelsConstructorPanel: React.FC<{
                           fontVariantNumeric: 'tabular-nums',
                           color: '#a7f3d0',
                         }}
-                        title={`Выжив.: ${survivabilityPressure.toFixed(2)} (HP/T волны), угроза: ${threat.toFixed(2)}`}
+                        title={
+                          reach
+                            ? `Подъезд ~${tClose.toFixed(2)} с · выжив.: ${survivabilityPressure.toFixed(2)} (HP/окно подъезда), угроза: ${threat.toFixed(2)} (взрыв/окно)`
+                            : `Подъезд ~${tClose.toFixed(2)} с · выжив.: ${survivabilityPressure.toFixed(2)} (HP/T волны×скорость), угроза: ${threat.toFixed(2)} (DPS×скорость)`
+                        }
                       >
                         {power.toFixed(2)}
                       </td>

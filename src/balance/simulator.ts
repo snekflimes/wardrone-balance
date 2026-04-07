@@ -197,25 +197,75 @@ export function getWaveLevelPowerContribution(ws: WaveStats): number {
   return ws.requiredDps * 0.7 + ws.totalEnemyDps * 0.3;
 }
 
+/** Мин. «окно подъезда» в секундах (модельные единицы), чтобы не взрывать рейтинг при нулевой дистанции. */
+const MIN_APPROACH_TIME_SEC = 0.35;
+/** Референс скорости для бонусов к рейтингу (условные ед. как в конфиге врагов). */
+const ENEMY_SPEED_REF = 100;
+const SPEED_THREAT_FACTOR = 0.14;
+const SPEED_SURV_FACTOR = 0.2;
+
 /**
- * Вклад одного юнита в ту же метрику: «рейтинг выживаемости» (HP / длительность волны → нужный DPS)
- * и «рейтинг угрозы» (getEnemyIncomingThreatPerUnit).
+ * Время подъезда с точки спавна до дистанции атаки (range): (spawn − range) / speed.
+ * Используется в рейтинге: быстрые юниты сжимают окно реакции.
+ */
+export function getEnemyApproachTimeSec(constants: BalanceConstants, enemy: EnemyConfig): number {
+  const meta = constants.meta;
+  const defaultSpawn =
+    meta.defaultSpawnDistanceFromVip != null && Number.isFinite(meta.defaultSpawnDistanceFromVip)
+      ? meta.defaultSpawnDistanceFromVip
+      : DEFAULT_SPAWN_DISTANCE_FROM_VIP;
+  const spawnDist =
+    enemy.spawnDistanceFromVip != null && Number.isFinite(enemy.spawnDistanceFromVip)
+      ? enemy.spawnDistanceFromVip
+      : defaultSpawn;
+  const travel = Math.max(0, spawnDist - enemy.range);
+  const t = travel / Math.max(enemy.speed, 1e-3);
+  return Math.max(MIN_APPROACH_TIME_SEC, t);
+}
+
+function speedRatingMultiplier(speed: number): number {
+  const x = Math.min(Math.max(0, speed) / ENEMY_SPEED_REF, 2.5);
+  return 1 + SPEED_SURV_FACTOR * x;
+}
+
+function speedThreatMultiplier(speed: number): number {
+  const x = Math.min(Math.max(0, speed) / ENEMY_SPEED_REF, 2.5);
+  return 1 + SPEED_THREAT_FACTOR * x;
+}
+
+/**
+ * Рейтинг для конструктора / «Мощь»: выживаемость + угроза.
+ * — Подъезд (reach): урон взрыва и HP относятся к окну подъезда, не ко всей волне.
+ * — DPS: к входящему DPS добавляется бонус от скорости (раньше начинают стрелять).
+ * — Выживаемость sustained: HP/T_волны с бонусом за скорость (сложнее «добить по дороге»).
  */
 export function getEnemyLevelPowerBreakdownPerUnit(
   constants: BalanceConstants,
   enemy: EnemyConfig
 ): { survivabilityPressure: number; threat: number; power: number } {
   const waveSec = constants.meta.baseWaveTimeSec;
-  const threat =
-    (enemy.threatDelivery ?? 'sustained') === 'reach' &&
-    Number.isFinite(waveSec) &&
-    waveSec > 0
-      ? getEnemyReachBurstDamagePerUnit(enemy) / waveSec
-      : getEnemyIncomingThreatPerUnit(enemy);
+  const tClose = getEnemyApproachTimeSec(constants, enemy);
+  const delivery = enemy.threatDelivery ?? 'sustained';
+
+  if (delivery === 'reach') {
+    const burst = getEnemyReachBurstDamagePerUnit(enemy);
+    const threat = burst / tClose;
+    const survivabilityPressure = enemy.baseHp / tClose;
+    return {
+      survivabilityPressure,
+      threat,
+      power: survivabilityPressure * 0.7 + threat * 0.3,
+    };
+  }
+
+  const baseDps = getEnemyIncomingThreatPerUnit(enemy);
+  const threat = baseDps * speedThreatMultiplier(enemy.speed);
+
   if (!Number.isFinite(waveSec) || waveSec <= 0) {
     return { survivabilityPressure: 0, threat, power: threat * 0.3 };
   }
-  const survivabilityPressure = enemy.baseHp / waveSec;
+
+  const survivabilityPressure = (enemy.baseHp / waveSec) * speedRatingMultiplier(enemy.speed);
   return {
     survivabilityPressure,
     threat,
