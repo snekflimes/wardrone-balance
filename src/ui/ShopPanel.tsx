@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import type { BalanceConstants, ChestConfig, ShopItemConfig } from '../balance/model';
+import type { BalanceConstants, ChestConfig, RefStarterPack, ShopItemConfig } from '../balance/model';
+import { resolveStarterPackGrants } from '../balance/starterPack';
 import {
   getEconomyUsdRates,
   getRewardEconomyComparison,
@@ -26,6 +27,30 @@ const inputStyle: React.CSSProperties = {
   color: '#e2e8f0',
   boxSizing: 'border-box',
 };
+
+function setStarterPackRefField(setBalance: SetBalance, patch: Partial<RefStarterPack>) {
+  setBalance((prev) => {
+    const rp = prev.economy.referencePacks;
+    if (!rp) return prev;
+    const cur: RefStarterPack = rp.starterPack ?? {
+      priceGold: 300,
+      soft: 0,
+      chestBronze: 0,
+      chestSilver: 0,
+      chestGold: 0,
+    };
+    return {
+      ...prev,
+      economy: {
+        ...prev.economy,
+        referencePacks: {
+          ...rp,
+          starterPack: { ...cur, ...patch },
+        },
+      },
+    };
+  });
+}
 
 function setChestField(
   setBalance: SetBalance,
@@ -171,6 +196,8 @@ export const ShopPanel: React.FC<{
   } | null>(null);
   const rates = getEconomyUsdRates(balance);
   const rewardComparison = useMemo(() => getRewardEconomyComparison(balance), [balance]);
+  const resolvedStarterPack = useMemo(() => resolveStarterPackGrants(balance), [balance]);
+  const starterRef = balance.economy.referencePacks?.starterPack;
   const chestIds = Object.keys(balance.economy.chests);
   const freeChests = balance.economy.freeChests ?? [];
   const toggleFreeChestPack = (freeChestId: string, packId: string) => {
@@ -572,6 +599,90 @@ export const ShopPanel: React.FC<{
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                <div>
+                  <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 6 }}>Набор новичка (референс → магазин)</div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, lineHeight: 1.35 }}>
+                    Реф.: цена в золоте и состав (сундуки бронза/серебро/золото как в{' '}
+                    <code style={{ color: '#94a3b8' }}>referencePacks.chests</code>). В магазине — позиция{' '}
+                    <code style={{ color: '#94a3b8' }}>shop_starter_pack</code>. Монеты: масштаб по отношению цен в золоте ×
+                    паритет средней награды за попытку (реф. / наш). В прогнозе покупают только платники и киты, один раз,
+                    когда после начислений дня хватает золота (до автотраты харда на сундуки).
+                  </div>
+                  <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))' }}>
+                    <label>
+                      <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>Реф. цена, золото</div>
+                      <input
+                        style={inputStyle}
+                        type="number"
+                        min={1}
+                        value={starterRef?.priceGold ?? 300}
+                        onChange={(e) =>
+                          setStarterPackRefField(setBalance, { priceGold: Math.max(1, Number(e.target.value) || 300) })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>Реф. монеты в наборе</div>
+                      <input
+                        style={inputStyle}
+                        type="number"
+                        min={0}
+                        value={starterRef?.soft ?? 0}
+                        onChange={(e) => setStarterPackRefField(setBalance, { soft: Math.max(0, Number(e.target.value) || 0) })}
+                      />
+                    </label>
+                    <label>
+                      <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>Сундуки бронза</div>
+                      <input
+                        style={inputStyle}
+                        type="number"
+                        min={0}
+                        value={starterRef?.chestBronze ?? 0}
+                        onChange={(e) =>
+                          setStarterPackRefField(setBalance, { chestBronze: Math.max(0, Number(e.target.value) || 0) })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>Сундуки серебро</div>
+                      <input
+                        style={inputStyle}
+                        type="number"
+                        min={0}
+                        value={starterRef?.chestSilver ?? 0}
+                        onChange={(e) =>
+                          setStarterPackRefField(setBalance, { chestSilver: Math.max(0, Number(e.target.value) || 0) })
+                        }
+                      />
+                    </label>
+                    <label>
+                      <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>Сундуки золото</div>
+                      <input
+                        style={inputStyle}
+                        type="number"
+                        min={0}
+                        value={starterRef?.chestGold ?? 0}
+                        onChange={(e) =>
+                          setStarterPackRefField(setBalance, { chestGold: Math.max(0, Number(e.target.value) || 0) })
+                        }
+                      />
+                    </label>
+                  </div>
+                  {resolvedStarterPack ? (
+                    <div style={{ marginTop: 10, fontSize: 12, color: '#e2e8f0', lineHeight: 1.5 }}>
+                      <strong>Считается сейчас:</strong> {resolvedStarterPack.priceHard} зол. → +{resolvedStarterPack.soft.toLocaleString('ru-RU')} монет
+                      {resolvedStarterPack.chestOpens.length > 0
+                        ? ` · сундуки: ${resolvedStarterPack.chestOpens.map((o) => `${o.chestId}×${o.count}`).join(', ')}`
+                        : ''}
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 8, fontSize: 12, color: '#94a3b8' }}>
+                      Задайте <code style={{ color: '#cbd5e1' }}>referencePacks.starterPack</code> и цену в золоте у{' '}
+                      <code style={{ color: '#cbd5e1' }}>shop_starter_pack</code>.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

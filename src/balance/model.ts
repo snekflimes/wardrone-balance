@@ -418,6 +418,17 @@ export interface RefChestTier {
   kit50Gold?: number;
 }
 
+export interface RefStarterPack {
+  /** Цена набора в золоте (референс War Drone). */
+  priceGold: number;
+  /** Монеты в наборе (реф. шкала). */
+  soft: number;
+  /** Число сундуков бронза / серебро / золото по таблице `chests` референса. */
+  chestBronze?: number;
+  chestSilver?: number;
+  chestGold?: number;
+}
+
 export interface ReferencePacks {
   goldPerUsd: number;
   /** Монет за $1 по обычной покупке (без акции), якорь для сравнения; согласуй с `cashTiers[].cashBase`. */
@@ -430,6 +441,8 @@ export interface ReferencePacks {
     silver: RefChestTier;
     gold: RefChestTier;
   };
+  /** Набор новичка: цена и содержимое в шкале референса; в игре — `shop_starter_pack` + масштаб и паритет награды. */
+  starterPack?: RefStarterPack;
 }
 
 /** Кастомные формулы и нодовые конструкторы. Пустое значение = использовать встроенную формулу. */

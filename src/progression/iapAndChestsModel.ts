@@ -164,6 +164,26 @@ export function countSupportCardsOfRarity(constants: BalanceConstants, rarity: C
   return constants.supportCards.filter((c) => c.rarity === rarity).length;
 }
 
+/** EV чертежей по всем картам за count открытий платного сундука (для бандлов / стартера в прогнозе). */
+export function addExpectedBlueprintsFromPaidChestOpens(
+  constants: BalanceConstants,
+  chestId: string,
+  count: number,
+  blueprints: Record<number, number>,
+  recordPaidChestOpens?: (chestId: string, count: number) => void
+): Record<number, number> {
+  if (count <= 0 || !chestId) return blueprints;
+  const chest = constants.economy.chests[chestId];
+  if (!chest) return blueprints;
+  recordPaidChestOpens?.(chestId, count);
+  const next = { ...blueprints };
+  for (const card of constants.supportCards) {
+    const per = getExpectedCopiesOfSingleCardPerChest(constants, chestId, card.rarity);
+    if (per > 0) next[card.id] = (next[card.id] ?? 0) + per * count;
+  }
+  return next;
+}
+
 /**
  * Expected-value: сколько копий конкретной карты (одной карточки данного rarity) падает за ОДИН сундук.
  *

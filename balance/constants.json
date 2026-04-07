@@ -237,6 +237,13 @@
         "bronze": { "usd": 0.25, "cards": 1, "priceGold": 50, "kit10Gold": 500 },
         "silver": { "usd": 1.00, "cards": 2, "priceGold": 200, "kit20Gold": 2000 },
         "gold": { "usd": 3.00, "cards": 5, "priceGold": 600, "kit50Gold": 6000 }
+      },
+      "starterPack": {
+        "priceGold": 300,
+        "soft": 9000,
+        "chestBronze": 3,
+        "chestSilver": 1,
+        "chestGold": 0
       }
     },
     "referenceAvgRewardPerAttemptSoft": 487.0666666666666

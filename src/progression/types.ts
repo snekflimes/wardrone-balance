@@ -28,6 +28,8 @@ export interface ProgressionState {
   lifetimeRocketUnlockSoftSpent?: number;
   /** Софт, потраченный на апгрейд оружия за весь прогон (сумма по `weaponOnlyUpgradePolicy`). */
   lifetimeWeaponUpgradeSoftSpent?: number;
+  /** Прогноз: одноразовая покупка стартера за золото (только payer/whale). */
+  forecastStarterPackPurchased?: boolean;
   // Support-cards сейчас не влияют на combat-симуляцию (она weapon-only),
   // но для прогноза мы копим expected-value "чертежей" и повышаем уровни карт.
   supportCardLevels: Record<number, number>; // cardId -> level (0..max)

@@ -1071,6 +1071,17 @@ export const ProgressionForecastPanel: React.FC<{
               тратится на сундуки с карточками (хард).
             </div>
           )}
+          {segmentId !== 'free' && (
+            <div>
+              Стартер-пак (<code style={{ color: '#cbd5e1' }}>shop_starter_pack</code>, содержимое из{' '}
+              <code style={{ color: '#cbd5e1' }}>referencePacks.starterPack</code> с учётом экономики):{' '}
+              <strong>
+                {forecast.finalState.forecastStarterPackPurchased
+                  ? 'куплен один раз (когда после начислений дня хватило золота, до автотраты на сундуки)'
+                  : 'не куплен за прогон (не набралось золота или нет конфигурации)'}
+              </strong>
+            </div>
+          )}
           <div style={{ fontSize: 12, color: '#94a3b8' }}>
             Бесплатник: весь хард из логина и бесплатных сундуков тоже уходит в сундуки с картами. Платящие: часть USD в софт на
             оружие, часть в золото на сундуки; апгрейд оружия не только в «лучший DPS».
@@ -1183,6 +1194,12 @@ export const ProgressionForecastPanel: React.FC<{
             Траты софта на слоты деки (весь прогон):{' '}
             {Math.round(forecast.finalState.deckSlots?.lifetimeSoftSpent ?? 0)} монет · слотов: {forecast.finalState.deckSlots?.slots ?? 0}
           </div>
+          {segmentId !== 'free' && (
+            <div>
+              Стартер-пак:{' '}
+              {forecast.finalState.forecastStarterPackPurchased ? 'был куплен в прогнозе' : 'не куплен'}
+            </div>
+          )}
           {topSupportCards.length > 0 && (
             <div>
               Поддержка (топ): {topSupportCardsText}

@@ -26,11 +26,13 @@ import {
 } from '../balance/simulator';
 import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import {
+  addExpectedBlueprintsFromPaidChestOpens,
   getExpectedBlueprintCopiesOfSingleCardPerFreeChest,
   getExpectedFreeChestCurrencyPerOpen,
   getHardIncomeFromSegmentPerWeek,
   getSoftIncomeFromSegmentPerWeek,
 } from './iapAndChestsModel';
+import { resolveStarterPackGrants } from '../balance/starterPack';
 import { spendAllHardOnSupportChestsExpected } from './hardChestSpend';
 
 function clamp(n: number, min: number, max: number): number {
@@ -199,6 +201,7 @@ export function simulateProgressionForecast(
   let forecastCalendarDay = 1;
   let forecastAttemptsToday = 0;
   let starterCardsGranted = false;
+  let forecastStarterPackPurchased = false;
 
   /** Хард из логина, бесплатных сундуков и доли доната (платящие); весь тратится на сундуки с картами. */
   let hardBalance = 0;
@@ -260,6 +263,25 @@ export function simulateProgressionForecast(
     const n = Math.min(freeChestsPerForecastDay, list.length);
     for (let i = 0; i < n; i += 1) {
       applySingleFreeChestOpen(list[i].id);
+    }
+
+    // Стартер-пак за золото (реф. содержимое × масштаб цены + паритет награды): только платники и киты, один раз.
+    if (!forecastStarterPackPurchased && options.segmentId !== 'free') {
+      const grants = resolveStarterPackGrants(constants);
+      if (grants && grants.priceHard > 0 && hardBalance + 1e-9 >= grants.priceHard) {
+        hardBalance -= grants.priceHard;
+        forecastStarterPackPurchased = true;
+        softBalance += grants.soft;
+        for (const { chestId, count } of grants.chestOpens) {
+          supportCardBlueprints = addExpectedBlueprintsFromPaidChestOpens(
+            constants,
+            chestId,
+            count,
+            supportCardBlueprints,
+            recordPaidChestOpens
+          );
+        }
+      }
     }
 
     const hardSpend = spendAllHardOnSupportChestsExpected(
@@ -616,6 +638,7 @@ export function simulateProgressionForecast(
       lifetimeWeaponUpgradeSoftSpent,
       supportCardLevels,
       supportCardBlueprints,
+      forecastStarterPackPurchased,
     },
     expectedFreeChestOpensById: { ...freeChestOpensById },
     expectedPaidChestOpensById: { ...paidChestOpensById },
