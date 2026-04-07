@@ -1,8 +1,14 @@
 DirectoryIndex index.html
 
-# Some panels add global rewrite rules for the main site (e.g. to index.php).
-# This subfolder is a static Vite build; disable rewrites here to avoid blank pages.
+# SPA в подпапке /wardrone/: прямые ссылки /wardrone/economy и т.д. → index.html.
+# Реальные файлы (assets, *.js, api/*.php) отдаются как есть.
 <IfModule mod_rewrite.c>
-  RewriteEngine Off
-</IfModule>
+  RewriteEngine On
+  RewriteBase /wardrone/
 
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  RewriteRule ^ index.html [L]
+</IfModule>
