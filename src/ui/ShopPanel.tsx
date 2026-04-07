@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { BalanceConstants, ChestConfig, ShopItemConfig } from '../balance/model';
-import { getEconomyUsdRates, getShopItemUsd } from '../balance/economy';
+import {
+  getEconomyUsdRates,
+  getRewardEconomyComparison,
+  getShopItemGrindReferenceUsd,
+  getShopItemUsd,
+} from '../balance/economy';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 
@@ -165,6 +170,7 @@ export const ShopPanel: React.FC<{
     chanceByItemPercent: Array<{ name: string; chancePercent: number }>;
   } | null>(null);
   const rates = getEconomyUsdRates(balance);
+  const rewardComparison = useMemo(() => getRewardEconomyComparison(balance), [balance]);
   const chestIds = Object.keys(balance.economy.chests);
   const freeChests = balance.economy.freeChests ?? [];
   const toggleFreeChestPack = (freeChestId: string, packId: string) => {
@@ -1025,6 +1031,14 @@ export const ShopPanel: React.FC<{
 
           <div className="ui-subcard">
             <h4>Магазин</h4>
+            <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 0, marginBottom: 10, lineHeight: 1.45 }}>
+              <strong style={{ color: '#cbd5e1' }}>≈ USD (курс)</strong> — золото/монеты через{' '}
+              <code style={{ color: '#e2e8f0' }}>referencePacks</code> / VIP (как раньше).{' '}
+              <strong style={{ color: '#cbd5e1' }}>≈ $ гринд</strong> — сколько «референсных $ за попытку» эквивалентно цене:{' '}
+              (монеты / наша средняя награда за попытку) × ref $/попытку; пересчитывается при изменении наград,{' '}
+              <code style={{ color: '#e2e8f0' }}>referenceAvgRewardPerAttemptSoft</code> и IAP-монет. Нужны{' '}
+              <code style={{ color: '#e2e8f0' }}>referencePacks</code> + пакет <code style={{ color: '#e2e8f0' }}>currency_soft</code> для цен в золоте.
+            </p>
             <table style={tableStyle}>
               <thead>
                 <tr>
@@ -1035,12 +1049,24 @@ export const ShopPanel: React.FC<{
                   <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Gold</th>
                   <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Базовый вес</th>
                   <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>USD</th>
-                  <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>≈ USD</th>
+                  <th
+                    style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}
+                    title="Курс из referencePacks / обмен золото↔монета"
+                  >
+                    ≈ USD (курс)
+                  </th>
+                  <th
+                    style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}
+                    title="Цена в монетах / наша средняя награда × ref $ за попытку"
+                  >
+                    ≈ $ гринд
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {balance.economy.shopItems.map((item) => {
                   const usd = getShopItemUsd(item, rates);
+                  const grindUsd = getShopItemGrindReferenceUsd(balance, item, rewardComparison);
                   return (
                     <tr key={item.id}>
                       <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
@@ -1065,6 +1091,9 @@ export const ShopPanel: React.FC<{
                         <input style={inputStyle} type="number" step="0.01" value={item.priceUsd ?? 0} onChange={(e) => setShopItemField(setBalance, item.id, { priceUsd: Number(e.target.value) || 0 })} />
                       </td>
                       <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{usd > 0 ? `$${usd.toFixed(2)}` : '—'}</td>
+                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
+                        {grindUsd != null && grindUsd > 0 ? `$${grindUsd.toFixed(2)}` : '—'}
+                      </td>
                     </tr>
                   );
                 })}

@@ -317,3 +317,52 @@ export function getShopItemUsd(
   }
   return 0;
 }
+
+/**
+ * «Референсные доллары попытки», эквивалентные цене в монетах при текущей средней награде за попытку:
+ * (экв. монет / ourAvg) × refUsdPerAttempt. Растёт при падении средней награды, не зависит от курса refPacks.softPerUsd.
+ * Для золота: перевод в монеты через первый пакет currency_soft (монеты за золото).
+ * Для iap_soft с только priceUsd: оценка выдаваемого quantity монет тем же методом (без сравнения с ценой пакета).
+ */
+export function getShopItemGrindReferenceUsd(
+  constants: BalanceConstants,
+  item: ShopItemConfig,
+  comparison: RewardEconomyComparison | null
+): number | null {
+  if (!comparison || comparison.ourAvgRewardPerAttemptSoft <= 0 || comparison.refUsdPerAttempt <= 0) {
+    return null;
+  }
+  const ourAvg = comparison.ourAvgRewardPerAttemptSoft;
+  const refUsdPerAtt = comparison.refUsdPerAttempt;
+
+  const softBridge = constants.economy.shopItems.find(
+    (i) => i.type === 'currency_soft' && i.priceHard > 0 && i.quantity > 0
+  );
+
+  if (item.priceUsd != null && item.priceUsd > 0 && item.priceSoft <= 0 && item.priceHard <= 0) {
+    if (item.type === 'iap_soft' && item.quantity > 0) {
+      return (item.quantity / ourAvg) * refUsdPerAtt;
+    }
+    if (item.type === 'iap_gold' && item.quantity > 0 && softBridge) {
+      const softToMatchGold = item.quantity * (softBridge.quantity / softBridge.priceHard);
+      return (softToMatchGold / ourAvg) * refUsdPerAtt;
+    }
+    return null;
+  }
+
+  const grind = (softCoins: number) => (softCoins / ourAvg) * refUsdPerAtt;
+
+  let fromSoft: number | null = null;
+  let fromGold: number | null = null;
+  if (item.priceSoft > 0) fromSoft = grind(item.priceSoft);
+  if (item.priceHard > 0) {
+    if (!softBridge) {
+      if (fromSoft != null) return fromSoft;
+      return null;
+    }
+    const softEq = (item.priceHard / softBridge.priceHard) * softBridge.quantity;
+    fromGold = grind(softEq);
+  }
+  if (fromSoft != null && fromGold != null) return Math.min(fromSoft, fromGold);
+  return fromSoft ?? fromGold;
+}
