@@ -347,6 +347,19 @@ export const LevelsConstructorPanel: React.FC<{
     }));
   };
 
+  const setEnemyThreatDelivery = (enemyId: EnemyId, delivery: 'sustained' | 'reach') => {
+    setBalance((prev) => ({
+      ...prev,
+      enemies: {
+        ...prev.enemies,
+        [enemyId]: {
+          ...prev.enemies[enemyId],
+          threatDelivery: delivery,
+        },
+      },
+    }));
+  };
+
   return (
     <section>
       <div className="ui-toolbar" style={{ justifyContent: 'space-between', marginBottom: 0 }}>
@@ -484,6 +497,9 @@ export const LevelsConstructorPanel: React.FC<{
                   <th style={thStyle}>Враг</th>
                   <th style={thStyle}>Здоровье</th>
                   <th style={thStyle}>Урон</th>
+                  <th style={thStyle} title="reach = один взрыв при подъезде (бензовоз), без RPM">
+                    Модель угрозы
+                  </th>
                   <th style={thStyle}>Скорострельность (в мин)</th>
                   <th
                     style={thStyle}
@@ -523,13 +539,31 @@ export const LevelsConstructorPanel: React.FC<{
                         />
                       </td>
                       <td style={tdStyle}>
-                        <input
-                          style={inputStyle}
-                          type="number"
-                          min={1}
-                          value={enemy.baseFireRatePerMin ?? 60}
-                          onChange={(e) => setEnemyField(enemyId, 'baseFireRatePerMin', Number(e.target.value) || 60)}
-                        />
+                        <select
+                          style={{ ...inputStyle, minWidth: 120 }}
+                          value={enemy.threatDelivery ?? 'sustained'}
+                          onChange={(e) =>
+                            setEnemyThreatDelivery(enemyId, e.target.value as 'sustained' | 'reach')
+                          }
+                        >
+                          <option value="sustained">DPS (RPM)</option>
+                          <option value="reach">Подъезд (взрыв)</option>
+                        </select>
+                      </td>
+                      <td style={tdStyle}>
+                        {(enemy.threatDelivery ?? 'sustained') === 'reach' ? (
+                          <span style={{ fontSize: 12, color: '#64748b' }}>—</span>
+                        ) : (
+                          <input
+                            style={inputStyle}
+                            type="number"
+                            min={1}
+                            value={enemy.baseFireRatePerMin ?? 60}
+                            onChange={(e) =>
+                              setEnemyField(enemyId, 'baseFireRatePerMin', Number(e.target.value) || 60)
+                            }
+                          />
+                        )}
                       </td>
                       <td
                         style={{

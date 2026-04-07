@@ -1,5 +1,5 @@
 import type { BalanceConstants, SupportCardConfig, SupportCardManualLevel } from './model';
-import type { ThreatEngagementSegment, WeaponLevelStats } from './schema';
+import type { ThreatEngagementSegment, ThreatReachBurst, WeaponLevelStats } from './schema';
 import { parseSupportCardBattleRow, type ParsedSupportCardBattleRow } from './supportCardRowSemantics';
 
 function activeIncomingThreatDps(segments: ThreatEngagementSegment[], t: number): number {
@@ -114,6 +114,10 @@ function levelScale(level: number): number {
   return 1 + 0.12 * Math.max(0, level - 1);
 }
 
+function clamp01(x: number): number {
+  return Math.max(0, Math.min(1, x));
+}
+
 export interface ManaCombatParams {
   constants: BalanceConstants;
   waveDurationSec: number;
@@ -122,6 +126,8 @@ export interface ManaCombatParams {
   totalEnemyHp: number;
   /** Входящий DPS по времени: сегменты «после подхода с спавна к дистанции стрельбы». */
   threatSegments: ThreatEngagementSegment[];
+  /** Разовый урон при подъезде (камикадзе); не использует скорострельность. */
+  reachBursts?: ThreatReachBurst[];
   vipMaxHp: number;
   supportCardLevels: Record<number, number>;
   combatPowerMultiplier: number;
@@ -161,6 +167,7 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
     playerWeaponDps,
     totalEnemyHp,
     threatSegments,
+    reachBursts = [],
     vipMaxHp,
     supportCardLevels,
     combatPowerMultiplier,
@@ -186,6 +193,8 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
   let peakVipIncoming = 0;
   let t = 0;
   let timeKill: number | null = null;
+  const reachBurstApplied = new Set<number>();
+  const reachLeak = clamp01((constants.economy.combatSkill?.reachLeakPercent ?? 0) / 100);
 
   const tryPlayCards = () => {
     const cards = [...constants.supportCards].sort((a, b) => a.id - b.id);
@@ -395,6 +404,24 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
       1 + empBuffs.filter((b) => t <= b.until).reduce((s, b) => s + b.value, 0);
     const reflect =
       reflectBuffs.filter((b) => t <= b.until).reduce((m, b) => Math.max(m, b.value), 0);
+
+    for (let i = 0; i < reachBursts.length; i++) {
+      if (reachBurstApplied.has(i)) continue;
+      const b = reachBursts[i]!;
+      if (b.atSec <= t + 1e-9) {
+        reachBurstApplied.add(i);
+        let dmg = b.damage;
+        if (enemyHp <= 0) dmg *= reachLeak;
+        const hasAllies = ally.hp > 0;
+        const toAlliesBurst = hasAllies ? dmg * ALLY_THREAT_SHARE : 0;
+        const toVipBurstBase = hasAllies ? dmg * VIP_THREAT_SHARE : dmg;
+        const toVipBurst = (toVipBurstBase * (1 - reflect)) / mult;
+        peakVipIncoming = Math.max(peakVipIncoming, toVipBurst / SIM_DT);
+        if (ally.hp > 0) ally.hp = Math.max(0, ally.hp - toAlliesBurst);
+        vipHp -= toVipBurst;
+      }
+    }
+    if (vipHp <= 0) break;
 
     const playerOut = playerWeaponDps * mult * empMult;
     enemyHp -= playerOut * SIM_DT;

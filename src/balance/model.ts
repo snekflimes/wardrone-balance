@@ -159,6 +159,12 @@ export interface EnemyConfig {
    * 1 по умолчанию.
    */
   objectivePressureMultiplier?: number;
+  /**
+   * Модель входящей угрозы в симуляторе:
+   * sustained — DPS из baseDamage и baseFireRatePerMin (как стрелок).
+   * reach — один удар при подъезде к дистанции (камикадзе); скорострельность не используется, урон = baseDamage×множители.
+   */
+  threatDelivery?: 'sustained' | 'reach';
 }
 
 export type EnemiesBlock = Record<EnemyId, EnemyConfig>;
@@ -279,6 +285,11 @@ export interface EconomyConfig {
     partialHitChancePercent?: number;
     /** Сколько процентов от полного урона наносит «слабое» попадание (0–100). */
     partialDamagePercent?: number;
+    /**
+     * Ожидаемая доля урона reach-угрозы (бензовоз и т.д.), которая всё же достигает VIP,
+     * если к моменту взрыва волна уже уничтожена (ошибки приоритета, разброс). 0–100.
+     */
+    reachLeakPercent?: number;
   };
 }
 
@@ -496,13 +507,13 @@ export const BALANCE_CONSTANTS: BalanceConstants = {
   weapons,
   supportCards,
   enemies: Object.fromEntries(
-    Object.entries((constantsJson as unknown as BalanceConstants).enemies).map(([id, enemy]) => [
-      id,
-      {
-        ...enemy,
-        baseFireRatePerMin: enemy.baseFireRatePerMin ?? 60,
-      },
-    ])
+    Object.entries((constantsJson as unknown as BalanceConstants).enemies).map(([id, enemy]) => {
+      const e = { ...enemy } as EnemyConfig;
+      if (e.threatDelivery !== 'reach' && e.baseFireRatePerMin == null) {
+        e.baseFireRatePerMin = 60;
+      }
+      return [id, e];
+    })
   ) as BalanceConstants['enemies'],
 };
 

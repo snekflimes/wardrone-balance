@@ -43,6 +43,12 @@ export interface ThreatEngagementSegment {
   dps: number;
 }
 
+/** Разовый урон по VIP/союзникам в момент подъезда (камикадзе), после деления по пулу как у sustained. */
+export interface ThreatReachBurst {
+  atSec: number;
+  damage: number;
+}
+
 export interface CombatLoadout {
   playerLevel: number;
   machineGunLevel: number;

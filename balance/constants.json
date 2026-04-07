@@ -72,7 +72,8 @@
     "combatSkill": {
       "missChancePercent": 0,
       "partialHitChancePercent": 0,
-      "partialDamagePercent": 50
+      "partialDamagePercent": 50,
+      "reachLeakPercent": 0
     },
     "adMultiplier": 2,
     "missionsPerPlayerLevel": 6,
@@ -315,11 +316,11 @@
       "displayName": "Бензовоз-камикадзе",
       "baseHp": 70,
       "baseDamage": 95,
-      "baseFireRatePerMin": 28,
       "range": 8,
       "speed": 110,
       "reward": 55,
-      "objectivePressureMultiplier": 1.5
+      "objectivePressureMultiplier": 1.5,
+      "threatDelivery": "reach"
     },
     "heli": {
       "id": "heli",

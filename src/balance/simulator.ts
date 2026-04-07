@@ -23,7 +23,8 @@ import type {
   CombatLoadout,
   CombatSimulationInput,
   CombatSimulationResult,
-  ThreatEngagementSegment
+  ThreatEngagementSegment,
+  ThreatReachBurst,
 } from './schema';
 import { simulateCombatWithManaAndSupport } from './supportCardManaCombat';
 
@@ -33,14 +34,75 @@ const DEFAULT_SPAWN_DISTANCE_FROM_VIP = 512;
 const DEFAULT_WAVE_THREAT_ENGAGE_MIN_SEC = 3;
 const DEFAULT_WAVE_THREAT_ENGAGE_MAX_SEC = 6;
 
+function mergeThreatRowsToBuckets(
+  rows: { rawTravel: number; dps: number }[],
+  lo: number,
+  hi: number
+): ThreatEngagementSegment[] {
+  if (rows.length === 0) return [];
+  let rawMin = rows[0]!.rawTravel;
+  let rawMax = rows[0]!.rawTravel;
+  for (const r of rows) {
+    rawMin = Math.min(rawMin, r.rawTravel);
+    rawMax = Math.max(rawMax, r.rawTravel);
+  }
+  const bucketDps = new Map<number, number>();
+  const span = rawMax - rawMin;
+  for (const row of rows) {
+    let engageAfter: number;
+    if (span < 1e-6) {
+      engageAfter = (lo + hi) / 2;
+    } else {
+      engageAfter = lo + ((row.rawTravel - rawMin) / span) * (hi - lo);
+    }
+    const bucket = Math.round(engageAfter * 1000) / 1000;
+    bucketDps.set(bucket, (bucketDps.get(bucket) ?? 0) + row.dps);
+  }
+  return [...bucketDps.entries()]
+    .map(([engageAfterSec, dps]) => ({ engageAfterSec, dps }))
+    .sort((a, b) => a.engageAfterSec - b.engageAfterSec);
+}
+
+function mergeBurstRowsToEvents(
+  rows: { rawTravel: number; burstDamage: number }[],
+  lo: number,
+  hi: number
+): ThreatReachBurst[] {
+  if (rows.length === 0) return [];
+  let rawMin = rows[0]!.rawTravel;
+  let rawMax = rows[0]!.rawTravel;
+  for (const r of rows) {
+    rawMin = Math.min(rawMin, r.rawTravel);
+    rawMax = Math.max(rawMax, r.rawTravel);
+  }
+  const bucketDmg = new Map<number, number>();
+  const span = rawMax - rawMin;
+  for (const row of rows) {
+    let at: number;
+    if (span < 1e-6) {
+      at = (lo + hi) / 2;
+    } else {
+      at = lo + ((row.rawTravel - rawMin) / span) * (hi - lo);
+    }
+    const bucket = Math.round(at * 1000) / 1000;
+    bucketDmg.set(bucket, (bucketDmg.get(bucket) ?? 0) + row.burstDamage);
+  }
+  return [...bucketDmg.entries()]
+    .map(([atSec, damage]) => ({ atSec, damage }))
+    .sort((a, b) => a.atSec - b.atSec);
+}
+
+export interface BuiltWaveThreat {
+  sustainedSegments: ThreatEngagementSegment[];
+  reachBursts: ThreatReachBurst[];
+}
+
 /**
  * Раскладывает угрозу волны по задержкам: порядок по max(0, spawn−range)/speed,
  * абсолютное время — линейно от meta.waveThreatEngageMinSec (первые) до waveThreatEngageMaxSec (последние).
+ * reach (камикадзе) даёт разовые всплески урона, без скорострельности.
  */
-export function buildThreatEngagementSchedule(
-  constants: BalanceConstants,
-  wave: WaveDefinition
-): ThreatEngagementSegment[] {
+export function buildWaveThreat(constants: BalanceConstants, wave: WaveDefinition): BuiltWaveThreat {
   const meta = constants.meta;
   const defaultSpawn =
     meta.defaultSpawnDistanceFromVip != null && Number.isFinite(meta.defaultSpawnDistanceFromVip)
@@ -58,45 +120,40 @@ export function buildThreatEngagementSchedule(
   const lo = Math.min(engageLo, engageHi);
   const hi = Math.max(engageLo, engageHi);
 
-  const rows: { rawTravel: number; dps: number }[] = [];
+  const sustainedRows: { rawTravel: number; dps: number }[] = [];
+  const burstRows: { rawTravel: number; burstDamage: number }[] = [];
+
   for (const group of wave.enemies) {
     const enemy = constants.enemies[group.enemyId as EnemyId];
     if (!enemy) continue;
-    const perUnit = getEnemyIncomingThreatPerUnit(enemy);
     const spawnDist =
       enemy.spawnDistanceFromVip != null && Number.isFinite(enemy.spawnDistanceFromVip)
         ? enemy.spawnDistanceFromVip
         : defaultSpawn;
     const travel = Math.max(0, spawnDist - enemy.range);
     const rawTravel = travel / Math.max(enemy.speed, 1e-3);
-    rows.push({ rawTravel, dps: perUnit * group.count });
-  }
-
-  if (rows.length === 0) return [];
-
-  let rawMin = rows[0]!.rawTravel;
-  let rawMax = rows[0]!.rawTravel;
-  for (const r of rows) {
-    rawMin = Math.min(rawMin, r.rawTravel);
-    rawMax = Math.max(rawMax, r.rawTravel);
-  }
-
-  const bucketDps = new Map<number, number>();
-  const span = rawMax - rawMin;
-  for (const row of rows) {
-    let engageAfter: number;
-    if (span < 1e-6) {
-      engageAfter = (lo + hi) / 2;
+    const delivery = enemy.threatDelivery ?? 'sustained';
+    if (delivery === 'reach') {
+      const burstPerUnit = getEnemyReachBurstDamagePerUnit(enemy);
+      burstRows.push({ rawTravel, burstDamage: burstPerUnit * group.count });
     } else {
-      engageAfter = lo + ((row.rawTravel - rawMin) / span) * (hi - lo);
+      const perUnit = getEnemyIncomingThreatPerUnit(enemy);
+      sustainedRows.push({ rawTravel, dps: perUnit * group.count });
     }
-    const bucket = Math.round(engageAfter * 1000) / 1000;
-    bucketDps.set(bucket, (bucketDps.get(bucket) ?? 0) + row.dps);
   }
 
-  return [...bucketDps.entries()]
-    .map(([engageAfterSec, dps]) => ({ engageAfterSec, dps }))
-    .sort((a, b) => a.engageAfterSec - b.engageAfterSec);
+  return {
+    sustainedSegments: mergeThreatRowsToBuckets(sustainedRows, lo, hi),
+    reachBursts: mergeBurstRowsToEvents(burstRows, lo, hi),
+  };
+}
+
+/** @deprecated Используй buildWaveThreat; оставлено для совместимости импортов. */
+export function buildThreatEngagementSchedule(
+  constants: BalanceConstants,
+  wave: WaveDefinition
+): ThreatEngagementSegment[] {
+  return buildWaveThreat(constants, wave).sustainedSegments;
 }
 
 const DEFAULT_RELOAD_SEC: Record<WeaponId, number> = {
@@ -109,8 +166,20 @@ function clamp01Skill(x: number): number {
   return Math.max(0, Math.min(1, x));
 }
 
-/** Вклад одного юнита во входящую угрозу по волне (учёт залпов, разворота РСЗО, давления на VIP). */
+/** Разовый урон reach-юнита при контакте (камикадзе); без скорострельности. */
+export function getEnemyReachBurstDamagePerUnit(enemy: EnemyConfig): number {
+  const obj = enemy.objectivePressureMultiplier ?? 1;
+  let dmg = enemy.baseDamage * obj;
+  const windup = enemy.attackWindupFraction ?? 0;
+  if (windup > 0) {
+    dmg *= Math.max(0.05, 1 - Math.min(1, windup));
+  }
+  return dmg;
+}
+
+/** Вклад одного юнита во входящую угрозу по волне (стрелковый DPS; reach даёт 0 — см. getEnemyReachBurstDamagePerUnit). */
 export function getEnemyIncomingThreatPerUnit(enemy: EnemyConfig): number {
+  if ((enemy.threatDelivery ?? 'sustained') === 'reach') return 0;
   const rpm = enemy.baseFireRatePerMin ?? 60;
   let dps = enemy.baseDamage * (rpm / 60);
   const windup = enemy.attackWindupFraction ?? 0;
@@ -137,7 +206,12 @@ export function getEnemyLevelPowerBreakdownPerUnit(
   enemy: EnemyConfig
 ): { survivabilityPressure: number; threat: number; power: number } {
   const waveSec = constants.meta.baseWaveTimeSec;
-  const threat = getEnemyIncomingThreatPerUnit(enemy);
+  const threat =
+    (enemy.threatDelivery ?? 'sustained') === 'reach' &&
+    Number.isFinite(waveSec) &&
+    waveSec > 0
+      ? getEnemyReachBurstDamagePerUnit(enemy) / waveSec
+      : getEnemyIncomingThreatPerUnit(enemy);
   if (!Number.isFinite(waveSec) || waveSec <= 0) {
     return { survivabilityPressure: 0, threat, power: threat * 0.3 };
   }
@@ -241,22 +315,30 @@ export function getWaveStats(
   constantsForWaves: BalanceConstants,
   wave: WaveDefinition
 ): WaveStats {
-  const { enemies, economy, meta } = constantsForWaves;
+  const { enemies, meta } = constantsForWaves;
 
   let totalEnemyHpBase = 0;
-  let totalEnemyDpsBase = 0;
+  let sustainedDpsSum = 0;
+  let reachBurstSum = 0;
 
   wave.enemies.forEach((group) => {
     const enemy = enemies[group.enemyId as EnemyId];
     if (!enemy) return;
     totalEnemyHpBase += enemy.baseHp * group.count;
-    totalEnemyDpsBase += getEnemyIncomingThreatPerUnit(enemy) * group.count;
+    if ((enemy.threatDelivery ?? 'sustained') === 'reach') {
+      reachBurstSum += getEnemyReachBurstDamagePerUnit(enemy) * group.count;
+    } else {
+      sustainedDpsSum += getEnemyIncomingThreatPerUnit(enemy) * group.count;
+    }
   });
 
   // Параметры врагов из конфига (baseHp, baseDamage и т.д.) не масштабируются от номера уровня/волны:
   // сложность задаётся составом волны и типами юнитов.
   const totalEnemyHp = totalEnemyHpBase;
-  const totalEnemyDps = totalEnemyDpsBase;
+  const waveSec = meta.baseWaveTimeSec;
+  const reachAsDps =
+    Number.isFinite(waveSec) && waveSec > 0 && reachBurstSum > 0 ? reachBurstSum / waveSec : 0;
+  const totalEnemyDps = sustainedDpsSum + reachAsDps;
 
   const baseRewardSoft = getMissionRewardSoft(constantsForWaves, wave.levelIndex);
 
@@ -277,10 +359,9 @@ export function simulateCombat(
 ): CombatSimulationResult {
   const { player, meta, economy } = constants;
 
-  const supportCardLevels = input.loadout.supportCardLevels;
+  const supportCardLevels = input.loadout.supportCardLevels ?? {};
 
   const getCardValue = (cardId: number, fallbackColumn: string): number => {
-    if (!supportCardLevels) return 0;
     const lvl = supportCardLevels[cardId] ?? 0;
     if (lvl <= 0) return 0;
     const card = constants.supportCards.find((c) => c.id === cardId);
@@ -348,70 +429,53 @@ export function simulateCombat(
   const waveStats = getWaveStats(constants, input.wave);
   const playerHp = player.baseAllyInfantryHp ?? player.baseAllyHp;
 
-  let timeToKillSec: number;
-  let victory: boolean;
-  let incomingDps: number;
+  const mgAmmoBonus = getCardValue(10, 'Количество патронов');
+  const hydraAmmoBonus = getCardValue(8, 'Количество патронов');
+  const hellfireAmmoBonus = getCardValue(9, 'Количество патронов');
+  const empDamagePct = getCardValue(12, 'Бонус урона (%)');
+  const mgAmmoFactor = mg.ammo > 0 ? 1 + mgAmmoBonus / mg.ammo : 1;
+  const hydraAmmoFactor = hydra.ammo > 0 ? 1 + hydraAmmoBonus / hydra.ammo : 1;
+  const hellfireAmmoFactor = hellfire.ammo > 0 ? 1 + hellfireAmmoBonus / hellfire.ammo : 1;
+  const supportDamageFactor = 1 + Math.max(0, empDamagePct) / 100;
 
-  if (supportCardLevels !== undefined) {
-    const playerWeaponDps =
-      ((isUnlocked('machineGun') ? mg.sustainedDps * mgMod : 0) +
-        (isUnlocked('hydra70') ? hydra.sustainedDps * hydraMod : 0) +
-        (isUnlocked('hellfire') ? hellfire.sustainedDps * hellfireMod : 0)) *
-      outgoingSkillDamageMultiplier;
+  const playerWeaponDps =
+    ((isUnlocked('machineGun') ? mg.sustainedDps * mgAmmoFactor * mgMod : 0) +
+      (isUnlocked('hydra70') ? hydra.sustainedDps * hydraAmmoFactor * hydraMod : 0) +
+      (isUnlocked('hellfire') ? hellfire.sustainedDps * hellfireAmmoFactor * hellfireMod : 0)) *
+    combatPowerMultiplier *
+    supportDamageFactor *
+    outgoingSkillDamageMultiplier;
 
-    const threatSegments = buildThreatEngagementSchedule(constants, input.wave);
-    const mc = simulateCombatWithManaAndSupport({
-      constants,
-      waveDurationSec: meta.baseWaveTimeSec,
-      playerWeaponDps,
-      totalEnemyHp: waveStats.totalEnemyHp,
-      threatSegments:
-        threatSegments.length > 0
-          ? threatSegments
-          : waveStats.totalEnemyDps > 0
-            ? [{ engageAfterSec: 0, dps: waveStats.totalEnemyDps }]
-            : [],
-      vipMaxHp: playerHp,
-      supportCardLevels,
-      combatPowerMultiplier,
-      mg,
-      hydra,
-      hellfire,
-      unlocked: {
-        machineGun: isUnlocked('machineGun'),
-        hydra70: isUnlocked('hydra70'),
-        hellfire: isUnlocked('hellfire'),
-      },
-    });
-    victory = mc.victory;
-    timeToKillSec = mc.victory ? mc.timeToKillSec : Number.POSITIVE_INFINITY;
-    incomingDps = mc.peakVipIncomingDps;
-  } else {
-    const mgAmmoBonus = getCardValue(10, 'Количество патронов');
-    const hydraAmmoBonus = getCardValue(8, 'Количество патронов');
-    const hellfireAmmoBonus = getCardValue(9, 'Количество патронов');
-    const empDamagePct = getCardValue(12, 'Бонус урона (%)');
-    const mgAmmoFactor = mg.ammo > 0 ? 1 + mgAmmoBonus / mg.ammo : 1;
-    const hydraAmmoFactor = hydra.ammo > 0 ? 1 + hydraAmmoBonus / hydra.ammo : 1;
-    const hellfireAmmoFactor = hellfire.ammo > 0 ? 1 + hellfireAmmoBonus / hellfire.ammo : 1;
-    const supportDamageFactor = 1 + Math.max(0, empDamagePct) / 100;
+  const { sustainedSegments, reachBursts } = buildWaveThreat(constants, input.wave);
+  const threatSegments =
+    sustainedSegments.length > 0
+      ? sustainedSegments
+      : waveStats.totalEnemyDps > 0 && reachBursts.length === 0
+        ? [{ engageAfterSec: 0, dps: waveStats.totalEnemyDps }]
+        : [];
 
-    const incomingDpsReductionFactor = 1;
-
-    const totalDps =
-      ((isUnlocked('machineGun') ? mg.sustainedDps * mgAmmoFactor * mgMod : 0) +
-        (isUnlocked('hydra70') ? hydra.sustainedDps * hydraAmmoFactor * hydraMod : 0) +
-        (isUnlocked('hellfire') ? hellfire.sustainedDps * hellfireAmmoFactor * hellfireMod : 0)) *
-      combatPowerMultiplier *
-      supportDamageFactor *
-      outgoingSkillDamageMultiplier;
-
-    timeToKillSec =
-      totalDps > 0 ? waveStats.totalEnemyHp / totalDps : Number.POSITIVE_INFINITY;
-    incomingDps =
-      (waveStats.totalEnemyDps * incomingDpsReductionFactor) / combatPowerMultiplier;
-    victory = timeToKillSec <= meta.baseWaveTimeSec && incomingDps <= playerHp;
-  }
+  const mc = simulateCombatWithManaAndSupport({
+    constants,
+    waveDurationSec: meta.baseWaveTimeSec,
+    playerWeaponDps,
+    totalEnemyHp: waveStats.totalEnemyHp,
+    threatSegments,
+    reachBursts,
+    vipMaxHp: playerHp,
+    supportCardLevels,
+    combatPowerMultiplier,
+    mg,
+    hydra,
+    hellfire,
+    unlocked: {
+      machineGun: isUnlocked('machineGun'),
+      hydra70: isUnlocked('hydra70'),
+      hellfire: isUnlocked('hellfire'),
+    },
+  });
+  const victory = mc.victory;
+  const timeToKillSec = mc.victory ? mc.timeToKillSec : Number.POSITIVE_INFINITY;
+  const incomingDps = mc.peakVipIncomingDps;
 
   const missionBase = getMissionRewardSoft(constants, input.wave.levelIndex);
   const hasPrem = input.loadout.hasPremiumReward === true;

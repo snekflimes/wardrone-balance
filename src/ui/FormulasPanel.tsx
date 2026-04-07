@@ -33,7 +33,11 @@ function updateEconomy(setBalance: SetBalance, key: string, value: number) {
 
 function updateCombatSkill(
   setBalance: SetBalance,
-  key: 'missChancePercent' | 'partialHitChancePercent' | 'partialDamagePercent',
+  key:
+    | 'missChancePercent'
+    | 'partialHitChancePercent'
+    | 'partialDamagePercent'
+    | 'reachLeakPercent',
   value: number
 ) {
   setBalance((prev) => ({
@@ -354,7 +358,8 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
           Состав и численность врагов задаются в конструкторе волн (и референсом CreateSheets). Параметры юнитов в бою не
           масштабируются от номера уровня или волны. Скилл: ожидаемый множитель исходящего DPS = (1 − промах%) ×
           ((доля слабых × сила слабого) + (1 − доля слабых)). Сейчас:{' '}
-          <strong style={{ color: '#e2e8f0' }}>{outgoingSkillMult.toFixed(4)}</strong>.
+          <strong style={{ color: '#e2e8f0' }}>{outgoingSkillMult.toFixed(4)}</strong>. У reach-угроз (бензовоз): разовый
+          урон в момент подъезда; «утечка» — доля взрыва, если волну уже снесли, но игрок не идеален.
         </div>
         <div className="ui-field">
           <span style={labelStyle}>Промах (нет урона), %</span>
@@ -384,6 +389,16 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             max={100}
             value={skill.partialDamagePercent ?? 50}
             onChange={(e) => updateCombatSkill(setBalance, 'partialDamagePercent', num(e.target.value))}
+          />
+        </div>
+        <div className="ui-field">
+          <span style={labelStyle}>Утечка reach (взрыв при уже мёртвой волне), %</span>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={skill.reachLeakPercent ?? 0}
+            onChange={(e) => updateCombatSkill(setBalance, 'reachLeakPercent', num(e.target.value))}
           />
         </div>
       </section>
