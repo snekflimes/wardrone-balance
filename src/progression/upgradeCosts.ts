@@ -1,3 +1,4 @@
+import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import type { BalanceConstants, WeaponId } from '../balance/model';
 
 /**
@@ -55,3 +56,43 @@ export function getUpgradeCosts(constants: BalanceConstants, nextLevel: number):
   };
 }
 
+/** Сумма софта за все апгрейды с ур. 1 до максимального (как в `getWeaponUpgradeSoftCost`). */
+export function getTotalWeaponUpgradeSoftToMax(
+  constants: BalanceConstants,
+  weaponId: WeaponId
+): number {
+  const max = getMaxWeaponLevelForWeapon(constants, weaponId);
+  if (max <= 1) return 0;
+  let total = 0;
+  for (let currentLevel = 1; currentLevel < max; currentLevel++) {
+    total += getWeaponUpgradeSoftCost(constants, weaponId, currentLevel);
+  }
+  return total;
+}
+
+/** Максимальный уровень карточки по ключам `upgradeCostsByLevel` (целевой уровень после апгрейда). */
+export function getMaxSupportCardUpgradeLevelFromTable(constants: BalanceConstants): number {
+  const keys = Object.keys(constants.economy.upgradeCostsByLevel ?? {})
+    .map(Number)
+    .filter((n) => Number.isFinite(n) && n > 0);
+  return keys.length > 0 ? Math.max(...keys) : 0;
+}
+
+/**
+ * Сумма софта и чертежей за цепочку 1 → max по таблице (`getUpgradeCosts` для nextLevel 2..max).
+ */
+export function getTotalSupportCardUpgradeCostsToMax(constants: BalanceConstants): {
+  maxLevel: number;
+  totalSoft: number;
+  totalBlueprints: number;
+} {
+  const maxLevel = getMaxSupportCardUpgradeLevelFromTable(constants);
+  let totalSoft = 0;
+  let totalBlueprints = 0;
+  for (let nextLevel = 2; nextLevel <= maxLevel; nextLevel++) {
+    const c = getUpgradeCosts(constants, nextLevel);
+    totalSoft += c.soft;
+    totalBlueprints += c.blueprints;
+  }
+  return { maxLevel, totalSoft, totalBlueprints };
+}

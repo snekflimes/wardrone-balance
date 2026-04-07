@@ -13,6 +13,11 @@ import type { ReferenceWavesConfig } from '../balance/referenceWaves';
 import { simulateProgressionForecast } from '../progression/progressionSimulator';
 import { fullWeaponAndSupportUpgradePolicy } from '../progression/fullUpgradePolicy';
 import type { SegmentId } from '../progression/types';
+import {
+  getTotalSupportCardUpgradeCostsToMax,
+  getTotalWeaponUpgradeSoftToMax,
+} from '../progression/upgradeCosts';
+import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 
@@ -171,6 +176,11 @@ export const EconomyPanel: React.FC<{
   const rewardComparison = useMemo(
     () => getRewardEconomyComparison(balance, { ourAvgRewardPerAttemptSoft: avgPerAttempt }),
     [balance, avgPerAttempt]
+  );
+
+  const cardUpgradeTotals = useMemo(
+    () => getTotalSupportCardUpgradeCostsToMax(balance),
+    [balance]
   );
   const parity = rewardComparison?.parityCoefficient ?? null;
   const parityLabel = parity == null
@@ -640,30 +650,52 @@ export const EconomyPanel: React.FC<{
               Параметры цены апгрейда теперь хранятся в стволах (`weapons.*`) и редактируются в разделе{' '}
               <strong>Оружие и карты</strong>. Здесь только справка по текущим значениям.
             </p>
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Оружие</th>
-                  <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>База софта</th>
-                  <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Коэфф. роста цены</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(['machineGun', 'hydra70', 'hellfire'] as const).map((id) => (
-                  <tr key={id}>
-                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
-                      {balance.weapons[id].displayName}
-                    </td>
-                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
-                      {Math.round(balance.weapons[id].upgradeBaseSoft ?? 0).toLocaleString('ru-RU')}
-                    </td>
-                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
-                      {balance.weapons[id].upgradeCostMultiplier ?? 0}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {(['machineGun', 'hydra70', 'hellfire'] as const).map((id) => {
+                const maxLv = getMaxWeaponLevelForWeapon(balance, id);
+                const totalSoft = getTotalWeaponUpgradeSoftToMax(balance, id);
+                return (
+                  <div key={id}>
+                    <table style={tableStyle}>
+                      <thead>
+                        <tr>
+                          <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Оружие</th>
+                          <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>База софта</th>
+                          <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Коэфф. роста цены</th>
+                          <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Макс. ур.</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
+                            {balance.weapons[id].displayName}
+                          </td>
+                          <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
+                            {Math.round(balance.weapons[id].upgradeBaseSoft ?? 0).toLocaleString('ru-RU')}
+                          </td>
+                          <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
+                            {balance.weapons[id].upgradeCostMultiplier ?? 0}
+                          </td>
+                          <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{maxLv}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <p
+                      style={{
+                        margin: '8px 0 0 0',
+                        fontSize: 13,
+                        color: '#e2e8f0',
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      <strong>Полная прокачка (ур. 1 → {maxLv}):</strong>{' '}
+                      {Math.round(totalSoft).toLocaleString('ru-RU')} soft
+                      {rates ? ` ≈ $${(totalSoft * rates.usdPerSoft).toFixed(2)}` : ''}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="ui-subcard">
@@ -712,6 +744,36 @@ export const EconomyPanel: React.FC<{
                   })}
               </tbody>
             </table>
+            <p
+              style={{
+                margin: '10px 0 0 0',
+                fontSize: 13,
+                color: '#e2e8f0',
+                lineHeight: 1.45,
+              }}
+            >
+              <strong>
+                Максимальная прокачка одной карточки (ур. 1 →{' '}
+                {cardUpgradeTotals.maxLevel >= 1 ? cardUpgradeTotals.maxLevel : '—'}):
+              </strong>{' '}
+              {cardUpgradeTotals.maxLevel >= 2 ? (
+                <>
+                  {Math.round(cardUpgradeTotals.totalSoft).toLocaleString('ru-RU')} soft
+                  {rates ? ` ≈ $${(cardUpgradeTotals.totalSoft * rates.usdPerSoft).toFixed(2)}` : ''},{' '}
+                  {Math.round(cardUpgradeTotals.totalBlueprints).toLocaleString('ru-RU')} черт.
+                </>
+              ) : (
+                <span style={{ color: '#94a3b8' }}>
+                  в таблице нет уровней ≥ 2 — добавьте строки «Ур.» для цепочки апгрейдов
+                </span>
+              )}
+            </p>
+            {cardUpgradeTotals.maxLevel >= 2 && (
+              <p style={{ margin: '6px 0 0 0', fontSize: 11, color: '#94a3b8', lineHeight: 1.4 }}>
+                Сумма софта и чертежей по строкам «Ур.» 2…{cardUpgradeTotals.maxLevel} (шаг к указанному уровню), как в
+                симуляции.
+              </p>
+            )}
           </div>
 
           <div className="ui-subcard">
