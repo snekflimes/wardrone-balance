@@ -31,16 +31,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Site hub FTP path (diagnostic)
-        run: |
-          if [ -n "${{ vars.FTP_SITE_HUB_DIR }}" ]; then
-            echo "Hub: will use repository variable FTP_SITE_HUB_DIR"
-          elif [ -n "${{ secrets.FTP_SITE_HUB_DIR }}" ]; then
-            echo "Hub: will use secret FTP_SITE_HUB_DIR"
-          else
-            echo "::warning::FTP_SITE_HUB_DIR is empty — hub deploy step will be SKIPPED. Add it under Settings → Secrets and variables → Actions: either Repository variable (recommended) or Secret, name exactly FTP_SITE_HUB_DIR, value e.g. www/snek.su"
-          fi
-
       # Игра: только содержимое dist/ → secrets.FTP_SERVER_DIR (например www/snek.su/wardrone/).
       - name: Deploy game (dist) via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -52,10 +42,25 @@ jobs:
           local-dir: dist/
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
 
-      # Хаб: site-hub/ → корень домена. Путь: repository variable ИЛИ secret FTP_SITE_HUB_DIR (например www/snek.su).
-      # Если оба пустые — шаг пропускается (workflow всё равно зелёный). data/projects.json не заливается.
+      # Хаб: site-hub/ → корень домена. Путь из variable ИЛИ secret FTP_SITE_HUB_DIR (в if: нельзя ссылаться на secrets — поэтому resolve в bash).
+      - name: Resolve site hub FTP directory
+        id: hub_ftp
+        env:
+          HUB_VAR: ${{ vars.FTP_SITE_HUB_DIR }}
+          HUB_SECRET: ${{ secrets.FTP_SITE_HUB_DIR }}
+        run: |
+          if [ -n "$HUB_VAR" ]; then
+            echo "server_dir=$HUB_VAR" >> "$GITHUB_OUTPUT"
+            echo "Hub deploy: using repository variable FTP_SITE_HUB_DIR"
+          elif [ -n "$HUB_SECRET" ]; then
+            echo "server_dir=$HUB_SECRET" >> "$GITHUB_OUTPUT"
+            echo "Hub deploy: using secret FTP_SITE_HUB_DIR"
+          else
+            echo "::warning::FTP_SITE_HUB_DIR not set — hub deploy skipped. Set Actions Variable or Secret (same name), e.g. www/snek.su"
+          fi
+
       - name: Deploy site hub via FTP
-        if: ${{ vars.FTP_SITE_HUB_DIR != '' || secrets.FTP_SITE_HUB_DIR != '' }}
+        if: ${{ steps.hub_ftp.outputs.server_dir != '' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -63,7 +68,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
           local-dir: site-hub/
-          server-dir: ${{ vars.FTP_SITE_HUB_DIR != '' && vars.FTP_SITE_HUB_DIR || secrets.FTP_SITE_HUB_DIR }}
+          server-dir: ${{ steps.hub_ftp.outputs.server_dir }}
           exclude: |
             **/.git*
             **/.git*/**
