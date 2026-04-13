@@ -304,8 +304,6 @@ export interface CurrencyPackConfig {
 export interface FreeChestConfig {
   id: string;
   name: string;
-  /** Легаси: кулдаун по времени в клиенте. В прогнозе не используется при `freeChestKeyProgression`. */
-  cooldownMinutes: number;
   packIds: string[];
   blueprintRarities: CardRarity[];
 }

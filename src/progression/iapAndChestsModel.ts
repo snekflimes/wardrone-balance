@@ -402,9 +402,3 @@ export function getExpectedFreeChestCurrencyPerOpen(
   return { soft, hard };
 }
 
-/** Легаси: открытий в час при чисто таймерной модели. Прогноз сейчас считает ключи за попытки, не этот кулдаун. */
-export function getExpectedFreeChestOpensPerHour(chest: FreeChestConfig): number {
-  const minutes = Math.max(1, chest.cooldownMinutes || 0);
-  return 60 / minutes;
-}
-

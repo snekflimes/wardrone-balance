@@ -187,7 +187,6 @@
         {
           "id": "free_5m",
           "name": "Бесплатный сундук 5м",
-          "cooldownMinutes": 5,
           "packIds": [
             "soft_small",
             "soft_medium",
@@ -202,7 +201,6 @@
         {
           "id": "free_15m",
           "name": "Бесплатный сундук 15м",
-          "cooldownMinutes": 20,
           "packIds": [
             "soft_medium",
             "soft_big",
@@ -218,7 +216,6 @@
         {
           "id": "free_30m",
           "name": "Бесплатный сундук 30м",
-          "cooldownMinutes": 50,
           "packIds": [
             "soft_big",
             "hard_medium",

@@ -31,7 +31,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Deploy via FTP
+      # Игра: только содержимое dist/ → secrets.FTP_SERVER_DIR (например www/snek.su/wardrone/).
+      - name: Deploy game (dist) via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -40,4 +41,21 @@ jobs:
           protocol: ftp
           local-dir: dist/
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
+
+      # Хаб snek.su: папка site-hub/ → корень домена (отдельный путь). Задайте переменную репозитория FTP_SITE_HUB_DIR
+      # (например www/snek.su). Пустая переменная — шаг пропускается. data/projects.json не заливается, чтобы не затирать правки админки.
+      - name: Deploy site hub via FTP
+        if: ${{ vars.FTP_SITE_HUB_DIR != '' }}
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          local-dir: site-hub/
+          server-dir: ${{ vars.FTP_SITE_HUB_DIR }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            data/projects.json
 

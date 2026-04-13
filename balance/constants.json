@@ -144,21 +144,18 @@
       {
         "id": "free_1star",
         "name": "Бесплатный сундук 1★",
-        "cooldownMinutes": 0,
         "packIds": ["soft_small", "soft_medium", "soft_big", "hard_small"],
         "blueprintRarities": ["common", "uncommon"]
       },
       {
         "id": "free_2star",
         "name": "Бесплатный сундук 2★",
-        "cooldownMinutes": 0,
         "packIds": ["soft_medium", "soft_big", "hard_small", "hard_medium"],
         "blueprintRarities": ["common", "uncommon", "rare"]
       },
       {
         "id": "free_3star",
         "name": "Бесплатный сундук 3★",
-        "cooldownMinutes": 0,
         "packIds": ["soft_big", "hard_medium", "hard_big"],
         "blueprintRarities": ["common", "uncommon", "rare", "epic", "legendary"]
       }

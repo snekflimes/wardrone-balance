@@ -193,14 +193,12 @@ export const ShopPanel: React.FC<{
   const [newPackBaseWeight, setNewPackBaseWeight] = useState(1);
   const [newFreeChestId, setNewFreeChestId] = useState('');
   const [newFreeChestName, setNewFreeChestName] = useState('');
-  const [newFreeChestCooldown, setNewFreeChestCooldown] = useState(5);
   const [simChestQtyById, setSimChestQtyById] = useState<Record<string, number>>({});
   const [simCardId, setSimCardId] = useState<number>(14);
   const [simNeedBlueprints, setSimNeedBlueprints] = useState<number>(10);
   const [simResult, setSimResult] = useState<{
     softSpent: number;
     hardSpent: number;
-    freeTimeMinutes: number;
     totalDrops: number;
     targetCardBlueprints: number;
     byCard: Record<number, number>;
@@ -310,7 +308,6 @@ export const ShopPanel: React.FC<{
     let expectedDropsTotal = 0;
     let softSpent = 0;
     let hardSpent = 0;
-    let freeTimeMinutes = 0;
     let totalDrops = 0;
 
     // Платные сундуки: cards роллов по взвешенной формуле (как в SimulatorChest).
@@ -352,7 +349,6 @@ export const ShopPanel: React.FC<{
     for (const chest of freeChests) {
       const qty = Math.max(0, Math.floor(simChestQtyById[chest.id] ?? 0));
       if (qty <= 0) continue;
-      freeTimeMinutes += (chest.cooldownMinutes ?? 0) * qty;
       const pool: Array<{ kind: 'pack' | 'blueprint'; key: string; weight: number }> = [];
       for (const packId of chest.packIds ?? []) {
         const pack = packsById.get(packId);
@@ -427,7 +423,6 @@ export const ShopPanel: React.FC<{
     setSimResult({
       softSpent,
       hardSpent,
-      freeTimeMinutes,
       totalDrops,
       targetCardBlueprints: byCard[simCardId] ?? 0,
       byCard,
@@ -456,21 +451,18 @@ export const ShopPanel: React.FC<{
           {
             id: 'free_1star',
             name: 'Бесплатный сундук 1★',
-            cooldownMinutes: 0,
             packIds: ['soft_small', 'soft_medium', 'soft_big', 'hard_small'],
             blueprintRarities: ['common', 'uncommon'],
           },
           {
             id: 'free_2star',
             name: 'Бесплатный сундук 2★',
-            cooldownMinutes: 0,
             packIds: ['soft_medium', 'soft_big', 'hard_small', 'hard_medium'],
             blueprintRarities: ['common', 'uncommon', 'rare'],
           },
           {
             id: 'free_3star',
             name: 'Бесплатный сундук 3★',
-            cooldownMinutes: 0,
             packIds: ['soft_big', 'hard_medium', 'hard_big'],
             blueprintRarities: ['common', 'uncommon', 'rare', 'epic', 'legendary'],
           },
@@ -521,7 +513,6 @@ export const ShopPanel: React.FC<{
           {
             id,
             name,
-            cooldownMinutes: Math.max(0, newFreeChestCooldown),
             packIds: [],
             blueprintRarities: ['common'],
           },
@@ -954,10 +945,9 @@ export const ShopPanel: React.FC<{
               >
                 Прессет: 3★ сундука + ключи (1 / 0,5 / 3)
               </button>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(130px, 1fr))', gap: 8, marginBottom: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(130px, 1fr))', gap: 8, marginBottom: 8 }}>
                 <input style={inputStyle} placeholder="id" value={newFreeChestId} onChange={(e) => setNewFreeChestId(e.target.value)} />
                 <input style={inputStyle} placeholder="Название" value={newFreeChestName} onChange={(e) => setNewFreeChestName(e.target.value)} />
-                <input style={inputStyle} type="number" min={0} value={newFreeChestCooldown} onChange={(e) => setNewFreeChestCooldown(Math.max(0, Number(e.target.value) || 0))} />
                 <button
                   type="button"
                   style={{
@@ -985,27 +975,9 @@ export const ShopPanel: React.FC<{
                       background: 'rgba(15, 23, 42, 0.45)',
                     }}
                   >
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 8, marginBottom: 8 }}>
-                      <div>
-                        <div style={{ color: '#e2e8f0', fontWeight: 700 }}>{ch.name}</div>
-                        <div style={{ color: '#94a3b8', fontSize: 12 }}>ID: {ch.id}</div>
-                      </div>
-                      <label style={{ display: 'grid', gap: 4 }}>
-                        <span style={{ color: '#94a3b8', fontSize: 12 }}>КД (мин)</span>
-                        <input
-                          style={inputStyle}
-                          type="number"
-                          min={0}
-                          value={ch.cooldownMinutes}
-                          onChange={(e) => setBalance((prev) => ({
-                            ...prev,
-                            economy: {
-                              ...prev.economy,
-                              freeChests: (prev.economy.freeChests ?? []).map((x) => x.id === ch.id ? { ...x, cooldownMinutes: Math.max(0, Number(e.target.value) || 0) } : x),
-                            },
-                          }))}
-                        />
-                      </label>
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ color: '#e2e8f0', fontWeight: 700 }}>{ch.name}</div>
+                      <div style={{ color: '#94a3b8', fontSize: 12 }}>ID: {ch.id}</div>
                     </div>
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 4 }}>Паки валюты</div>
@@ -1141,7 +1113,7 @@ export const ShopPanel: React.FC<{
                   {freeChests.map((c) => (
                     <tr key={`sim_free_${c.id}`}>
                       <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{c.name}</td>
-                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Бесплатный ({c.cooldownMinutes}м)</td>
+                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Бесплатный</td>
                       <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
                         <input
                           style={inputStyle}
@@ -1188,7 +1160,7 @@ export const ShopPanel: React.FC<{
               {simResult && (
                 <div style={{ marginTop: 8, color: '#94a3b8', fontSize: 12, lineHeight: 1.5 }}>
                   <div>Итог: дропов {simResult.totalDrops}, целевая карточка: {simResult.targetCardBlueprints} чертежей.</div>
-                  <div>Затраты: soft {Math.round(simResult.softSpent)}, hard {Math.round(simResult.hardSpent)}, время бесплатных сундуков {Math.round(simResult.freeTimeMinutes)} мин.</div>
+                  <div>Затраты: soft {Math.round(simResult.softSpent)}, hard {Math.round(simResult.hardSpent)}.</div>
                   <div>Финальный шанс целевой карточки за 1 дроп: {simResult.chanceTargetCardPercent.toFixed(2)}%</div>
                   <div>
                     Финальные шансы редкостей за 1 дроп:&nbsp;
