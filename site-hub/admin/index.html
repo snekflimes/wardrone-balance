@@ -164,41 +164,119 @@
         border: 1px dashed var(--border);
         border-radius: 12px;
       }
+      .intro {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 1.25rem;
+      }
+      .intro h2 {
+        margin: 0 0 0.65rem;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .intro ol {
+        margin: 0;
+        padding-left: 1.2rem;
+        color: var(--muted);
+        font-size: 0.88rem;
+        line-height: 1.55;
+      }
+      .intro li {
+        margin-bottom: 0.4rem;
+      }
+      .intro strong {
+        color: #cbd5e1;
+      }
+      .field-hint {
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin: -0.35rem 0 0.45rem;
+        line-height: 1.4;
+      }
+      .accent-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 0.65rem;
+      }
+      .accent-row input[type='color'] {
+        width: 44px;
+        height: 38px;
+        padding: 2px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #0c1016;
+        cursor: pointer;
+      }
+      details.dev {
+        margin-top: 1.5rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      details.dev summary {
+        cursor: pointer;
+        color: #94a3b8;
+      }
+      details.dev code {
+        color: #cbd5e1;
+        font-size: 0.78rem;
+      }
     </style>
   </head>
   <body>
     <div class="max">
-      <h1>Проекты на домене</h1>
-      <p class="hint">
-        Токен задаётся в <code style="color: #cbd5e1">admin/config.local.php</code> (скопируйте из
-        <code style="color: #cbd5e1">config.example.php</code>). Сохранение пишет в
-        <code style="color: #cbd5e1">data/projects.json</code> на сервере.
+      <h1>Карточки на главной snek.su</h1>
+      <p class="hint" style="margin-bottom: 1rem">
+        Здесь настраиваются блоки со ссылками на главной странице сайта — название, куда ведёт ссылка и короткий текст.
       </p>
+
+      <div class="intro">
+        <h2>Что сделать по шагам</h2>
+        <ol>
+          <li>Вставьте <strong>пароль админки</strong> (его один раз придумали и записали в настройки на сервере — обычно подсказывает тот, кто настраивал сайт).</li>
+          <li>Нажмите <strong>«Загрузить с сервера»</strong> — подтянется то, что сейчас на главной.</li>
+          <li>Поменяйте тексты и ссылки → <strong>«Сохранить на сервер»</strong>.</li>
+        </ol>
+      </div>
 
       <div class="token-bar">
         <label style="margin: 0; flex: 1; min-width: 180px">
-          <span style="display: block; margin-bottom: 4px">X-Admin-Token</span>
-          <input type="password" id="token" placeholder="Вставьте токен" autocomplete="off" />
+          <span style="display: block; margin-bottom: 4px">Пароль админки</span>
+          <input type="password" id="token" placeholder="Вставьте пароль и нажмите «Загрузить с сервера»" autocomplete="off" />
         </label>
-        <button type="button" class="primary" id="btnLoad">Загрузить</button>
+        <button type="button" class="primary" id="btnLoad">Загрузить с сервера</button>
       </div>
 
       <div class="msg" id="msg"></div>
 
       <div class="site-fields">
-        <label>Заголовок сайта</label>
+        <label>Большой заголовок на главной</label>
+        <p class="field-hint">Например имя сайта — как подпись над карточками.</p>
         <input type="text" id="siteTitle" />
-        <label>Подзаголовок</label>
+        <label>Строка под заголовком</label>
+        <p class="field-hint">Необязательно. Короткая фраза мелким текстом.</p>
         <input type="text" id="siteSubtitle" />
       </div>
 
       <div id="projects"></div>
 
-      <button type="button" class="primary" id="btnAdd" style="margin-bottom: 1rem">+ Добавить проект</button>
+      <button type="button" class="primary" id="btnAdd" style="margin-bottom: 1rem">+ Добавить ещё одну карточку</button>
       <div>
         <button type="button" class="primary" id="btnSave">Сохранить на сервер</button>
-        <a href="../" style="margin-left: 0.75rem; color: var(--accent); font-size: 0.9rem">← На главную</a>
+        <a href="../" style="margin-left: 0.75rem; color: var(--accent); font-size: 0.9rem">← Посмотреть главную</a>
       </div>
+
+      <details class="dev">
+        <summary>Для того, кто настраивал сервер</summary>
+        <p style="margin: 0.5rem 0 0">
+          Пароль хранится в <code>admin/config.local.php</code> (поле <code>adminToken</code>). Данные сохраняются в
+          <code>data/projects.json</code>. Заголовок запроса при сохранении: <code>X-Admin-Token</code>.
+        </p>
+      </details>
     </div>
 
     <script>
@@ -224,6 +302,50 @@
           return 'p_' + Math.random().toString(36).slice(2, 10);
         }
 
+        function hexOrDefault(v, def) {
+          var h = String(v || def).trim();
+          if (/^#[0-9a-fA-F]{6}$/.test(h)) return h;
+          if (/^#[0-9a-fA-F]{3}$/.test(h)) {
+            return '#' + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+          }
+          return def;
+        }
+
+        function slugFromTitle(title, idx) {
+          var t = String(title || '')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+          if (t.length >= 1) return t.slice(0, 40);
+          return 'card-' + (idx + 1);
+        }
+
+        function buildProjectsForSave(list) {
+          var used = {};
+          return list.map(function (p, idx) {
+            var rawId = String(p.id || '').trim().replace(/\s+/g, '_');
+            var id =
+              rawId && /^[a-z0-9_-]+$/i.test(rawId) ? rawId : slugFromTitle(p.title, idx);
+            var base = id;
+            var n = 0;
+            while (used[id]) {
+              n += 1;
+              id = base + '-' + n;
+            }
+            used[id] = true;
+            return {
+              id: id,
+              title: String(p.title || '').trim() || 'Без названия',
+              href: String(p.href || '/').trim() || '/',
+              description: String(p.description || '').trim(),
+              accent: hexOrDefault(p.accent, '#38bdf8'),
+            };
+          });
+        }
+
         var state = { siteTitle: 'snek.su', siteSubtitle: '', projects: [] };
 
         function renderProjects() {
@@ -234,13 +356,13 @@
             box.dataset.index = String(i);
             var head = document.createElement('div');
             head.className = 'project-head';
-            head.innerHTML = '<strong>Проект #' + (i + 1) + '</strong>';
+            head.innerHTML = '<strong>Карточка #' + (i + 1) + '</strong>';
             var btns = document.createElement('div');
             btns.className = 'btns';
             var up = document.createElement('button');
             up.type = 'button';
             up.textContent = '↑';
-            up.title = 'Выше';
+            up.title = 'Поставить выше в списке';
             up.onclick = function () {
               if (i <= 0) return;
               var t = state.projects[i - 1];
@@ -251,7 +373,7 @@
             var down = document.createElement('button');
             down.type = 'button';
             down.textContent = '↓';
-            down.title = 'Ниже';
+            down.title = 'Поставить ниже в списке';
             down.onclick = function () {
               if (i >= state.projects.length - 1) return;
               var t = state.projects[i + 1];
@@ -262,7 +384,7 @@
             var del = document.createElement('button');
             del.type = 'button';
             del.className = 'danger';
-            del.textContent = 'Удалить';
+            del.textContent = 'Удалить карточку';
             del.onclick = function () {
               state.projects.splice(i, 1);
               renderProjects();
@@ -273,24 +395,75 @@
             head.appendChild(btns);
             box.appendChild(head);
 
-            function field(label, key, type) {
+            function labeledField(labelText, hintText, key, type) {
               var l = document.createElement('label');
-              l.textContent = label;
+              l.textContent = labelText;
+              box.appendChild(l);
+              if (hintText) {
+                var h = document.createElement('p');
+                h.className = 'field-hint';
+                h.textContent = hintText;
+                box.appendChild(h);
+              }
               var inp = document.createElement(type === 'textarea' ? 'textarea' : 'input');
               if (type !== 'textarea') inp.type = type || 'text';
               inp.value = p[key] != null ? String(p[key]) : '';
               inp.addEventListener('input', function () {
                 p[key] = inp.value;
               });
-              box.appendChild(l);
               box.appendChild(inp);
             }
 
-            field('id (латиница, без пробелов)', 'id', 'text');
-            field('Название', 'title', 'text');
-            field('Путь (например /wardrone/)', 'href', 'text');
-            field('Краткое описание', 'description', 'textarea');
-            field('Акцентный цвет (CSS, напр. #4ade80)', 'accent', 'text');
+            labeledField(
+              'Название на главной',
+              'Текст на «плитке» проекта — крупно, как заголовок кнопки.',
+              'title',
+              'text'
+            );
+            labeledField(
+              'Куда ведёт ссылка',
+              'Как в адресной строке после snek.su — для игры обычно /wardrone/ (слэш в начале обязателен).',
+              'href',
+              'text'
+            );
+            labeledField(
+              'Короткое описание',
+              'Пара строк мелким текстом под названием. Можно оставить пустым.',
+              'description',
+              'textarea'
+            );
+
+            var labAcc = document.createElement('label');
+            labAcc.textContent = 'Цвет полоски слева у карточки';
+            box.appendChild(labAcc);
+            var hAcc = document.createElement('p');
+            hAcc.className = 'field-hint';
+            hAcc.textContent = 'Можно выбрать мышкой или вписать код цвета (# и шесть букв/цифр).';
+            box.appendChild(hAcc);
+            var accRow = document.createElement('div');
+            accRow.className = 'accent-row';
+            var hexVal = hexOrDefault(p.accent, '#38bdf8');
+            var colorInp = document.createElement('input');
+            colorInp.type = 'color';
+            colorInp.value = hexVal;
+            var textInp = document.createElement('input');
+            textInp.type = 'text';
+            textInp.placeholder = '#38bdf8';
+            textInp.value = p.accent != null ? String(p.accent) : hexVal;
+            colorInp.addEventListener('input', function () {
+              p.accent = colorInp.value;
+              textInp.value = colorInp.value;
+            });
+            textInp.addEventListener('input', function () {
+              p.accent = textInp.value;
+              var n = hexOrDefault(textInp.value, colorInp.value);
+              if (/^#[0-9a-fA-F]{6}$/.test(String(textInp.value).trim())) {
+                colorInp.value = n;
+              }
+            });
+            accRow.appendChild(colorInp);
+            accRow.appendChild(textInp);
+            box.appendChild(accRow);
 
             projectsEl.appendChild(box);
           });
@@ -316,7 +489,7 @@
           hideMsg();
           var t = getToken();
           if (!t) {
-            showMsg('Введите токен', false);
+            showMsg('Введите пароль админки в поле выше.', false);
             return;
           }
           try {
@@ -326,7 +499,7 @@
             headers: { 'X-Admin-Token': t },
           })
             .then(function (r) {
-              if (r.status === 403) throw new Error('Неверный токен');
+              if (r.status === 403) throw new Error('Неверный пароль');
               if (!r.ok) throw new Error('HTTP ' + r.status);
               return r.json();
             })
@@ -336,8 +509,7 @@
               state.projects = Array.isArray(data.projects) ? data.projects.slice() : [];
               if (state.projects.length === 0) {
                 state.projects.push({
-                  id: uid(),
-                  title: 'Новый проект',
+                  title: 'Новая карточка',
                   href: '/',
                   description: '',
                   accent: '#38bdf8',
@@ -345,7 +517,7 @@
               }
               syncSiteFields();
               renderProjects();
-              showMsg('Загружено', true);
+              showMsg('Готово: данные с сервера загружены.', true);
             })
             .catch(function () {
               fetch('../data/projects.json', { cache: 'no-store' })
@@ -358,18 +530,20 @@
                   state.projects = Array.isArray(data.projects) ? data.projects.slice() : [];
                   syncSiteFields();
                   renderProjects();
-                  showMsg('Загружено из публичного JSON (только чтение). Для сохранения нужен верный токен и save.php.', false);
+                  showMsg(
+                    'Показано то, что сейчас на сайте (без пароля можно только смотреть). Чтобы сохранить правки — введите верный пароль и нажмите «Загрузить с сервера» или сразу «Сохранить на сервер».',
+                    false
+                  );
                 })
                 .catch(function () {
-                  showMsg('Не удалось загрузить', false);
+                  showMsg('Не удалось связаться с сервером. Проверьте пароль или попробуйте позже.', false);
                 });
             });
         };
 
         document.getElementById('btnAdd').onclick = function () {
           state.projects.push({
-            id: uid(),
-            title: 'Новый проект',
+            title: 'Новая карточка',
             href: '/',
             description: '',
             accent: '#a78bfa',
@@ -381,7 +555,7 @@
           hideMsg();
           var t = getToken();
           if (!t) {
-            showMsg('Введите токен', false);
+            showMsg('Введите пароль админки — без него сервер не примет сохранение.', false);
             return;
           }
           try {
@@ -391,15 +565,7 @@
           var payload = {
             siteTitle: state.siteTitle.trim() || 'snek.su',
             siteSubtitle: state.siteSubtitle.trim(),
-            projects: state.projects.map(function (p) {
-              return {
-                id: String(p.id || uid()).replace(/\s+/g, '_'),
-                title: String(p.title || '').trim() || 'Без названия',
-                href: String(p.href || '/').trim() || '/',
-                description: String(p.description || '').trim(),
-                accent: String(p.accent || '').trim() || '#38bdf8',
-              };
-            }),
+            projects: buildProjectsForSave(state.projects),
           };
 
           fetch('./save.php', {
@@ -416,11 +582,11 @@
               });
             })
             .then(function (_ref) {
-              if (_ref.j && _ref.j.ok) showMsg('Сохранено', true);
-              else showMsg((_ref.j && _ref.j.error) || 'Ошибка сохранения', false);
+              if (_ref.j && _ref.j.ok) showMsg('Сохранено. Откройте главную сайта и обновите страницу (F5), чтобы увидеть изменения.', true);
+              else showMsg((_ref.j && _ref.j.error) || 'Сервер не принял данные. Часто это неверный пароль.', false);
             })
             .catch(function () {
-              showMsg('Сеть или сервер', false);
+              showMsg('Не получилось отправить на сервер. Проверьте интернет или пароль.', false);
             });
         };
 
@@ -439,10 +605,9 @@
           .catch(function () {
             state.projects = [
               {
-                id: 'example',
-                title: 'Пример',
-                href: '/',
-                description: 'Загрузите данные с сервера (токен) или настройте projects.json',
+                title: 'War Drone',
+                href: '/wardrone/',
+                description: 'Игра в браузере — нажмите «Загрузить с сервера», если уже настраивали сайт.',
                 accent: '#38bdf8',
               },
             ];
