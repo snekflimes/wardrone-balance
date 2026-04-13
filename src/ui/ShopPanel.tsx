@@ -7,6 +7,7 @@ import {
   getShopItemGrindReferenceUsd,
   getShopItemUsd,
 } from '../balance/economy';
+import { getExpectedKeysPerAttempt, getFreeChestKeyProgression } from '../progression/iapAndChestsModel';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 
@@ -145,6 +146,22 @@ function pickWeightedIndex(weights: number[]): number {
   return weights.length - 1;
 }
 
+function setFreeChestKeyProgressionField(
+  setBalance: SetBalance,
+  patch: Partial<NonNullable<BalanceConstants['economy']['freeChestKeyProgression']>>
+) {
+  setBalance((prev) => ({
+    ...prev,
+    economy: {
+      ...prev.economy,
+      freeChestKeyProgression: {
+        ...(prev.economy.freeChestKeyProgression ?? {}),
+        ...patch,
+      },
+    },
+  }));
+}
+
 function setShopItemField(
   setBalance: SetBalance,
   itemId: string,
@@ -198,6 +215,11 @@ export const ShopPanel: React.FC<{
   const rewardComparison = useMemo(() => getRewardEconomyComparison(balance), [balance]);
   const resolvedStarterPack = useMemo(() => resolveStarterPackGrants(balance), [balance]);
   const starterRef = balance.economy.referencePacks?.starterPack;
+  const keyProg = useMemo(() => getFreeChestKeyProgression(balance), [balance]);
+  const keysPerAttemptAt50 = useMemo(
+    () => getExpectedKeysPerAttempt(0.5, keyProg),
+    [keyProg]
+  );
   const chestIds = Object.keys(balance.economy.chests);
   const freeChests = balance.economy.freeChests ?? [];
   const toggleFreeChestPack = (freeChestId: string, packId: string) => {
@@ -425,25 +447,30 @@ export const ShopPanel: React.FC<{
       ...prev,
       economy: {
         ...prev.economy,
+        freeChestKeyProgression: {
+          keysPerWin: 1,
+          keysPerLoss: 0.5,
+          keysToOpenChest: 3,
+        },
         freeChests: [
           {
-            id: 'free_5m',
-            name: 'Бесплатный сундук 5м',
-            cooldownMinutes: 5,
+            id: 'free_1star',
+            name: 'Бесплатный сундук 1★',
+            cooldownMinutes: 0,
             packIds: ['soft_small', 'soft_medium', 'soft_big', 'hard_small'],
             blueprintRarities: ['common', 'uncommon'],
           },
           {
-            id: 'free_15m',
-            name: 'Бесплатный сундук 15м',
-            cooldownMinutes: 20,
+            id: 'free_2star',
+            name: 'Бесплатный сундук 2★',
+            cooldownMinutes: 0,
             packIds: ['soft_medium', 'soft_big', 'hard_small', 'hard_medium'],
             blueprintRarities: ['common', 'uncommon', 'rare'],
           },
           {
-            id: 'free_30m',
-            name: 'Бесплатный сундук 30м',
-            cooldownMinutes: 50,
+            id: 'free_3star',
+            name: 'Бесплатный сундук 3★',
+            cooldownMinutes: 0,
             packIds: ['soft_big', 'hard_medium', 'hard_big'],
             blueprintRarities: ['common', 'uncommon', 'rare', 'epic', 'legendary'],
           },
@@ -494,7 +521,7 @@ export const ShopPanel: React.FC<{
           {
             id,
             name,
-            cooldownMinutes: Math.max(1, newFreeChestCooldown),
+            cooldownMinutes: Math.max(0, newFreeChestCooldown),
             packIds: [],
             blueprintRarities: ['common'],
           },
@@ -854,7 +881,63 @@ export const ShopPanel: React.FC<{
               </table>
             </div>
             <div style={{ marginBottom: 10, borderTop: '1px solid rgba(148, 163, 184, 0.24)', paddingTop: 8 }}>
-              <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 6 }}>Бесплатные сундуки (1 дроп за открытие)</div>
+              <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 6 }}>
+                Бесплатные сундуки (1 дроп за открытие)
+              </div>
+              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, lineHeight: 1.45 }}>
+                Прогресс по ключам за попытку уровня: победа +{keyProg.keysPerWin} ключа, поражение +{keyProg.keysPerLoss}. После{' '}
+                {keyProg.keysToOpenChest} ключей открывается следующий сундук по порядку списка (1★ → 2★ → 3★ → снова 1★). Поле
+                «КД (мин)» — только для ориентира в UI клиента; прогноз от таймера не зависит. При винрейте 50% в среднем ~{' '}
+                {keysPerAttemptAt50.toFixed(2)} ключа за попытку (~{(keyProg.keysToOpenChest / keysPerAttemptAt50).toFixed(2)} попыток на
+                один сундук).
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(120px, 1fr))', gap: 8, marginBottom: 8 }}>
+                <label>
+                  <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>Ключей за победу</div>
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    step="0.1"
+                    min={0}
+                    value={balance.economy.freeChestKeyProgression?.keysPerWin ?? 1}
+                    onChange={(e) =>
+                      setFreeChestKeyProgressionField(setBalance, {
+                        keysPerWin: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>Ключей за поражение</div>
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    step="0.1"
+                    min={0}
+                    value={balance.economy.freeChestKeyProgression?.keysPerLoss ?? 0.5}
+                    onChange={(e) =>
+                      setFreeChestKeyProgressionField(setBalance, {
+                        keysPerLoss: Math.max(0, Number(e.target.value) || 0),
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>Ключей на 1 сундук</div>
+                  <input
+                    style={inputStyle}
+                    type="number"
+                    step="0.5"
+                    min={0.5}
+                    value={balance.economy.freeChestKeyProgression?.keysToOpenChest ?? 3}
+                    onChange={(e) =>
+                      setFreeChestKeyProgressionField(setBalance, {
+                        keysToOpenChest: Math.max(0.5, Number(e.target.value) || 3),
+                      })
+                    }
+                  />
+                </label>
+              </div>
               <button
                 type="button"
                 style={{
@@ -869,12 +952,12 @@ export const ShopPanel: React.FC<{
                 }}
                 onClick={applyReferenceFreeChestsPreset}
               >
-                Применить 3 референсных бесплатных сундука
+                Прессет: 3★ сундука + ключи (1 / 0,5 / 3)
               </button>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(130px, 1fr))', gap: 8, marginBottom: 8 }}>
                 <input style={inputStyle} placeholder="id" value={newFreeChestId} onChange={(e) => setNewFreeChestId(e.target.value)} />
                 <input style={inputStyle} placeholder="Название" value={newFreeChestName} onChange={(e) => setNewFreeChestName(e.target.value)} />
-                <input style={inputStyle} type="number" min={1} value={newFreeChestCooldown} onChange={(e) => setNewFreeChestCooldown(Number(e.target.value) || 1)} />
+                <input style={inputStyle} type="number" min={0} value={newFreeChestCooldown} onChange={(e) => setNewFreeChestCooldown(Math.max(0, Number(e.target.value) || 0))} />
                 <button
                   type="button"
                   style={{
@@ -912,13 +995,13 @@ export const ShopPanel: React.FC<{
                         <input
                           style={inputStyle}
                           type="number"
-                          min={1}
+                          min={0}
                           value={ch.cooldownMinutes}
                           onChange={(e) => setBalance((prev) => ({
                             ...prev,
                             economy: {
                               ...prev.economy,
-                              freeChests: (prev.economy.freeChests ?? []).map((x) => x.id === ch.id ? { ...x, cooldownMinutes: Math.max(1, Number(e.target.value) || 1) } : x),
+                              freeChests: (prev.economy.freeChests ?? []).map((x) => x.id === ch.id ? { ...x, cooldownMinutes: Math.max(0, Number(e.target.value) || 0) } : x),
                             },
                           }))}
                         />

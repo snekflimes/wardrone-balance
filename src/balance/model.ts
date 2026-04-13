@@ -55,10 +55,8 @@ export interface MetaConfig {
    */
   forecastMaxAttemptsPerDay?: number;
   /**
-   * Прогноз: сколько бесплатных сундуков игрок забирает за один календарный день оси «День прохода».
-   * Порядок как в economy.freeChests: 1-й сундук в списке, затем 2-й, затем 3-й (по одному открытию EV за день каждого).
-   * Не больше, чем записей в freeChests.
-   * @default 3
+   * @deprecated Раньше: число бесплатных сундуков за календарный день прогноза. Сейчас бесплатные сундуки
+   * открываются по ключам за попытки (`economy.freeChestKeyProgression`); поле сохраняется для старых JSON.
    */
   forecastFreeChestsPerDay?: number;
 
@@ -217,8 +215,10 @@ export interface EconomyConfig {
   chests: ChestsBlock;
   /** Валютные паки для дропа в бесплатных сундуках/ивентах. */
   currencyPacks?: CurrencyPackConfig[];
-  /** Бесплатные сундуки с кулдауном и пулом дропа (ровно 1 дроп за сундук). */
+  /** Бесплатные сундуки: пул дропа (ровно 1 дроп за сундук). Порядок в списке = цикл 1★ → 2★ → 3★ → снова 1★. */
   freeChests?: FreeChestConfig[];
+  /** Ключи за попытку уровня (победа/поражение). Если не задано — в прогнозе 1 / 0.5 / 3 ключей. */
+  freeChestKeyProgression?: FreeChestKeyProgressionConfig;
   vip: {
     priceHard: number;
   };
@@ -304,9 +304,20 @@ export interface CurrencyPackConfig {
 export interface FreeChestConfig {
   id: string;
   name: string;
+  /** Легаси: кулдаун по времени в клиенте. В прогнозе не используется при `freeChestKeyProgression`. */
   cooldownMinutes: number;
   packIds: string[];
   blueprintRarities: CardRarity[];
+}
+
+/** Бесплатные сундуки по прогрессу ключей: победа/поражение за попытку, N ключей → открытие следующего сундука в цикле. */
+export interface FreeChestKeyProgressionConfig {
+  /** Ключей за победную попытку (весь уровень пройден). @default 1 */
+  keysPerWin?: number;
+  /** Ключей за проигранную попытку. @default 0.5 */
+  keysPerLoss?: number;
+  /** Сколько ключей нужно, чтобы открыть один сундук. @default 3 */
+  keysToOpenChest?: number;
 }
 
 export interface PlayerBlock {

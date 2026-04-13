@@ -1,4 +1,10 @@
-import type { BalanceConstants, CardRarity, ChestConfig, CurrencyPackConfig, FreeChestConfig } from '../balance/model';
+import type {
+  BalanceConstants,
+  CardRarity,
+  ChestConfig,
+  CurrencyPackConfig,
+  FreeChestConfig,
+} from '../balance/model';
 import type { SegmentId } from './types';
 
 export interface SegmentUsdProfile {
@@ -162,6 +168,32 @@ function getChestDropChancePercent(chest: ChestConfig, rarityKey: keyof NonNulla
 
 export function countSupportCardsOfRarity(constants: BalanceConstants, rarity: CardRarity): number {
   return constants.supportCards.filter((c) => c.rarity === rarity).length;
+}
+
+export interface ResolvedFreeChestKeyProgression {
+  keysPerWin: number;
+  keysPerLoss: number;
+  keysToOpenChest: number;
+}
+
+/** Дефолт как в референсе: победа 1 ключ, поражение ½, 3 ключа на сундук. */
+export function getFreeChestKeyProgression(constants: BalanceConstants): ResolvedFreeChestKeyProgression {
+  const c = constants.economy.freeChestKeyProgression;
+  return {
+    keysPerWin: c?.keysPerWin ?? 1,
+    keysPerLoss: c?.keysPerLoss ?? 0.5,
+    keysToOpenChest: Math.max(0.001, c?.keysToOpenChest ?? 3),
+  };
+}
+
+/** Среднее число ключей за попытку при доле побед winRate (0..1). */
+export function getExpectedKeysPerAttempt(
+  winRate: number,
+  progression?: ResolvedFreeChestKeyProgression
+): number {
+  const p = progression ?? { keysPerWin: 1, keysPerLoss: 0.5, keysToOpenChest: 3 };
+  const w = Math.max(0, Math.min(1, winRate));
+  return w * p.keysPerWin + (1 - w) * p.keysPerLoss;
 }
 
 /** EV чертежей по всем картам за count открытий платного сундука (для бандлов / стартера в прогнозе). */
@@ -370,6 +402,7 @@ export function getExpectedFreeChestCurrencyPerOpen(
   return { soft, hard };
 }
 
+/** Легаси: открытий в час при чисто таймерной модели. Прогноз сейчас считает ключи за попытки, не этот кулдаун. */
 export function getExpectedFreeChestOpensPerHour(chest: FreeChestConfig): number {
   const minutes = Math.max(1, chest.cooldownMinutes || 0);
   return 60 / minutes;

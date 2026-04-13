@@ -112,9 +112,21 @@ export interface ProgressionForecastResult {
   segmentHardIncomePerDay?: number;
   /**
    * Ожидаемое число открытий бесплатных сундуков за прогон (ключ = id из economy.freeChests).
-   * Каждый календарный день прогноза: по одному открытию первых meta.forecastFreeChestsPerDay слотов в порядке списка (по умолч. 3).
+   * Считается по ключам: победа/поражение за попытку уровня, цикл сундуков по порядку в freeChests.
    */
   expectedFreeChestOpensById?: Record<string, number>;
+  /** Агрегат прогноза по ключам бесплатных сундуков (попытка = один заход на уровень). */
+  freeChestKeyForecast?: {
+    attempts: number;
+    wins: number;
+    losses: number;
+    keysPerWin: number;
+    keysPerLoss: number;
+    keysToOpenChest: number;
+    keysEarnedTotal: number;
+    chestOpensTotal: number;
+    keyBankRemaining: number;
+  };
   /** Ожидаемое число покупок платных сундуков за прогон (ключ = id из economy.chests). */
   expectedPaidChestOpensById?: Record<string, number>;
   /** Суммарные часы ожидания регенера энергии (бесплатные сундуки в прогнозе от этого не считаются). */

@@ -510,6 +510,9 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
   if (merged.meta.forecastFreeChestsPerDay == null && defMeta.forecastFreeChestsPerDay != null) {
     merged.meta.forecastFreeChestsPerDay = defMeta.forecastFreeChestsPerDay;
   }
+  if (!merged.economy.freeChestKeyProgression && BALANCE_CONSTANTS.economy.freeChestKeyProgression) {
+    merged.economy.freeChestKeyProgression = { ...BALANCE_CONSTANTS.economy.freeChestKeyProgression };
+  }
   if (merged.meta.trafficUsdPerDayPayer == null && defMeta.trafficUsdPerDayPayer != null) {
     merged.meta.trafficUsdPerDayPayer = defMeta.trafficUsdPerDayPayer;
   }

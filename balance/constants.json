@@ -10,7 +10,6 @@
     "wavesPerLevel": 2,
     "baseWaveTimeSec": 45,
     "forecastMaxAttemptsPerDay": 10,
-    "forecastFreeChestsPerDay": 3,
     "trafficUsdPerDayPayer": 1.142857,
     "trafficUsdPerDayWhale": 10.785714,
     "trafficDau": 70000,
@@ -136,25 +135,30 @@
       { "id": "hard_medium", "name": "Хард средний", "currency": "hard", "amount": 60, "baseWeight": 0.35 },
       { "id": "hard_big", "name": "Хард большой", "currency": "hard", "amount": 150, "baseWeight": 0.2 }
     ],
+    "freeChestKeyProgression": {
+      "keysPerWin": 1,
+      "keysPerLoss": 0.5,
+      "keysToOpenChest": 3
+    },
     "freeChests": [
       {
-        "id": "free_5m",
-        "name": "Бесплатный сундук 5м",
-        "cooldownMinutes": 5,
+        "id": "free_1star",
+        "name": "Бесплатный сундук 1★",
+        "cooldownMinutes": 0,
         "packIds": ["soft_small", "soft_medium", "soft_big", "hard_small"],
         "blueprintRarities": ["common", "uncommon"]
       },
       {
-        "id": "free_15m",
-        "name": "Бесплатный сундук 15м",
-        "cooldownMinutes": 20,
+        "id": "free_2star",
+        "name": "Бесплатный сундук 2★",
+        "cooldownMinutes": 0,
         "packIds": ["soft_medium", "soft_big", "hard_small", "hard_medium"],
         "blueprintRarities": ["common", "uncommon", "rare"]
       },
       {
-        "id": "free_30m",
-        "name": "Бесплатный сундук 30м",
-        "cooldownMinutes": 50,
+        "id": "free_3star",
+        "name": "Бесплатный сундук 3★",
+        "cooldownMinutes": 0,
         "packIds": ["soft_big", "hard_medium", "hard_big"],
         "blueprintRarities": ["common", "uncommon", "rare", "epic", "legendary"]
       }

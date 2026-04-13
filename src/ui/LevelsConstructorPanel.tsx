@@ -90,8 +90,7 @@ const ProgressionSimResultBlock: React.FC<{
     {(freeRows.length > 0 || paidRows.length > 0) && (
       <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
         <strong style={{ color: '#e2e8f0' }}>Сундуки (прогноз):</strong>{' '}
-        бесплатные — по календарным дням прогноза (порядок <code style={{ color: '#cbd5e1' }}>freeChests</code>, см.
-        вкладку «Прогноз»).{' '}
+        бесплатные — по ключам за попытки (порядок <code style={{ color: '#cbd5e1' }}>freeChests</code>).{' '}
         {freeRows.length > 0 && (
           <>
             бесплатные:{' '}

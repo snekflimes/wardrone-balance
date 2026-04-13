@@ -29,6 +29,7 @@ import {
   addExpectedBlueprintsFromPaidChestOpens,
   getExpectedBlueprintCopiesOfSingleCardPerFreeChest,
   getExpectedFreeChestCurrencyPerOpen,
+  getFreeChestKeyProgression,
   getHardIncomeFromSegmentPerWeek,
   getSoftIncomeFromSegmentPerWeek,
 } from './iapAndChestsModel';
@@ -211,13 +212,11 @@ export function simulateProgressionForecast(
   const segmentHardPerWeek = getHardIncomeFromSegmentPerWeek(constants, options.segmentId);
   const segmentHardPerDay = segmentHardPerWeek > 0 ? segmentHardPerWeek / 7 : 0;
 
-  const freeChestsPerForecastDay =
-    constants.meta.forecastFreeChestsPerDay != null &&
-    Number.isFinite(constants.meta.forecastFreeChestsPerDay)
-      ? Math.max(1, Math.min(20, Math.floor(constants.meta.forecastFreeChestsPerDay)))
-      : 3;
-
   const freeChestOpensById: Record<string, number> = {};
+  let freeChestKeyBank = 0;
+  let freeChestCycleSlot = 0;
+  let freeChestAttemptWins = 0;
+  let freeChestAttemptLosses = 0;
   const paidChestOpensById: Record<string, number> = {};
 
   const recordPaidChestOpens = (chestId: string, count: number) => {
@@ -248,8 +247,8 @@ export function simulateProgressionForecast(
   };
 
   /**
-   * За календарный день прогноза: донатный софт/хард сегмента, логин, K бесплатных сундуков;
-   * весь накопленный хард сразу уходит в платные сундуки с картами (EV чертежей).
+   * За календарный день прогноза: донатный софт/хард сегмента, логин; бесплатные сундуки — только по ключам за попытки.
+   * Весь накопленный хард затем уходит в платные сундуки с картами (EV чертежей).
    */
   const grantForecastDailyFreeChests = (gameLevelIndex: number) => {
     if (segmentSoftPerDay > 0) {
@@ -259,11 +258,6 @@ export function simulateProgressionForecast(
       hardBalance += segmentHardPerDay;
     }
     applyLoginRewardForDay(forecastCalendarDay);
-    const list = constants.economy.freeChests ?? [];
-    const n = Math.min(freeChestsPerForecastDay, list.length);
-    for (let i = 0; i < n; i += 1) {
-      applySingleFreeChestOpen(list[i].id);
-    }
 
     // Стартер-пак за золото (реф. содержимое × масштаб цены + паритет награды): только платники и киты, один раз.
     if (!forecastStarterPackPurchased && options.segmentId !== 'free') {
@@ -568,6 +562,24 @@ export function simulateProgressionForecast(
         }
       }
 
+      {
+        const kp = getFreeChestKeyProgression(constants);
+        const fcList = constants.economy.freeChests ?? [];
+        if (fcList.length > 0) {
+          if (attemptVictory) freeChestAttemptWins += 1;
+          else freeChestAttemptLosses += 1;
+          const delta = attemptVictory ? kp.keysPerWin : kp.keysPerLoss;
+          freeChestKeyBank += delta;
+          const need = kp.keysToOpenChest;
+          while (freeChestKeyBank + 1e-9 >= need && fcList.length > 0) {
+            freeChestKeyBank -= need;
+            const chest = fcList[freeChestCycleSlot % fcList.length];
+            applySingleFreeChestOpen(chest.id);
+            freeChestCycleSlot = (freeChestCycleSlot + 1) % fcList.length;
+          }
+        }
+      }
+
       if (attemptVictory) {
         levelPassed = true;
         break;
@@ -624,6 +636,12 @@ export function simulateProgressionForecast(
 
   }
 
+  const kpEnd = getFreeChestKeyProgression(constants);
+  const fcAttempts = freeChestAttemptWins + freeChestAttemptLosses;
+  const keysEarnedTotal =
+    freeChestAttemptWins * kpEnd.keysPerWin + freeChestAttemptLosses * kpEnd.keysPerLoss;
+  const chestOpensTotal = Object.values(freeChestOpensById).reduce((s, n) => s + n, 0);
+
   return {
     levels: progressionLevels,
     attemptsTimeline,
@@ -641,6 +659,20 @@ export function simulateProgressionForecast(
       forecastStarterPackPurchased,
     },
     expectedFreeChestOpensById: { ...freeChestOpensById },
+    freeChestKeyForecast:
+      (constants.economy.freeChests ?? []).length > 0
+        ? {
+            attempts: fcAttempts,
+            wins: freeChestAttemptWins,
+            losses: freeChestAttemptLosses,
+            keysPerWin: kpEnd.keysPerWin,
+            keysPerLoss: kpEnd.keysPerLoss,
+            keysToOpenChest: kpEnd.keysToOpenChest,
+            keysEarnedTotal,
+            chestOpensTotal,
+            keyBankRemaining: freeChestKeyBank,
+          }
+        : undefined,
     expectedPaidChestOpensById: { ...paidChestOpensById },
     progressionElapsedHours: elapsedEnergyWaitHours,
     progressionElapsedCalendarHours: elapsedCalendarHours,

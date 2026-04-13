@@ -634,8 +634,6 @@ export const ProgressionForecastPanel: React.FC<{
       .sort((a, b) => b.count - a.count);
     const freeOpensSum = freeRows.reduce((s, r) => s + r.count, 0);
     const configuredFreeChestCount = (balance.economy.freeChests ?? []).length;
-    const freeChestsPerDay = balance.meta.forecastFreeChestsPerDay ?? 3;
-    const orderedSlotsPerDay = Math.min(freeChestsPerDay, configuredFreeChestCount);
     return {
       freeRows,
       paidRows,
@@ -643,16 +641,15 @@ export const ProgressionForecastPanel: React.FC<{
       calendarHoursTotal: forecast.progressionElapsedCalendarHours ?? 0,
       freeOpensSum,
       configuredFreeChestCount,
-      freeChestsPerDay,
-      orderedSlotsPerDay,
+      freeKeyForecast: forecast.freeChestKeyForecast ?? null,
     };
   }, [
     forecast.expectedFreeChestOpensById,
     forecast.expectedPaidChestOpensById,
     forecast.progressionElapsedHours,
     forecast.progressionElapsedCalendarHours,
+    forecast.freeChestKeyForecast,
     balance.economy.freeChests,
-    balance.meta.forecastFreeChestsPerDay,
   ]);
 
   const finalSoftBalance = forecast.finalState.softBalance;
@@ -1096,10 +1093,18 @@ export const ProgressionForecastPanel: React.FC<{
             <strong>{Math.round((forecast.progressionElapsedCalendarHours ?? 0) * 10) / 10} ч</strong>
           </div>
           <div>
-            Бесплатных сундуков за календарный день прогноза: <strong>{chestOpenSummary.freeChestsPerDay}</strong> · в
-            день учитывается до <strong>{chestOpenSummary.orderedSlotsPerDay}</strong> слотов из{' '}
-            <strong>{chestOpenSummary.configuredFreeChestCount}</strong> в <code style={{ color: '#cbd5e1' }}>freeChests</code>{' '}
-            (по порядку списка)
+            Бесплатные сундуки: <strong>по ключам за попытку уровня</strong> (победа / поражение), цикл по{' '}
+            <strong>{chestOpenSummary.configuredFreeChestCount}</strong> слотам в <code style={{ color: '#cbd5e1' }}>freeChests</code>.
+            {chestOpenSummary.freeKeyForecast && (
+              <>
+                {' '}
+                Прогон: попыток <strong>{chestOpenSummary.freeKeyForecast.attempts}</strong> (побед{' '}
+                <strong>{chestOpenSummary.freeKeyForecast.wins}</strong>, поражений{' '}
+                <strong>{chestOpenSummary.freeKeyForecast.losses}</strong>), ключей набрано{' '}
+                <strong>{Math.round(chestOpenSummary.freeKeyForecast.keysEarnedTotal * 100) / 100}</strong>, остаток банка{' '}
+                <strong>{Math.round(chestOpenSummary.freeKeyForecast.keyBankRemaining * 100) / 100}</strong>.
+              </>
+            )}
           </div>
           <div>
             Σ открытий бесплатных сундуков за прогон:{' '}
@@ -1132,24 +1137,6 @@ export const ProgressionForecastPanel: React.FC<{
                   setBalance((prev) => ({
                     ...prev,
                     meta: { ...prev.meta, forecastMaxAttemptsPerDay: v },
-                  }));
-                }}
-              />
-            </label>
-            <label style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-              <span style={{ minWidth: 200 }}>Бесплатных сундуков в календарный день</span>
-              <input
-                style={inputStyle}
-                type="number"
-                min={1}
-                max={20}
-                step={1}
-                value={balance.meta.forecastFreeChestsPerDay ?? 3}
-                onChange={(e) => {
-                  const v = Math.max(1, Math.min(20, Number(e.target.value) || 3));
-                  setBalance((prev) => ({
-                    ...prev,
-                    meta: { ...prev.meta, forecastFreeChestsPerDay: v },
                   }));
                 }}
               />
@@ -1227,11 +1214,12 @@ export const ProgressionForecastPanel: React.FC<{
             <div style={{ color: '#e2e8f0', fontWeight: 600, marginBottom: 6 }}>Как это считается</div>
             <ul style={{ margin: 0, paddingLeft: 18 }}>
               <li>
-                <strong>Бесплатные сундуки:</strong> каждый календарный день прогноза (тот же счётчик, что «День прохода»)
-                игрок забирает ровно <strong>{balance.meta.forecastFreeChestsPerDay ?? 3}</strong> сундука(ов): по{' '}
-                <strong>одному</strong> открытию EV для 1-й, 2-й, 3-й записи в <code style={{ color: '#cbd5e1' }}>economy.freeChests</code> (как
-                «сначала первый таймер, потом второй, потом третий»). Ожидание энергии на это не влияет. Если в экономике
-                меньше слотов, в день будет меньше открытий.
+                <strong>Бесплатные сундуки:</strong> за каждую <strong>попытку уровня</strong> начисляются ключи: победа +{' '}
+                {chestOpenSummary.freeKeyForecast?.keysPerWin ?? 1}, поражение +{' '}
+                {chestOpenSummary.freeKeyForecast?.keysPerLoss ?? 0.5}. После{' '}
+                {chestOpenSummary.freeKeyForecast?.keysToOpenChest ?? 3} ключей открывается следующий сундук по порядку в{' '}
+                <code style={{ color: '#cbd5e1' }}>economy.freeChests</code> (1★ → 2★ → 3★ → снова 1★). Параметры:{' '}
+                <code style={{ color: '#cbd5e1' }}>economy.freeChestKeyProgression</code>.
               </li>
               <li style={{ marginTop: 6 }}>
                 <strong>Карты поддержки:</strong> после <strong>победной</strong> попытки уровня (после последней волны)
@@ -1250,8 +1238,7 @@ export const ProgressionForecastPanel: React.FC<{
                 модели: {Math.round(chestOpenSummary.calendarHoursTotal * 10) / 10} ч
               </div>
               <div style={{ marginTop: 4 }}>
-                «День прохода» — лимит попыток/день. Бесплатные сундуки в прогнозе — фиксированное число открытий в день по
-                порядку <code style={{ color: '#94a3b8' }}>freeChests</code>, см. блок «Как это считается» выше.
+                «День прохода» — лимит попыток/день. Бесплатные сундуки — от ключей за попытки, см. блок «Как это считается».
               </div>
             </div>
           )}
@@ -1260,7 +1247,7 @@ export const ProgressionForecastPanel: React.FC<{
               {chestOpenSummary.freeRows.length > 0 && (
                 <div style={{ minWidth: 220 }}>
                   <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                    Бесплатные сундуки (EV за прогон, по календарным дням прогноза)
+                    Бесплатные сундуки (EV за прогон, по ключам)
                   </div>
                   <table style={tableStyle}>
                     <thead>
@@ -1288,11 +1275,12 @@ export const ProgressionForecastPanel: React.FC<{
                         maxWidth: 560,
                       }}
                     >
-                      За каждый календарный день прогноза: по 1 открытию для первых{' '}
-                      <strong>{chestOpenSummary.orderedSlotsPerDay}</strong> сундуков в порядке{' '}
-                      <code style={{ color: '#cbd5e1' }}>economy.freeChests</code> (в meta задано{' '}
-                      <strong>{chestOpenSummary.freeChestsPerDay}</strong> в день). Σ по строкам:{' '}
-                      {Math.round(chestOpenSummary.freeOpensSum * 100) / 100}.
+                      Открытия накапливаются от попыток уровня (см. ключи выше). Σ по строкам:{' '}
+                      {Math.round(chestOpenSummary.freeOpensSum * 100) / 100}
+                      {chestOpenSummary.freeKeyForecast
+                        ? ` · всего открытий (сундуков): ${Math.round(chestOpenSummary.freeKeyForecast.chestOpensTotal * 100) / 100}`
+                        : ''}
+                      .
                     </div>
                   )}
                 </div>

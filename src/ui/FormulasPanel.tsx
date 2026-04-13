@@ -88,9 +88,9 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
       <section className="ui-block ui-block--accent">
         <h4 style={{ color: '#7dd3fc' }}>Прогноз (вкладка «Прогноз»)</h4>
         <p style={{ margin: '0 0 10px 0', fontSize: 12, color: '#94a3b8', lineHeight: 1.45 }}>
-          Колонка «День прохода»: лимит попыток в день. Бесплатные сундуки в прогнозе: ровно столько открытий в день, сколько
-          указано ниже — по порядку первые записи в <code style={{ color: '#cbd5e1' }}>economy.freeChests</code> (1-й, 2-й,
-          3-й сундук и т.д.), без таймеров от ожидания энергии.
+          Колонка «День прохода»: лимит попыток в день. Бесплатные сундуки в прогнозе: по ключам за попытку уровня (победа /
+          поражение), цикл сундуков — порядок в <code style={{ color: '#cbd5e1' }}>economy.freeChests</code>; параметры в{' '}
+          <code style={{ color: '#cbd5e1' }}>economy.freeChestKeyProgression</code> (вкладка «Сундуки и магазин»).
         </p>
         <div className="ui-field">
           <span style={labelStyle}>Макс. попыток уровня в календарный день прогноза</span>
@@ -105,25 +105,6 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
                 setBalance,
                 'forecastMaxAttemptsPerDay',
                 Math.max(1, num(e.target.value) || 10)
-              )
-            }
-          />
-        </div>
-        <div className="ui-field">
-          <span style={labelStyle}>
-            Бесплатных сундуков за календарный день прогноза (по порядку из economy.freeChests)
-          </span>
-          <input
-            type="number"
-            min={1}
-            max={20}
-            step={1}
-            value={meta.forecastFreeChestsPerDay ?? 3}
-            onChange={(e) =>
-              updateMeta(
-                setBalance,
-                'forecastFreeChestsPerDay',
-                Math.max(1, Math.min(20, num(e.target.value) || 3))
               )
             }
           />
