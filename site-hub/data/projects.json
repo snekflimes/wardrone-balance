@@ -1,0 +1,20 @@
+{
+  "siteTitle": "snek.su",
+  "siteSubtitle": "Хаб проектов на этом домене",
+  "projects": [
+    {
+      "id": "wardrone",
+      "title": "War Drone Balance",
+      "href": "/wardrone/",
+      "description": "Симулятор баланса, прогноз прогрессии, экономика и сундуки.",
+      "accent": "#4ade80"
+    },
+    {
+      "id": "project2",
+      "title": "Второй проект",
+      "href": "/",
+      "description": "Отредактируйте название, путь и описание в админке (ссылка ниже).",
+      "accent": "#38bdf8"
+    }
+  ]
+}

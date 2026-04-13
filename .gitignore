@@ -1,4 +1,7 @@
 node_modules/
+
+# Токен админки хаба (локально на сервере)
+site-hub/admin/config.local.php
 dist/
 .DS_Store
 *.log

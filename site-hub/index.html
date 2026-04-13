@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>snek.su — проекты</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0c0f14;
+        --card: #151a22;
+        --border: rgba(148, 163, 184, 0.2);
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --glow: rgba(56, 189, 248, 0.12);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        background-image:
+          radial-gradient(ellipse 120% 80% at 10% -20%, var(--glow), transparent 50%),
+          radial-gradient(ellipse 90% 60% at 100% 0%, rgba(74, 222, 128, 0.08), transparent 45%);
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: clamp(2rem, 5vw, 4rem) 1.25rem 4rem;
+      }
+      header {
+        margin-bottom: 2.5rem;
+      }
+      h1 {
+        font-family: 'Fraunces', Georgia, serif;
+        font-weight: 700;
+        font-size: clamp(2rem, 5vw, 2.75rem);
+        letter-spacing: -0.02em;
+        margin: 0 0 0.35rem;
+        line-height: 1.15;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 1.05rem;
+        margin: 0;
+        max-width: 36ch;
+      }
+      .grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      }
+      a.card {
+        display: flex;
+        flex-direction: column;
+        text-decoration: none;
+        color: inherit;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.25rem 1.35rem;
+        transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      a.card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--accent, #38bdf8);
+        opacity: 0.9;
+      }
+      a.card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(148, 163, 184, 0.35);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      }
+      .card h2 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem;
+      }
+      .card p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+        line-height: 1.5;
+        flex: 1;
+      }
+      .card .path {
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        font-family: ui-monospace, monospace;
+        color: #64748b;
+      }
+      .err {
+        padding: 1rem 1.25rem;
+        background: rgba(127, 29, 29, 0.35);
+        border: 1px solid rgba(248, 113, 113, 0.35);
+        border-radius: 12px;
+        color: #fecaca;
+        font-size: 0.95rem;
+      }
+      footer {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      footer a {
+        color: #7dd3fc;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1 id="siteTitle">snek.su</h1>
+        <p class="sub" id="siteSubtitle">Загрузка…</p>
+      </header>
+      <div id="root"></div>
+      <footer>
+        Редактировать список:
+        <a href="./admin/">админка проектов</a>
+        (нужен токен из <code style="color: #cbd5e1">config.local.php</code>).
+      </footer>
+    </div>
+    <script>
+      (function () {
+        var root = document.getElementById('root');
+        var titleEl = document.getElementById('siteTitle');
+        var subEl = document.getElementById('siteSubtitle');
+
+        function showError(msg) {
+          root.innerHTML = '<div class="err" role="alert">' + msg + '</div>';
+          subEl.textContent = 'Не удалось загрузить список';
+        }
+
+        fetch('./data/projects.json', { cache: 'no-store' })
+          .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          })
+          .then(function (data) {
+            if (!data || !Array.isArray(data.projects)) {
+              showError('В projects.json нет массива <code>projects</code>.');
+              return;
+            }
+            titleEl.textContent = data.siteTitle || 'Проекты';
+            subEl.textContent = data.siteSubtitle || '';
+
+            var grid = document.createElement('div');
+            grid.className = 'grid';
+            data.projects.forEach(function (p) {
+              var a = document.createElement('a');
+              a.className = 'card';
+              a.href = p.href || '#';
+              if (p.accent) a.style.setProperty('--accent', p.accent);
+              var h = document.createElement('h2');
+              h.textContent = p.title || 'Без названия';
+              var desc = document.createElement('p');
+              desc.textContent = p.description || '';
+              var path = document.createElement('div');
+              path.className = 'path';
+              path.textContent = p.href || '';
+              a.appendChild(h);
+              a.appendChild(desc);
+              a.appendChild(path);
+              grid.appendChild(a);
+            });
+            root.appendChild(grid);
+          })
+          .catch(function () {
+            showError(
+              'Файл <code>data/projects.json</code> не найден или недоступен. Загрузите содержимое папки <code>site-hub/</code> в корень сайта (рядом с <code>index.html</code>).'
+            );
+          });
+      })();
+    </script>
+  </body>
+</html>
