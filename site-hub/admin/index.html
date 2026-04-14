@@ -499,29 +499,76 @@
             headers: { 'X-Admin-Token': t },
           })
             .then(function (r) {
-              if (r.status === 403) throw new Error('Неверный пароль');
-              if (!r.ok) throw new Error('HTTP ' + r.status);
-              return r.json();
+              return r.text().then(function (text) {
+                return { status: r.status, text: text };
+              });
             })
-            .then(function (data) {
+            .then(function (res) {
+              if (res.status === 403) {
+                showMsg(
+                  'Пароль не подошёл. Откройте на сервере файл admin/config.local.php и сравните значение adminToken с тем, что вы вводите (без пробелов в начале и конце).',
+                  false
+                );
+                return;
+              }
+              if (res.status === 503) {
+                var hint = '';
+                try {
+                  var j = JSON.parse(res.text);
+                  hint = (j && (j.hint || j.error)) ? String(j.hint || j.error) : '';
+                } catch (e2) {}
+                showMsg(
+                  'Сайт ещё не настроен: нет admin/config.local.php или в нём не задан adminToken. ' + (hint ? '(' + hint + ') ' : '') +
+                    'Скопируйте admin/config.example.php → config.local.php на сервере и задайте длинный пароль в adminToken.',
+                  false
+                );
+                return;
+              }
+              if (res.status >= 500) {
+                showMsg('Ошибка на сервере (код ' + res.status + '). Посмотрите логи PHP у хостинга.', false);
+                return;
+              }
+              var data;
+              try {
+                data = JSON.parse(res.text);
+              } catch (e3) {
+                showMsg(
+                  'Ответ save.php не похож на JSON — часто это PHP-ошибка на сервере. Откройте в браузере адрес …/admin/save.php с паролем не получится; проверьте файл через панель хостинга.',
+                  false
+                );
+                return;
+              }
+              if (data && data.error === 'not_found') {
+                data = { siteTitle: 'snek.su', siteSubtitle: '', projects: [] };
+              }
+              if (!Array.isArray(data.projects)) {
+                showMsg('В ответе сервера нет списка проектов. Проверьте целостность data/projects.json.', false);
+                return;
+              }
               state.siteTitle = data.siteTitle || 'snek.su';
               state.siteSubtitle = data.siteSubtitle || '';
-              state.projects = Array.isArray(data.projects) ? data.projects.slice() : [];
+              state.projects = data.projects.slice();
               if (state.projects.length === 0) {
                 state.projects.push({
                   title: 'Новая карточка',
-                  href: '/',
+                  href: '/wardrone/',
                   description: '',
                   accent: '#38bdf8',
                 });
+                showMsg(
+                  'Пароль принят. Файла со списком ещё не было — показан черновик. Заполните карточки и нажмите «Сохранить на сервер».',
+                  true
+                );
+              } else {
+                showMsg('Готово: данные с сервера загружены.', true);
               }
               syncSiteFields();
               renderProjects();
-              showMsg('Готово: данные с сервера загружены.', true);
             })
             .catch(function () {
               fetch('../data/projects.json', { cache: 'no-store' })
                 .then(function (r) {
+                  if (!r.ok) throw new Error('no public json');
                   return r.json();
                 })
                 .then(function (data) {
@@ -531,12 +578,15 @@
                   syncSiteFields();
                   renderProjects();
                   showMsg(
-                    'Показано то, что сейчас на сайте (без пароля можно только смотреть). Чтобы сохранить правки — введите верный пароль и нажмите «Загрузить с сервера» или сразу «Сохранить на сервер».',
+                    'Загружено только публичная копия (save.php недоступен: сеть или блокировка). Сохранение на сервер может не сработать — проверьте пароль и наличие admin/save.php.',
                     false
                   );
                 })
                 .catch(function () {
-                  showMsg('Не удалось связаться с сервером. Проверьте пароль или попробуйте позже.', false);
+                  showMsg(
+                    'Не удалось открыть ни защищённый save.php, ни публичный data/projects.json. Проверьте адрес (https://snek.su/admin/), что сайт открывается по HTTPS и что на сервере есть папки admin/ и data/.',
+                    false
+                  );
                 });
             });
         };

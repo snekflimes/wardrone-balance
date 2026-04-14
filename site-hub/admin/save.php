@@ -42,8 +42,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     exit;
   }
   if (!is_readable($dataFile)) {
-    http_response_code(404);
-    echo json_encode(['error' => 'not_found'], JSON_UNESCAPED_UNICODE);
+    // Первый запуск: файла ещё нет (часто после деплоя без data/projects.json) — отдаём пустой шаблон, чтобы админка открылась и можно было сохранить.
+    http_response_code(200);
+    echo json_encode(
+      [
+        'siteTitle' => 'snek.su',
+        'siteSubtitle' => '',
+        'projects' => [],
+      ],
+      JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
+    ) . "\n";
     exit;
   }
   readfile($dataFile);
