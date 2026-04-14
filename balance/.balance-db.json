@@ -183,10 +183,15 @@
           "baseWeight": 0.2
         }
       ],
+      "freeChestKeyProgression": {
+        "keysPerWin": 1,
+        "keysPerLoss": 0.5,
+        "keysToOpenChest": 3
+      },
       "freeChests": [
         {
-          "id": "free_5m",
-          "name": "Бесплатный сундук 5м",
+          "id": "free_1star",
+          "name": "Бесплатный сундук 1★",
           "packIds": [
             "soft_small",
             "soft_medium",
@@ -199,8 +204,8 @@
           ]
         },
         {
-          "id": "free_15m",
-          "name": "Бесплатный сундук 15м",
+          "id": "free_2star",
+          "name": "Бесплатный сундук 2★",
           "packIds": [
             "soft_medium",
             "soft_big",
@@ -214,8 +219,8 @@
           ]
         },
         {
-          "id": "free_30m",
-          "name": "Бесплатный сундук 30м",
+          "id": "free_3star",
+          "name": "Бесплатный сундук 3★",
           "packIds": [
             "soft_big",
             "hard_medium",

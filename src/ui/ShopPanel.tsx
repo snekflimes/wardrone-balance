@@ -876,11 +876,11 @@ export const ShopPanel: React.FC<{
                 Бесплатные сундуки (1 дроп за открытие)
               </div>
               <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, lineHeight: 1.45 }}>
-                Прогресс по ключам за попытку уровня: победа +{keyProg.keysPerWin} ключа, поражение +{keyProg.keysPerLoss}. После{' '}
-                {keyProg.keysToOpenChest} ключей открывается следующий сундук по порядку списка (1★ → 2★ → 3★ → снова 1★). Поле
-                «КД (мин)» — только для ориентира в UI клиента; прогноз от таймера не зависит. При винрейте 50% в среднем ~{' '}
-                {keysPerAttemptAt50.toFixed(2)} ключа за попытку (~{(keyProg.keysToOpenChest / keysPerAttemptAt50).toFixed(2)} попыток на
-                один сундук).
+                <strong style={{ color: '#94a3b8' }}>Только ключи, без таймера 5–15–30 мин.</strong> За попытку уровня: победа +{keyProg.keysPerWin}{' '}
+                ключа, поражение +{keyProg.keysPerLoss}. После {keyProg.keysToOpenChest} ключей открывается следующий бесплатный сундук по
+                порядку списка ниже (цикл). Ниже три сундука — это содержимое (дроп), а не три таймера; старая выдача по минутам в прогнозе
+                не используется. При винрейте 50% в среднем ~{keysPerAttemptAt50.toFixed(2)} ключа за попытку (~
+                {(keyProg.keysToOpenChest / keysPerAttemptAt50).toFixed(2)} попыток на один сундук).
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(120px, 1fr))', gap: 8, marginBottom: 8 }}>
                 <label>
