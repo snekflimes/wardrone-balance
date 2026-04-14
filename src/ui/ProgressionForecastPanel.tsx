@@ -21,6 +21,7 @@ import { simulateProgressionForecast } from '../progression/progressionSimulator
 import { autoTuneReferenceWaves } from '../progression/autoTuneLevels';
 import { effectiveEnergyRegenIntervalSec, resolveEnergyRegenPerHour } from '../progression/energyRegenForecast';
 import { rocketWeaponLevelDisplay, showRocketLevelsInSummary } from '../progression/weaponLevelDisplay';
+import { getFreeChestsForKeyCycle } from '../progression/iapAndChestsModel';
 
 export type TuneMode = 'pass_rate' | 'attempt_range';
 export type PresetKind = 'onboarding' | 'midcore' | 'hardcore';
@@ -619,21 +620,20 @@ export const ProgressionForecastPanel: React.FC<{
   const chestOpenSummary = useMemo(() => {
     const freeMap = forecast.expectedFreeChestOpensById ?? {};
     const paidMap = forecast.expectedPaidChestOpensById ?? {};
-    const freeChests = balance.economy.freeChests ?? [];
-    const freeRows = Object.entries(freeMap)
-      .filter(([, n]) => n > 0.0005)
-      .map(([id, count]) => ({
-        id,
-        name: freeChests.find((c) => c.id === id)?.name ?? id,
-        count,
+    const cycleChests = getFreeChestsForKeyCycle(balance.economy.freeChests);
+    const freeRows = cycleChests
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        count: freeMap[c.id] ?? 0,
       }))
-      .sort((a, b) => b.count - a.count);
+      .filter((r) => r.count > 0.0005);
     const paidRows = Object.entries(paidMap)
       .filter(([, n]) => n > 0.0005)
       .map(([id, count]) => ({ id, name: id, count }))
       .sort((a, b) => b.count - a.count);
     const freeOpensSum = freeRows.reduce((s, r) => s + r.count, 0);
-    const configuredFreeChestCount = (balance.economy.freeChests ?? []).length;
+    const configuredFreeChestCount = cycleChests.length;
     return {
       freeRows,
       paidRows,
@@ -1093,8 +1093,10 @@ export const ProgressionForecastPanel: React.FC<{
             <strong>{Math.round((forecast.progressionElapsedCalendarHours ?? 0) * 10) / 10} ч</strong>
           </div>
           <div>
-            Бесплатные сундуки: <strong>по ключам за попытку уровня</strong> (победа / поражение), цикл по{' '}
-            <strong>{chestOpenSummary.configuredFreeChestCount}</strong> слотам в <code style={{ color: '#cbd5e1' }}>freeChests</code>.
+            Бесплатные сундуки: <strong>только по ключам за попытку уровня</strong> (победа / поражение), цикл из{' '}
+            <strong>{chestOpenSummary.configuredFreeChestCount}</strong> сундуков (легаси id{' '}
+            <code style={{ color: '#cbd5e1' }}>free_5m</code> / <code style={{ color: '#cbd5e1' }}>free_15m</code> /{' '}
+            <code style={{ color: '#cbd5e1' }}>free_30m</code> в расчёте не участвуют, если в конфиге есть 1★–3★).
             {chestOpenSummary.freeKeyForecast && (
               <>
                 {' '}

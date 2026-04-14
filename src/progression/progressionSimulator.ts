@@ -1,4 +1,4 @@
-import type { BalanceConstants } from '../balance/model';
+import type { BalanceConstants, FreeChestConfig } from '../balance/model';
 import type { EnemyId } from '../balance/model';
 import type {
   CombatOutcome,
@@ -27,9 +27,10 @@ import {
 import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import {
   addExpectedBlueprintsFromPaidChestOpens,
-  getExpectedBlueprintCopiesOfSingleCardPerFreeChest,
-  getExpectedFreeChestCurrencyPerOpen,
+  getExpectedBlueprintCopiesOfSingleCardPerFreeChestFromConfig,
+  getExpectedFreeChestCurrencyPerOpenFromConfig,
   getFreeChestKeyProgression,
+  getFreeChestsForKeyCycle,
   getHardIncomeFromSegmentPerWeek,
   getSoftIncomeFromSegmentPerWeek,
 } from './iapAndChestsModel';
@@ -219,20 +220,20 @@ export function simulateProgressionForecast(
   let freeChestAttemptLosses = 0;
   const paidChestOpensById: Record<string, number> = {};
 
+  const freeChestsKeyCycle: FreeChestConfig[] = getFreeChestsForKeyCycle(constants.economy.freeChests);
+
   const recordPaidChestOpens = (chestId: string, count: number) => {
     if (count <= 0 || !chestId) return;
     paidChestOpensById[chestId] = (paidChestOpensById[chestId] ?? 0) + count;
   };
 
-  const applySingleFreeChestOpen = (chestId: string) => {
-    const chestList = constants.economy.freeChests ?? [];
-    if (!chestList.some((c) => c.id === chestId)) return;
-    freeChestOpensById[chestId] = (freeChestOpensById[chestId] ?? 0) + 1;
-    const expectedCurrency = getExpectedFreeChestCurrencyPerOpen(constants, chestId);
+  const applySingleFreeChestOpen = (chest: FreeChestConfig) => {
+    freeChestOpensById[chest.id] = (freeChestOpensById[chest.id] ?? 0) + 1;
+    const expectedCurrency = getExpectedFreeChestCurrencyPerOpenFromConfig(constants, chest);
     softBalance += expectedCurrency.soft;
     hardBalance += expectedCurrency.hard;
     for (const card of constants.supportCards) {
-      const perOpen = getExpectedBlueprintCopiesOfSingleCardPerFreeChest(constants, chestId, card.rarity);
+      const perOpen = getExpectedBlueprintCopiesOfSingleCardPerFreeChestFromConfig(constants, chest, card.rarity);
       if (perOpen <= 0) continue;
       supportCardBlueprints[card.id] = (supportCardBlueprints[card.id] ?? 0) + perOpen;
     }
@@ -564,18 +565,17 @@ export function simulateProgressionForecast(
 
       {
         const kp = getFreeChestKeyProgression(constants);
-        const fcList = constants.economy.freeChests ?? [];
-        if (fcList.length > 0) {
+        if (freeChestsKeyCycle.length > 0) {
           if (attemptVictory) freeChestAttemptWins += 1;
           else freeChestAttemptLosses += 1;
           const delta = attemptVictory ? kp.keysPerWin : kp.keysPerLoss;
           freeChestKeyBank += delta;
           const need = kp.keysToOpenChest;
-          while (freeChestKeyBank + 1e-9 >= need && fcList.length > 0) {
+          while (freeChestKeyBank + 1e-9 >= need && freeChestsKeyCycle.length > 0) {
             freeChestKeyBank -= need;
-            const chest = fcList[freeChestCycleSlot % fcList.length];
-            applySingleFreeChestOpen(chest.id);
-            freeChestCycleSlot = (freeChestCycleSlot + 1) % fcList.length;
+            const chest = freeChestsKeyCycle[freeChestCycleSlot % freeChestsKeyCycle.length];
+            applySingleFreeChestOpen(chest);
+            freeChestCycleSlot = (freeChestCycleSlot + 1) % freeChestsKeyCycle.length;
           }
         }
       }
@@ -660,7 +660,7 @@ export function simulateProgressionForecast(
     },
     expectedFreeChestOpensById: { ...freeChestOpensById },
     freeChestKeyForecast:
-      (constants.economy.freeChests ?? []).length > 0
+      freeChestsKeyCycle.length > 0
         ? {
             attempts: fcAttempts,
             wins: freeChestAttemptWins,

@@ -186,6 +186,37 @@ export function getFreeChestKeyProgression(constants: BalanceConstants): Resolve
   };
 }
 
+/** Легаси-id таймерных сундуков (5/15/30 мин). В цикле по ключам не используются, если в конфиге уже есть 1★–3★. */
+const LEGACY_TIMER_FREE_CHEST_IDS = new Set(['free_5m', 'free_15m', 'free_30m']);
+
+/**
+ * Сундуки, участвующие в цикле «ключи за попытку → открытие».
+ * Дубли таймерных id отбрасываются, если остаётся актуальный набор с 1★–3★.
+ * Если в JSON только три легаси-сундука — возвращаем три с id 1★/2★/3★ и тем же содержимым (дроп), без «минут» в прогнозе.
+ */
+export function getFreeChestsForKeyCycle(chests: FreeChestConfig[] | undefined): FreeChestConfig[] {
+  const list = chests ?? [];
+  if (list.length === 0) return [];
+  const filtered = list.filter((c) => !LEGACY_TIMER_FREE_CHEST_IDS.has(c.id));
+  if (filtered.length > 0) return filtered;
+
+  const order = ['free_5m', 'free_15m', 'free_30m'] as const;
+  const starIds = ['free_1star', 'free_2star', 'free_3star'] as const;
+  const starNames = ['Бесплатный сундук 1★', 'Бесплатный сундук 2★', 'Бесплатный сундук 3★'] as const;
+  const migrated: FreeChestConfig[] = [];
+  for (let i = 0; i < 3; i++) {
+    const c = list.find((x) => x.id === order[i]);
+    if (c) {
+      migrated.push({
+        ...c,
+        id: starIds[i],
+        name: starNames[i],
+      });
+    }
+  }
+  return migrated.length > 0 ? migrated : list;
+}
+
 /** Среднее число ключей за попытку при доле побед winRate (0..1). */
 export function getExpectedKeysPerAttempt(
   winRate: number,
@@ -357,13 +388,11 @@ function getFreeChestDropPool(constants: BalanceConstants, chest: FreeChestConfi
   return drops;
 }
 
-export function getExpectedBlueprintCopiesOfSingleCardPerFreeChest(
+export function getExpectedBlueprintCopiesOfSingleCardPerFreeChestFromConfig(
   constants: BalanceConstants,
-  freeChestId: string,
+  chest: FreeChestConfig,
   targetRarity: CardRarity
 ): number {
-  const chest = (constants.economy.freeChests ?? []).find((c) => c.id === freeChestId);
-  if (!chest) return 0;
   const pool = getFreeChestDropPool(constants, chest);
   const totalWeight = pool.reduce((s, d) => s + d.weight, 0);
   if (totalWeight <= 0) return 0;
@@ -381,12 +410,20 @@ export function getExpectedBlueprintCopiesOfSingleCardPerFreeChest(
   return pRarity / cardsOfRarity;
 }
 
-export function getExpectedFreeChestCurrencyPerOpen(
+export function getExpectedBlueprintCopiesOfSingleCardPerFreeChest(
   constants: BalanceConstants,
-  freeChestId: string
-): { soft: number; hard: number } {
+  freeChestId: string,
+  targetRarity: CardRarity
+): number {
   const chest = (constants.economy.freeChests ?? []).find((c) => c.id === freeChestId);
-  if (!chest) return { soft: 0, hard: 0 };
+  if (!chest) return 0;
+  return getExpectedBlueprintCopiesOfSingleCardPerFreeChestFromConfig(constants, chest, targetRarity);
+}
+
+export function getExpectedFreeChestCurrencyPerOpenFromConfig(
+  constants: BalanceConstants,
+  chest: FreeChestConfig
+): { soft: number; hard: number } {
   const pool = getFreeChestDropPool(constants, chest);
   const totalWeight = pool.reduce((s, d) => s + d.weight, 0);
   if (totalWeight <= 0) return { soft: 0, hard: 0 };
@@ -400,5 +437,14 @@ export function getExpectedFreeChestCurrencyPerOpen(
     else hard += p * drop.pack.amount;
   }
   return { soft, hard };
+}
+
+export function getExpectedFreeChestCurrencyPerOpen(
+  constants: BalanceConstants,
+  freeChestId: string
+): { soft: number; hard: number } {
+  const chest = (constants.economy.freeChests ?? []).find((c) => c.id === freeChestId);
+  if (!chest) return { soft: 0, hard: 0 };
+  return getExpectedFreeChestCurrencyPerOpenFromConfig(constants, chest);
 }
 
