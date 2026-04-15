@@ -395,6 +395,17 @@ function packLineWeight(chest: FreeChestConfig, pack: CurrencyPackConfig): numbe
   return Math.max(0, pack.baseWeight ?? 0);
 }
 
+/** Вес пака в пуле бесплатного сундука: packWeights[id] или baseWeight пака. */
+export function getEffectiveFreeChestPackWeight(
+  constants: BalanceConstants,
+  chest: FreeChestConfig,
+  packId: string
+): number {
+  const pack = (constants.economy.currencyPacks ?? []).find((p) => p.id === packId);
+  if (!pack) return 0;
+  return packLineWeight(chest, pack);
+}
+
 /** Пул одного открытия бесплатного сундука (паки + чертежи по редкости). Используется в прогнозе и в симуляторе. */
 export function getFreeChestDropPool(constants: BalanceConstants, chest: FreeChestConfig): FreeChestDrop[] {
   const packsById = new Map((constants.economy.currencyPacks ?? []).map((p) => [p.id, p]));

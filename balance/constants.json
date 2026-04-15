@@ -145,6 +145,7 @@
         "id": "free_1star",
         "name": "Бесплатный сундук 1★",
         "packIds": ["soft_small", "soft_medium", "soft_big", "hard_small"],
+        "packWeights": { "soft_small": 1.1, "soft_medium": 0.85, "soft_big": 0.55, "hard_small": 0.45 },
         "blueprintRarities": ["common", "uncommon"],
         "blueprintDropWeights": { "common": 1.5, "uncommon": 1, "rare": 0.6, "epic": 0.3, "legendary": 0.1 }
       },
@@ -152,6 +153,7 @@
         "id": "free_2star",
         "name": "Бесплатный сундук 2★",
         "packIds": ["soft_medium", "soft_big", "hard_small", "hard_medium"],
+        "packWeights": { "soft_medium": 0.95, "soft_big": 0.6, "hard_small": 0.45, "hard_medium": 0.35 },
         "blueprintRarities": ["common", "uncommon", "rare"],
         "blueprintDropWeights": { "common": 0.3, "uncommon": 0.6, "rare": 1, "epic": 0.6, "legendary": 0.3 }
       },
@@ -159,6 +161,7 @@
         "id": "free_3star",
         "name": "Бесплатный сундук 3★",
         "packIds": ["soft_big", "hard_medium", "hard_big"],
+        "packWeights": { "soft_big": 0.5, "hard_medium": 0.4, "hard_big": 0.25 },
         "blueprintRarities": ["common", "uncommon", "rare", "epic", "legendary"],
         "blueprintDropWeights": { "common": 0.1, "uncommon": 0.3, "rare": 0.6, "epic": 1, "legendary": 1.5 }
       }

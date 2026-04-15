@@ -9,6 +9,7 @@ import {
 } from '../balance/economy';
 import {
   getEffectiveFreeChestBlueprintWeight,
+  getEffectiveFreeChestPackWeight,
   getExpectedKeysPerAttempt,
   getFreeChestDropPool,
   getFreeChestKeyProgression,
@@ -468,6 +469,7 @@ export const ShopPanel: React.FC<{
             id: 'free_1star',
             name: 'Бесплатный сундук 1★',
             packIds: ['soft_small', 'soft_medium', 'soft_big', 'hard_small'],
+            packWeights: { soft_small: 1.1, soft_medium: 0.85, soft_big: 0.55, hard_small: 0.45 },
             blueprintRarities: ['common', 'uncommon'],
             blueprintDropWeights: { common: 1.5, uncommon: 1, rare: 0.6, epic: 0.3, legendary: 0.1 },
           },
@@ -475,6 +477,7 @@ export const ShopPanel: React.FC<{
             id: 'free_2star',
             name: 'Бесплатный сундук 2★',
             packIds: ['soft_medium', 'soft_big', 'hard_small', 'hard_medium'],
+            packWeights: { soft_medium: 0.95, soft_big: 0.6, hard_small: 0.45, hard_medium: 0.35 },
             blueprintRarities: ['common', 'uncommon', 'rare'],
             blueprintDropWeights: { common: 0.3, uncommon: 0.6, rare: 1, epic: 0.6, legendary: 0.3 },
           },
@@ -482,6 +485,7 @@ export const ShopPanel: React.FC<{
             id: 'free_3star',
             name: 'Бесплатный сундук 3★',
             packIds: ['soft_big', 'hard_medium', 'hard_big'],
+            packWeights: { soft_big: 0.5, hard_medium: 0.4, hard_big: 0.25 },
             blueprintRarities: ['common', 'uncommon', 'rare', 'epic', 'legendary'],
             blueprintDropWeights: { common: 0.1, uncommon: 0.3, rare: 0.6, epic: 1, legendary: 1.5 },
           },
@@ -1035,18 +1039,74 @@ export const ShopPanel: React.FC<{
                       <div style={{ color: '#94a3b8', fontSize: 12 }}>ID: {ch.id}</div>
                     </div>
                     <div style={{ marginBottom: 8 }}>
-                      <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 4 }}>Паки валюты</div>
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        {(balance.economy.currencyPacks ?? []).map((pack) => (
-                          <label key={`${ch.id}_${pack.id}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                            <input
-                              type="checkbox"
-                              checked={ch.packIds.includes(pack.id)}
-                              onChange={() => toggleFreeChestPack(ch.id, pack.id)}
-                            />
-                            {pack.name}
-                          </label>
-                        ))}
+                      <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 4 }}>
+                        Паки валюты — вес в общем пуле (пак или чертёж); пусто ={' '}
+                        <code style={{ color: '#cbd5e1' }}>baseWeight</code> пака
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {(balance.economy.currencyPacks ?? []).map((pack) => {
+                          const on = ch.packIds.includes(pack.id);
+                          return (
+                            <label
+                              key={`${ch.id}_${pack.id}`}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                fontSize: 12,
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={on}
+                                onChange={() => toggleFreeChestPack(ch.id, pack.id)}
+                              />
+                              <span style={{ minWidth: 120, color: '#e2e8f0' }}>{pack.name}</span>
+                              <input
+                                style={{ ...inputStyle, width: 88, minWidth: 88, opacity: on ? 1 : 0.35 }}
+                                type="number"
+                                disabled={!on}
+                                min={0}
+                                step={0.05}
+                                title={
+                                  on
+                                    ? 'Вес этого пака среди всех паков и чертежей. Пусто — baseWeight пака.'
+                                    : 'Включите пак чекбоксом'
+                                }
+                                value={
+                                  ch.packWeights?.[pack.id] !== undefined && ch.packWeights?.[pack.id] !== null
+                                    ? String(ch.packWeights[pack.id])
+                                    : ''
+                                }
+                                placeholder={on ? String(getEffectiveFreeChestPackWeight(balance, ch, pack.id)) : '—'}
+                                onChange={(e) => {
+                                  const v = e.target.value.trim();
+                                  setBalance((prev) => ({
+                                    ...prev,
+                                    economy: {
+                                      ...prev.economy,
+                                      freeChests: (prev.economy.freeChests ?? []).map((x) => {
+                                        if (x.id !== ch.id) return x;
+                                        const next = { ...(x.packWeights ?? {}) };
+                                        if (v === '') {
+                                          delete next[pack.id];
+                                        } else {
+                                          next[pack.id] = Math.max(0, Number(e.target.value) || 0);
+                                        }
+                                        const keys = Object.keys(next);
+                                        return {
+                                          ...x,
+                                          packWeights: keys.length > 0 ? next : undefined,
+                                        };
+                                      }),
+                                    },
+                                  }));
+                                }}
+                              />
+                            </label>
+                          );
+                        })}
                       </div>
                     </div>
                     <div>
@@ -1072,8 +1132,8 @@ export const ShopPanel: React.FC<{
               Одна таблица: сверху — <strong style={{ color: '#94a3b8' }}>платные</strong> (<code style={{ color: '#cbd5e1' }}>economy.chests</code>
               ), цены и множители редкостей карт. Ниже серым — <strong style={{ color: '#94a3b8' }}>бесплатные</strong> по ключам (
               <code style={{ color: '#cbd5e1' }}>economy.freeChests</code>): цена 0, один дроп; паки и набор редкостей чертежей — в блоке выше (чекбоксы).{' '}
-              Колонки Common–Legendary у бесплатных — <strong style={{ color: '#94a3b8' }}>вес чертежа</strong> этой редкости в общем пуле (паки + чертежи); пустое поле — как{' '}
-              <code style={{ color: '#cbd5e1' }}>cardRarityWeights</code> (подсказка в placeholder).
+              Веса паков — в карточках выше у каждого пака; колонки Common–Legendary — <strong style={{ color: '#94a3b8' }}>вес чертежа</strong> в том же общем пуле; пусто у чертежа —{' '}
+              <code style={{ color: '#cbd5e1' }}>cardRarityWeights</code>.
             </p>
             <table style={tableStyle}>
               <thead>
