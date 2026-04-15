@@ -36,6 +36,19 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
+const freeChestTableCellInput: React.CSSProperties = {
+  width: '100%',
+  minWidth: 52,
+  maxWidth: 80,
+  padding: '4px 6px',
+  borderRadius: 6,
+  border: '1px solid rgba(148, 163, 184, 0.35)',
+  background: 'rgba(15, 23, 42, 0.9)',
+  color: '#e2e8f0',
+  boxSizing: 'border-box',
+  fontSize: 11,
+};
+
 function setStarterPackRefField(setBalance: SetBalance, patch: Partial<RefStarterPack>) {
   setBalance((prev) => {
     const rp = prev.economy.referencePacks;
@@ -901,7 +914,7 @@ export const ShopPanel: React.FC<{
               <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, lineHeight: 1.45 }}>
                 <strong style={{ color: '#94a3b8' }}>Только ключи, без таймера 5–15–30 мин.</strong> За попытку уровня: победа +{keyProg.keysPerWin}{' '}
                 ключа, поражение +{keyProg.keysPerLoss}. После {keyProg.keysToOpenChest} ключей открывается следующий бесплатный сундук по
-                порядку списка ниже (цикл). Ниже три сундука — это содержимое (дроп), а не три таймера; старая выдача по минутам в прогнозе
+                порядку строк в таблице «Бесплатные сундуки» ниже (цикл). Там же — паки, веса и редкости чертежей. Ниже три сундука — содержимое (дроп), не таймеры; старая выдача по минутам в прогнозе
                 не используется. При винрейте 50% в среднем ~{keysPerAttemptAt50.toFixed(2)} ключа за попытку (~
                 {(keyProg.keysToOpenChest / keysPerAttemptAt50).toFixed(2)} попыток на один сундук).
               </div>
@@ -1023,117 +1036,12 @@ export const ShopPanel: React.FC<{
                   Добавить бесплатный сундук
                 </button>
               </div>
-              <div style={{ display: 'grid', gap: 10 }}>
-                {freeChests.map((ch) => (
-                  <div
-                    key={ch.id}
-                    style={{
-                      border: '1px solid rgba(148, 163, 184, 0.24)',
-                      borderRadius: 10,
-                      padding: 10,
-                      background: 'rgba(15, 23, 42, 0.45)',
-                    }}
-                  >
-                    <div style={{ marginBottom: 8 }}>
-                      <div style={{ color: '#e2e8f0', fontWeight: 700 }}>{ch.name}</div>
-                      <div style={{ color: '#94a3b8', fontSize: 12 }}>ID: {ch.id}</div>
-                    </div>
-                    <div style={{ marginBottom: 8 }}>
-                      <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 4 }}>
-                        Паки валюты — вес в общем пуле (пак или чертёж); пусто ={' '}
-                        <code style={{ color: '#cbd5e1' }}>baseWeight</code> пака
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {(balance.economy.currencyPacks ?? []).map((pack) => {
-                          const on = ch.packIds.includes(pack.id);
-                          return (
-                            <label
-                              key={`${ch.id}_${pack.id}`}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                fontSize: 12,
-                                flexWrap: 'wrap',
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={on}
-                                onChange={() => toggleFreeChestPack(ch.id, pack.id)}
-                              />
-                              <span style={{ minWidth: 120, color: '#e2e8f0' }}>{pack.name}</span>
-                              <input
-                                style={{ ...inputStyle, width: 88, minWidth: 88, opacity: on ? 1 : 0.35 }}
-                                type="number"
-                                disabled={!on}
-                                min={0}
-                                step={0.05}
-                                title={
-                                  on
-                                    ? 'Вес этого пака среди всех паков и чертежей. Пусто — baseWeight пака.'
-                                    : 'Включите пак чекбоксом'
-                                }
-                                value={
-                                  ch.packWeights?.[pack.id] !== undefined && ch.packWeights?.[pack.id] !== null
-                                    ? String(ch.packWeights[pack.id])
-                                    : ''
-                                }
-                                placeholder={on ? String(getEffectiveFreeChestPackWeight(balance, ch, pack.id)) : '—'}
-                                onChange={(e) => {
-                                  const v = e.target.value.trim();
-                                  setBalance((prev) => ({
-                                    ...prev,
-                                    economy: {
-                                      ...prev.economy,
-                                      freeChests: (prev.economy.freeChests ?? []).map((x) => {
-                                        if (x.id !== ch.id) return x;
-                                        const next = { ...(x.packWeights ?? {}) };
-                                        if (v === '') {
-                                          delete next[pack.id];
-                                        } else {
-                                          next[pack.id] = Math.max(0, Number(e.target.value) || 0);
-                                        }
-                                        const keys = Object.keys(next);
-                                        return {
-                                          ...x,
-                                          packWeights: keys.length > 0 ? next : undefined,
-                                        };
-                                      }),
-                                    },
-                                  }));
-                                }}
-                              />
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 4 }}>Редкости чертежей</div>
-                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        {(['common', 'uncommon', 'rare', 'epic', 'legendary'] as const).map((rarity) => (
-                          <label key={`${ch.id}_${rarity}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                            <input
-                              type="checkbox"
-                              checked={ch.blueprintRarities.includes(rarity)}
-                              onChange={() => toggleFreeChestRarity(ch.id, rarity)}
-                            />
-                            {rarity}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
             <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-              Одна таблица: сверху — <strong style={{ color: '#94a3b8' }}>платные</strong> (<code style={{ color: '#cbd5e1' }}>economy.chests</code>
-              ), цены и множители редкостей карт. Ниже серым — <strong style={{ color: '#94a3b8' }}>бесплатные</strong> по ключам (
-              <code style={{ color: '#cbd5e1' }}>economy.freeChests</code>): цена 0, один дроп; паки и набор редкостей чертежей — в блоке выше (чекбоксы).{' '}
-              Веса паков — в карточках выше у каждого пака; колонки Common–Legendary — <strong style={{ color: '#94a3b8' }}>вес чертежа</strong> в том же общем пуле; пусто у чертежа —{' '}
-              <code style={{ color: '#cbd5e1' }}>cardRarityWeights</code>.
+              <strong style={{ color: '#94a3b8' }}>Платные</strong> (<code style={{ color: '#cbd5e1' }}>economy.chests</code>
+              ) — цены и множители редкостей. <strong style={{ color: '#94a3b8' }}>Бесплатные</strong> (
+              <code style={{ color: '#cbd5e1' }}>economy.freeChests</code>) — в таблице ниже: один дроп за открытие; у паков и редкостей чертежей — чекбокс «в пуле» и вес; пустой вес пака —{' '}
+              <code style={{ color: '#cbd5e1' }}>baseWeight</code>, пустой вес чертежа — <code style={{ color: '#cbd5e1' }}>cardRarityWeights</code>.
             </p>
             <table style={tableStyle}>
               <thead>
@@ -1201,93 +1109,189 @@ export const ShopPanel: React.FC<{
                     </tr>
                   );
                 })}
-                {freeChests.length > 0 && (
-                  <tr>
-                    <td
-                      colSpan={10}
-                      style={{
-                        border: '1px solid rgba(148, 163, 184, 0.24)',
-                        padding: '6px 8px',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: '#cbd5e1',
-                        background: 'rgba(30, 41, 59, 0.55)',
-                      }}
-                    >
-                      Бесплатные сундуки (цикл по ключам)
-                    </td>
-                  </tr>
-                )}
-                {freeChests.map((fc) => {
-                  const ch = (balance.economy.freeChests ?? []).find((c) => c.id === fc.id) ?? fc;
-                  return (
-                    <tr key={`chest_table_free_${fc.id}`} style={{ background: 'rgba(15, 23, 42, 0.5)' }}>
-                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, verticalAlign: 'top' }}>
-                        <div style={{ color: '#e2e8f0', fontWeight: 600 }}>{fc.id}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{fc.name}</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>ключи · не платный</div>
-                      </td>
-                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>0</td>
-                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>0</td>
-                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>1</td>
-                      {(['common', 'uncommon', 'rare', 'epic', 'legendary'] as const).map((rarity) => (
-                        <td key={`${fc.id}_${rarity}`} style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
-                          <input
-                            style={{
-                              ...inputStyle,
-                              opacity: ch.blueprintRarities.includes(rarity) ? 1 : 0.35,
-                            }}
-                            type="number"
-                            disabled={!ch.blueprintRarities.includes(rarity)}
-                            min={0}
-                            step={0.05}
-                            title={
-                              ch.blueprintRarities.includes(rarity)
-                                ? 'Вес чертежа этой редкости в пуле (вместе с паками). Пусто — дефолт из cardRarityWeights.'
-                                : 'Не в пуле (чекбокс выше)'
-                            }
-                            value={
-                              ch.blueprintDropWeights?.[rarity] !== undefined && ch.blueprintDropWeights?.[rarity] !== null
-                                ? String(ch.blueprintDropWeights[rarity])
-                                : ''
-                            }
-                            placeholder={String(
-                              getEffectiveFreeChestBlueprintWeight(balance, ch, rarity as CardRarity)
-                            )}
-                            onChange={(e) => {
-                              const v = e.target.value.trim();
-                              setBalance((prev) => ({
-                                ...prev,
-                                economy: {
-                                  ...prev.economy,
-                                  freeChests: (prev.economy.freeChests ?? []).map((x) => {
-                                    if (x.id !== ch.id) return x;
-                                    const next = { ...(x.blueprintDropWeights ?? {}) };
-                                    if (v === '') {
-                                      delete next[rarity];
-                                    } else {
-                                      next[rarity] = Math.max(0, Number(e.target.value) || 0);
-                                    }
-                                    const keys = Object.keys(next);
-                                    return {
-                                      ...x,
-                                      blueprintDropWeights: keys.length > 0 ? next : undefined,
-                                    };
-                                  }),
-                                },
-                              }));
-                            }}
-                          />
-                        </td>
-                      ))}
-                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, fontSize: 11, color: '#64748b' }}>
-                        —
-                      </td>
-                    </tr>
-                  );
-                })}
               </tbody>
             </table>
+            {freeChests.length > 0 && (
+              <div style={{ marginTop: 12, overflowX: 'auto' }}>
+                <table style={{ ...tableStyle, minWidth: 640 }}>
+                  <caption
+                    style={{
+                      captionSide: 'top',
+                      textAlign: 'left',
+                      color: '#cbd5e1',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      paddingBottom: 8,
+                    }}
+                  >
+                    Бесплатные сундуки (цикл по ключам) — один дроп; общий пул: паки + чертежи
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, minWidth: 132 }}>Сундук</th>
+                      {(balance.economy.currencyPacks ?? []).map((pack) => (
+                        <th
+                          key={`free_th_pack_${pack.id}`}
+                          style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, fontSize: 10, maxWidth: 96 }}
+                          title={pack.name}
+                        >
+                          {pack.name}
+                          <div style={{ fontSize: 9, color: '#64748b', fontWeight: 400 }}>вкл · вес</div>
+                        </th>
+                      ))}
+                      {(['common', 'uncommon', 'rare', 'epic', 'legendary'] as const).map((rarity) => (
+                        <th
+                          key={`free_th_bp_${rarity}`}
+                          style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, fontSize: 10 }}
+                        >
+                          {rarity}
+                          <div style={{ fontSize: 9, color: '#64748b', fontWeight: 400 }}>вкл · вес</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {freeChests.map((fc) => {
+                      const ch = (balance.economy.freeChests ?? []).find((c) => c.id === fc.id) ?? fc;
+                      return (
+                        <tr key={`free_chest_row_${fc.id}`} style={{ background: 'rgba(15, 23, 42, 0.45)' }}>
+                          <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, verticalAlign: 'top' }}>
+                            <div style={{ color: '#e2e8f0', fontWeight: 600 }}>{fc.id}</div>
+                            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{fc.name}</div>
+                            <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>ключи · не платный</div>
+                          </td>
+                          {(balance.economy.currencyPacks ?? []).map((pack) => {
+                            const on = ch.packIds.includes(pack.id);
+                            return (
+                              <td
+                                key={`${fc.id}_pack_${pack.id}`}
+                                style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, verticalAlign: 'top' }}
+                              >
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={on}
+                                    onChange={() => toggleFreeChestPack(ch.id, pack.id)}
+                                    title="Пак в пуле дропа"
+                                  />
+                                  <input
+                                    style={{ ...freeChestTableCellInput, opacity: on ? 1 : 0.35 }}
+                                    type="number"
+                                    disabled={!on}
+                                    min={0}
+                                    step={0.05}
+                                    title={
+                                      on
+                                        ? 'Вес пака в общем пуле. Пусто — baseWeight пака.'
+                                        : 'Включите пак'
+                                    }
+                                    value={
+                                      ch.packWeights?.[pack.id] !== undefined && ch.packWeights?.[pack.id] !== null
+                                        ? String(ch.packWeights[pack.id])
+                                        : ''
+                                    }
+                                    placeholder={on ? String(getEffectiveFreeChestPackWeight(balance, ch, pack.id)) : '—'}
+                                    onChange={(e) => {
+                                      const v = e.target.value.trim();
+                                      setBalance((prev) => ({
+                                        ...prev,
+                                        economy: {
+                                          ...prev.economy,
+                                          freeChests: (prev.economy.freeChests ?? []).map((x) => {
+                                            if (x.id !== ch.id) return x;
+                                            const next = { ...(x.packWeights ?? {}) };
+                                            if (v === '') {
+                                              delete next[pack.id];
+                                            } else {
+                                              next[pack.id] = Math.max(0, Number(e.target.value) || 0);
+                                            }
+                                            const keys = Object.keys(next);
+                                            return {
+                                              ...x,
+                                              packWeights: keys.length > 0 ? next : undefined,
+                                            };
+                                          }),
+                                        },
+                                      }));
+                                    }}
+                                  />
+                                </div>
+                              </td>
+                            );
+                          })}
+                          {(['common', 'uncommon', 'rare', 'epic', 'legendary'] as const).map((rarity) => {
+                            const on = ch.blueprintRarities.includes(rarity);
+                            return (
+                              <td
+                                key={`${fc.id}_bp_${rarity}`}
+                                style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, verticalAlign: 'top' }}
+                              >
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={on}
+                                    onChange={() => toggleFreeChestRarity(ch.id, rarity)}
+                                    title="Чертёж этой редкости в пуле"
+                                  />
+                                  <input
+                                    style={{ ...freeChestTableCellInput, opacity: on ? 1 : 0.35 }}
+                                    type="number"
+                                    disabled={!on}
+                                    min={0}
+                                    step={0.05}
+                                    title={
+                                      on
+                                        ? 'Вес линии чертежа в пуле. Пусто — cardRarityWeights.'
+                                        : 'Включите редкость'
+                                    }
+                                    value={
+                                      ch.blueprintDropWeights?.[rarity] !== undefined &&
+                                      ch.blueprintDropWeights?.[rarity] !== null
+                                        ? String(ch.blueprintDropWeights[rarity])
+                                        : ''
+                                    }
+                                    placeholder={
+                                      on
+                                        ? String(
+                                            getEffectiveFreeChestBlueprintWeight(balance, ch, rarity as CardRarity)
+                                          )
+                                        : '—'
+                                    }
+                                    onChange={(e) => {
+                                      const v = e.target.value.trim();
+                                      setBalance((prev) => ({
+                                        ...prev,
+                                        economy: {
+                                          ...prev.economy,
+                                          freeChests: (prev.economy.freeChests ?? []).map((x) => {
+                                            if (x.id !== ch.id) return x;
+                                            const next = { ...(x.blueprintDropWeights ?? {}) };
+                                            if (v === '') {
+                                              delete next[rarity];
+                                            } else {
+                                              next[rarity] = Math.max(0, Number(e.target.value) || 0);
+                                            }
+                                            const keys = Object.keys(next);
+                                            return {
+                                              ...x,
+                                              blueprintDropWeights: keys.length > 0 ? next : undefined,
+                                            };
+                                          }),
+                                        },
+                                      }));
+                                    }}
+                                  />
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <div style={{ marginTop: 12, borderTop: '1px solid rgba(148, 163, 184, 0.24)', paddingTop: 10 }}>
               <h5 style={{ marginTop: 0, marginBottom: 8 }}>Симулятор сундуков (как в скриптах)</h5>
               <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>
