@@ -1073,9 +1073,10 @@ export const ShopPanel: React.FC<{
               </div>
             </div>
             <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
-              Таблица ниже — только <strong style={{ color: '#94a3b8' }}>платные</strong> сундуки (<code style={{ color: '#cbd5e1' }}>economy.chests</code>
-              ): цена в монетах/золоте и веса редкостей карт. <strong style={{ color: '#94a3b8' }}>Бесплатные</strong> сундуки по ключам настраиваются{' '}
-              <strong>в блоке выше</strong> (паки и чертежи), сюда они не попадают — у них другая модель дропа (ровно 1 награда за открытие).
+              Одна таблица: сверху — <strong style={{ color: '#94a3b8' }}>платные</strong> (<code style={{ color: '#cbd5e1' }}>economy.chests</code>
+              ), цены и веса редкостей карт. Ниже серым — <strong style={{ color: '#94a3b8' }}>бесплатные</strong> по ключам (
+              <code style={{ color: '#cbd5e1' }}>economy.freeChests</code>): цена 0, один дроп; сами паки и чертежи задаются{' '}
+              <strong>в блоке выше</strong> (чекбоксы), в колонках весов у бесплатных — пояснение, не редактирование.
             </p>
             <table style={tableStyle}>
               <thead>
@@ -1143,6 +1144,51 @@ export const ShopPanel: React.FC<{
                     </tr>
                   );
                 })}
+                {freeChests.length > 0 && (
+                  <tr>
+                    <td
+                      colSpan={10}
+                      style={{
+                        border: '1px solid rgba(148, 163, 184, 0.24)',
+                        padding: '6px 8px',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#cbd5e1',
+                        background: 'rgba(30, 41, 59, 0.55)',
+                      }}
+                    >
+                      Бесплатные сундуки (цикл по ключам)
+                    </td>
+                  </tr>
+                )}
+                {freeChests.map((fc) => (
+                  <tr key={`chest_table_free_${fc.id}`} style={{ background: 'rgba(15, 23, 42, 0.5)' }}>
+                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, verticalAlign: 'top' }}>
+                      <div style={{ color: '#e2e8f0', fontWeight: 600 }}>{fc.id}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{fc.name}</div>
+                      <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>ключи · не платный</div>
+                    </td>
+                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>0</td>
+                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>0</td>
+                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>1</td>
+                    <td
+                      colSpan={5}
+                      style={{
+                        border: '1px solid rgba(148, 163, 184, 0.24)',
+                        padding: 8,
+                        fontSize: 11,
+                        color: '#94a3b8',
+                        lineHeight: 1.45,
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      Эти пять колонок — веса карт для <em>платных</em> сундуков. У бесплатного один дроп: пак валюты или чертёж; набор паков и редкостей — в карточках «Бесплатные сундуки» выше по этому id.
+                    </td>
+                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, fontSize: 11, color: '#64748b' }}>
+                      —
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
             <div style={{ marginTop: 12, borderTop: '1px solid rgba(148, 163, 184, 0.24)', paddingTop: 10 }}>
