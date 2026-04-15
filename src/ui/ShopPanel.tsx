@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import type { BalanceConstants, ChestConfig, RefStarterPack, ShopItemConfig } from '../balance/model';
 import { resolveStarterPackGrants } from '../balance/starterPack';
 import {
@@ -7,7 +7,11 @@ import {
   getShopItemGrindReferenceUsd,
   getShopItemUsd,
 } from '../balance/economy';
-import { getExpectedKeysPerAttempt, getFreeChestKeyProgression } from '../progression/iapAndChestsModel';
+import {
+  getExpectedKeysPerAttempt,
+  getFreeChestKeyProgression,
+  getFreeChestsForKeyCycle,
+} from '../progression/iapAndChestsModel';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
 
@@ -219,7 +223,26 @@ export const ShopPanel: React.FC<{
     [keyProg]
   );
   const chestIds = Object.keys(balance.economy.chests);
-  const freeChests = balance.economy.freeChests ?? [];
+  /** Только сундуки цикла по ключам (легаси 5м/15м/30м не показываем, если уже есть 1★–3★). */
+  const freeChests = useMemo(
+    () => getFreeChestsForKeyCycle(balance.economy.freeChests),
+    [balance.economy.freeChests]
+  );
+  const hasHiddenLegacyFreeChests = useMemo(() => {
+    const raw = balance.economy.freeChests ?? [];
+    return raw.length > getFreeChestsForKeyCycle(raw).length;
+  }, [balance.economy.freeChests]);
+
+  const stripLegacyFreeChestsFromBalance = useCallback(() => {
+    setBalance((prev) => ({
+      ...prev,
+      economy: {
+        ...prev.economy,
+        freeChests: getFreeChestsForKeyCycle(prev.economy.freeChests),
+      },
+    }));
+  }, [setBalance]);
+
   const toggleFreeChestPack = (freeChestId: string, packId: string) => {
     setBalance((prev) => ({
       ...prev,
@@ -882,6 +905,24 @@ export const ShopPanel: React.FC<{
                 не используется. При винрейте 50% в среднем ~{keysPerAttemptAt50.toFixed(2)} ключа за попытку (~
                 {(keyProg.keysToOpenChest / keysPerAttemptAt50).toFixed(2)} попыток на один сундук).
               </div>
+              {hasHiddenLegacyFreeChests && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: '#fde68a',
+                    marginBottom: 8,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    border: '1px solid rgba(251, 191, 36, 0.35)',
+                    background: 'rgba(120, 53, 15, 0.35)',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  В файле баланса ещё лежат устаревшие <code style={{ color: '#fef9c3' }}>free_5m</code> /{' '}
+                  <code style={{ color: '#fef9c3' }}>free_15m</code> / <code style={{ color: '#fef9c3' }}>free_30m</code> — ниже в списке
+                  показывается только актуальный цикл по ключам. Нажмите жёлтую кнопку, чтобы удалить дубли из данных.
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(120px, 1fr))', gap: 8, marginBottom: 8 }}>
                 <label>
                   <div style={{ color: '#94a3b8', fontSize: 11, marginBottom: 4 }}>Ключей за победу</div>
@@ -929,22 +970,40 @@ export const ShopPanel: React.FC<{
                   />
                 </label>
               </div>
-              <button
-                type="button"
-                style={{
-                  border: '1px solid rgba(34, 197, 94, 0.55)',
-                  borderRadius: 999,
-                  background: 'rgba(22, 101, 52, 0.85)',
-                  color: '#ecfeff',
-                  padding: '6px 10px',
-                  fontSize: 12,
-                  cursor: 'pointer',
-                  marginBottom: 8,
-                }}
-                onClick={applyReferenceFreeChestsPreset}
-              >
-                Прессет: 3★ сундука + ключи (1 / 0,5 / 3)
-              </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  style={{
+                    border: '1px solid rgba(34, 197, 94, 0.55)',
+                    borderRadius: 999,
+                    background: 'rgba(22, 101, 52, 0.85)',
+                    color: '#ecfeff',
+                    padding: '6px 10px',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                  }}
+                  onClick={applyReferenceFreeChestsPreset}
+                >
+                  Прессет: 3★ сундука + ключи (1 / 0,5 / 3)
+                </button>
+                {hasHiddenLegacyFreeChests && (
+                  <button
+                    type="button"
+                    onClick={stripLegacyFreeChestsFromBalance}
+                    style={{
+                      border: '1px solid rgba(251, 191, 36, 0.5)',
+                      borderRadius: 999,
+                      background: 'rgba(120, 53, 15, 0.5)',
+                      color: '#fef3c7',
+                      padding: '6px 10px',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Убрать из списка дубли «5м / 15м / 30м» (оставить только цикл по ключам)
+                  </button>
+                )}
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(130px, 1fr))', gap: 8, marginBottom: 8 }}>
                 <input style={inputStyle} placeholder="id" value={newFreeChestId} onChange={(e) => setNewFreeChestId(e.target.value)} />
                 <input style={inputStyle} placeholder="Название" value={newFreeChestName} onChange={(e) => setNewFreeChestName(e.target.value)} />
@@ -1013,6 +1072,11 @@ export const ShopPanel: React.FC<{
                 ))}
               </div>
             </div>
+            <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
+              Таблица ниже — только <strong style={{ color: '#94a3b8' }}>платные</strong> сундуки (<code style={{ color: '#cbd5e1' }}>economy.chests</code>
+              ): цена в монетах/золоте и веса редкостей карт. <strong style={{ color: '#94a3b8' }}>Бесплатные</strong> сундуки по ключам настраиваются{' '}
+              <strong>в блоке выше</strong> (паки и чертежи), сюда они не попадают — у них другая модель дропа (ровно 1 награда за открытие).
+            </p>
             <table style={tableStyle}>
               <thead>
                 <tr>
