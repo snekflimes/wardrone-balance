@@ -368,21 +368,52 @@ type FreeChestDrop =
   | { kind: 'pack'; pack: CurrencyPackConfig; weight: number }
   | { kind: 'blueprint'; rarity: CardRarity; weight: number };
 
-function getFreeChestDropPool(constants: BalanceConstants, chest: FreeChestConfig): FreeChestDrop[] {
+function blueprintLineWeight(
+  chest: FreeChestConfig,
+  constants: BalanceConstants,
+  rarity: CardRarity
+): number {
+  const g = constants.economy.cardRarityWeights ?? {};
+  const ex = chest.blueprintDropWeights?.[rarity];
+  if (ex !== undefined && ex !== null && Number.isFinite(ex)) return Math.max(0, ex);
+  return Math.max(0, g[rarity] ?? 0);
+}
+
+/** Вес чертежа по редкости с учётом blueprintDropWeights и fallback на cardRarityWeights. */
+export function getEffectiveFreeChestBlueprintWeight(
+  constants: BalanceConstants,
+  chest: FreeChestConfig,
+  rarity: CardRarity
+): number {
+  return blueprintLineWeight(chest, constants, rarity);
+}
+
+function packLineWeight(chest: FreeChestConfig, pack: CurrencyPackConfig): number {
+  const id = pack.id;
+  const ex = chest.packWeights?.[id];
+  if (ex !== undefined && ex !== null && Number.isFinite(ex)) return Math.max(0, ex);
+  return Math.max(0, pack.baseWeight ?? 0);
+}
+
+/** Пул одного открытия бесплатного сундука (паки + чертежи по редкости). Используется в прогнозе и в симуляторе. */
+export function getFreeChestDropPool(constants: BalanceConstants, chest: FreeChestConfig): FreeChestDrop[] {
   const packsById = new Map((constants.economy.currencyPacks ?? []).map((p) => [p.id, p]));
-  const rarityWeights = constants.economy.cardRarityWeights ?? {};
   const drops: FreeChestDrop[] = [];
 
   for (const packId of chest.packIds ?? []) {
     const pack = packsById.get(packId);
     if (!pack) continue;
-    drops.push({ kind: 'pack', pack, weight: Math.max(0, pack.baseWeight ?? 0) });
+    const w = packLineWeight(chest, pack);
+    if (w <= 0) continue;
+    drops.push({ kind: 'pack', pack, weight: w });
   }
   for (const rarity of chest.blueprintRarities ?? []) {
+    const w = blueprintLineWeight(chest, constants, rarity);
+    if (w <= 0) continue;
     drops.push({
       kind: 'blueprint',
       rarity,
-      weight: Math.max(0, rarityWeights[rarity] ?? 0),
+      weight: w,
     });
   }
   return drops;

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import type { BalanceConstants, ChestConfig, RefStarterPack, ShopItemConfig } from '../balance/model';
+import type { BalanceConstants, CardRarity, ChestConfig, RefStarterPack, ShopItemConfig } from '../balance/model';
 import { resolveStarterPackGrants } from '../balance/starterPack';
 import {
   getEconomyUsdRates,
@@ -8,7 +8,9 @@ import {
   getShopItemUsd,
 } from '../balance/economy';
 import {
+  getEffectiveFreeChestBlueprintWeight,
   getExpectedKeysPerAttempt,
+  getFreeChestDropPool,
   getFreeChestKeyProgression,
   getFreeChestsForKeyCycle,
 } from '../progression/iapAndChestsModel';
@@ -367,45 +369,36 @@ export const ShopPanel: React.FC<{
       }
     }
 
-    // Бесплатные сундуки: строго 1 дроп на сундук (пак ИЛИ 1 чертёж).
-    const packsById = new Map((balance.economy.currencyPacks ?? []).map((p) => [p.id, p]));
+    // Бесплатные сундуки: 1 дроп на сундук; пул = паки + чертежи (веса как в прогнозе — getFreeChestDropPool).
     for (const chest of freeChests) {
       const qty = Math.max(0, Math.floor(simChestQtyById[chest.id] ?? 0));
       if (qty <= 0) continue;
-      const pool: Array<{ kind: 'pack' | 'blueprint'; key: string; weight: number }> = [];
-      for (const packId of chest.packIds ?? []) {
-        const pack = packsById.get(packId);
-        if (!pack) continue;
-        pool.push({ kind: 'pack', key: packId, weight: Math.max(0, pack.baseWeight ?? 0) });
-      }
-      for (const rarity of chest.blueprintRarities ?? []) {
-        pool.push({ kind: 'blueprint', key: rarity, weight: Math.max(0, rarityWeights[rarity] ?? 0) });
-      }
+      const pool = getFreeChestDropPool(balance, chest);
       const weights = pool.map((p) => p.weight);
       const totalWeight = weights.reduce((s, w) => s + Math.max(0, w), 0);
-      if (totalWeight > 0 && qty > 0) {
-        for (const drop of pool) {
-          const p = Math.max(0, drop.weight) / totalWeight;
-          if (drop.kind === 'blueprint') {
-            expectedByRarity[drop.key] = (expectedByRarity[drop.key] ?? 0) + p * qty;
-            const list = cardByRarity.get(drop.key) ?? [];
-            if (list.length > 0) {
-              const perCard = (p * qty) / list.length;
-              for (const c of list) expectedByCard[c.id] = (expectedByCard[c.id] ?? 0) + perCard;
-            }
-          } else {
-            expectedByPack[drop.key] = (expectedByPack[drop.key] ?? 0) + p * qty;
+      if (totalWeight <= 0 || qty <= 0) continue;
+      for (const drop of pool) {
+        const p = Math.max(0, drop.weight) / totalWeight;
+        if (drop.kind === 'blueprint') {
+          const rarity = drop.rarity;
+          expectedByRarity[rarity] = (expectedByRarity[rarity] ?? 0) + p * qty;
+          const list = cardByRarity.get(rarity) ?? [];
+          if (list.length > 0) {
+            const perCard = (p * qty) / list.length;
+            for (const c of list) expectedByCard[c.id] = (expectedByCard[c.id] ?? 0) + perCard;
           }
+        } else {
+          expectedByPack[drop.pack.id] = (expectedByPack[drop.pack.id] ?? 0) + p * qty;
         }
-        expectedDropsTotal += qty;
       }
+      expectedDropsTotal += qty;
       for (let i = 0; i < qty; i += 1) {
         const dropIdx = pickWeightedIndex(weights);
         if (dropIdx < 0) continue;
         const drop = pool[dropIdx];
         totalDrops += 1;
         if (drop.kind !== 'blueprint') continue;
-        const rarity = drop.key;
+        const rarity = drop.rarity;
         const list = cardByRarity.get(rarity) ?? [];
         if (list.length <= 0) continue;
         const card = list[Math.floor(Math.random() * list.length)];
@@ -476,18 +469,21 @@ export const ShopPanel: React.FC<{
             name: 'Бесплатный сундук 1★',
             packIds: ['soft_small', 'soft_medium', 'soft_big', 'hard_small'],
             blueprintRarities: ['common', 'uncommon'],
+            blueprintDropWeights: { common: 1.5, uncommon: 1, rare: 0.6, epic: 0.3, legendary: 0.1 },
           },
           {
             id: 'free_2star',
             name: 'Бесплатный сундук 2★',
             packIds: ['soft_medium', 'soft_big', 'hard_small', 'hard_medium'],
             blueprintRarities: ['common', 'uncommon', 'rare'],
+            blueprintDropWeights: { common: 0.3, uncommon: 0.6, rare: 1, epic: 0.6, legendary: 0.3 },
           },
           {
             id: 'free_3star',
             name: 'Бесплатный сундук 3★',
             packIds: ['soft_big', 'hard_medium', 'hard_big'],
             blueprintRarities: ['common', 'uncommon', 'rare', 'epic', 'legendary'],
+            blueprintDropWeights: { common: 0.1, uncommon: 0.3, rare: 0.6, epic: 1, legendary: 1.5 },
           },
         ],
       },
@@ -1074,9 +1070,10 @@ export const ShopPanel: React.FC<{
             </div>
             <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 8px', lineHeight: 1.45 }}>
               Одна таблица: сверху — <strong style={{ color: '#94a3b8' }}>платные</strong> (<code style={{ color: '#cbd5e1' }}>economy.chests</code>
-              ), цены и веса редкостей карт. Ниже серым — <strong style={{ color: '#94a3b8' }}>бесплатные</strong> по ключам (
-              <code style={{ color: '#cbd5e1' }}>economy.freeChests</code>): цена 0, один дроп; сами паки и чертежи задаются{' '}
-              <strong>в блоке выше</strong> (чекбоксы), в колонках весов у бесплатных — пояснение, не редактирование.
+              ), цены и множители редкостей карт. Ниже серым — <strong style={{ color: '#94a3b8' }}>бесплатные</strong> по ключам (
+              <code style={{ color: '#cbd5e1' }}>economy.freeChests</code>): цена 0, один дроп; паки и набор редкостей чертежей — в блоке выше (чекбоксы).{' '}
+              Колонки Common–Legendary у бесплатных — <strong style={{ color: '#94a3b8' }}>вес чертежа</strong> этой редкости в общем пуле (паки + чертежи); пустое поле — как{' '}
+              <code style={{ color: '#cbd5e1' }}>cardRarityWeights</code> (подсказка в placeholder).
             </p>
             <table style={tableStyle}>
               <thead>
@@ -1161,34 +1158,74 @@ export const ShopPanel: React.FC<{
                     </td>
                   </tr>
                 )}
-                {freeChests.map((fc) => (
-                  <tr key={`chest_table_free_${fc.id}`} style={{ background: 'rgba(15, 23, 42, 0.5)' }}>
-                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, verticalAlign: 'top' }}>
-                      <div style={{ color: '#e2e8f0', fontWeight: 600 }}>{fc.id}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{fc.name}</div>
-                      <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>ключи · не платный</div>
-                    </td>
-                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>0</td>
-                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>0</td>
-                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>1</td>
-                    <td
-                      colSpan={5}
-                      style={{
-                        border: '1px solid rgba(148, 163, 184, 0.24)',
-                        padding: 8,
-                        fontSize: 11,
-                        color: '#94a3b8',
-                        lineHeight: 1.45,
-                        verticalAlign: 'middle',
-                      }}
-                    >
-                      Эти пять колонок — веса карт для <em>платных</em> сундуков. У бесплатного один дроп: пак валюты или чертёж; набор паков и редкостей — в карточках «Бесплатные сундуки» выше по этому id.
-                    </td>
-                    <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, fontSize: 11, color: '#64748b' }}>
-                      —
-                    </td>
-                  </tr>
-                ))}
+                {freeChests.map((fc) => {
+                  const ch = (balance.economy.freeChests ?? []).find((c) => c.id === fc.id) ?? fc;
+                  return (
+                    <tr key={`chest_table_free_${fc.id}`} style={{ background: 'rgba(15, 23, 42, 0.5)' }}>
+                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, verticalAlign: 'top' }}>
+                        <div style={{ color: '#e2e8f0', fontWeight: 600 }}>{fc.id}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{fc.name}</div>
+                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>ключи · не платный</div>
+                      </td>
+                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>0</td>
+                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>0</td>
+                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, color: '#64748b' }}>1</td>
+                      {(['common', 'uncommon', 'rare', 'epic', 'legendary'] as const).map((rarity) => (
+                        <td key={`${fc.id}_${rarity}`} style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>
+                          <input
+                            style={{
+                              ...inputStyle,
+                              opacity: ch.blueprintRarities.includes(rarity) ? 1 : 0.35,
+                            }}
+                            type="number"
+                            disabled={!ch.blueprintRarities.includes(rarity)}
+                            min={0}
+                            step={0.05}
+                            title={
+                              ch.blueprintRarities.includes(rarity)
+                                ? 'Вес чертежа этой редкости в пуле (вместе с паками). Пусто — дефолт из cardRarityWeights.'
+                                : 'Не в пуле (чекбокс выше)'
+                            }
+                            value={
+                              ch.blueprintDropWeights?.[rarity] !== undefined && ch.blueprintDropWeights?.[rarity] !== null
+                                ? String(ch.blueprintDropWeights[rarity])
+                                : ''
+                            }
+                            placeholder={String(
+                              getEffectiveFreeChestBlueprintWeight(balance, ch, rarity as CardRarity)
+                            )}
+                            onChange={(e) => {
+                              const v = e.target.value.trim();
+                              setBalance((prev) => ({
+                                ...prev,
+                                economy: {
+                                  ...prev.economy,
+                                  freeChests: (prev.economy.freeChests ?? []).map((x) => {
+                                    if (x.id !== ch.id) return x;
+                                    const next = { ...(x.blueprintDropWeights ?? {}) };
+                                    if (v === '') {
+                                      delete next[rarity];
+                                    } else {
+                                      next[rarity] = Math.max(0, Number(e.target.value) || 0);
+                                    }
+                                    const keys = Object.keys(next);
+                                    return {
+                                      ...x,
+                                      blueprintDropWeights: keys.length > 0 ? next : undefined,
+                                    };
+                                  }),
+                                },
+                              }));
+                            }}
+                          />
+                        </td>
+                      ))}
+                      <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, fontSize: 11, color: '#64748b' }}>
+                        —
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             <div style={{ marginTop: 12, borderTop: '1px solid rgba(148, 163, 184, 0.24)', paddingTop: 10 }}>

@@ -306,6 +306,13 @@ export interface FreeChestConfig {
   name: string;
   packIds: string[];
   blueprintRarities: CardRarity[];
+  /**
+   * Веса ветки «чертёж» по редкости (как dropChancesPercent у платных сундуков).
+   * Не задано для редкости — в расчёте дропа используется economy.cardRarityWeights.
+   */
+  blueprintDropWeights?: Partial<Record<CardRarity, number>>;
+  /** Переопределение веса пака в пуле (иначе — pack.baseWeight из currencyPacks). */
+  packWeights?: Partial<Record<string, number>>;
 }
 
 /** Бесплатные сундуки по прогрессу ключей: победа/поражение за попытку, N ключей → открытие следующего сундука в цикле. */
