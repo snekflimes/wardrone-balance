@@ -351,7 +351,9 @@ export function getWeaponLevelStats(
 
   const damagePerShot = evaluateFormula(damageExpr, scope);
   const fireRatePerMin = evaluateFormula(fireRateExpr, scope);
-  const ammo = Math.round(evaluateFormula(ammoExpr, scope));
+  let ammo = Math.round(evaluateFormula(ammoExpr, scope));
+  if (!Number.isFinite(ammo)) ammo = 0;
+  ammo = Math.max(1, Math.min(99999, ammo));
 
   const dps = (damagePerShot * fireRatePerMin) / 60;
   const maxDamageOverWave = damagePerShot * ammo;
