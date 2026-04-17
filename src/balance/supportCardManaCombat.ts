@@ -131,6 +131,8 @@ export interface ManaCombatParams {
   vipMaxHp: number;
   supportCardLevels: Record<number, number>;
   combatPowerMultiplier: number;
+  /** Множитель «реализма» для урона патронов карт ресурса (как у стволов). @default 1 */
+  outgoingCombatRealism?: number;
   mg: WeaponLevelStats;
   hydra: WeaponLevelStats;
   hellfire: WeaponLevelStats;
@@ -171,6 +173,7 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
     vipMaxHp,
     supportCardLevels,
     combatPowerMultiplier,
+    outgoingCombatRealism = 1,
     mg,
     hydra,
     hellfire,
@@ -178,6 +181,7 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
   } = p;
 
   const mult = Math.max(0.01, combatPowerMultiplier);
+  const outReal = Math.max(0.02, Math.min(1, outgoingCombatRealism));
 
   let enemyHp = Math.max(0, totalEnemyHp);
   let vipHp = vipMaxHp;
@@ -281,11 +285,11 @@ export function simulateCombatWithManaAndSupport(p: ManaCombatParams): ManaComba
               (parsed.blastRadius > 0 ? 1 + Math.min(0.1, parsed.blastRadius / 45) : 1);
             const ammo = Math.max(0, parsed.count > 0 ? parsed.count : v1);
             if (card.id === 10 && unlocked.machineGun) {
-              enemyHp -= ammo * mg.damagePerShot * resMult;
+              enemyHp -= ammo * mg.damagePerShot * resMult * outReal;
             } else if (card.id === 8 && unlocked.hydra70) {
-              enemyHp -= ammo * hydra.damagePerShot * resMult;
+              enemyHp -= ammo * hydra.damagePerShot * resMult * outReal;
             } else if (card.id === 9 && unlocked.hellfire) {
-              enemyHp -= ammo * hellfire.damagePerShot * resMult;
+              enemyHp -= ammo * hellfire.damagePerShot * resMult * outReal;
             }
             break;
           }

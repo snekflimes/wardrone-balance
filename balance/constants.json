@@ -69,10 +69,11 @@
     "victoryBonusMultiplier": 0.75,
     "missionsPerSession": 3,
     "combatSkill": {
-      "missChancePercent": 0,
-      "partialHitChancePercent": 0,
-      "partialDamagePercent": 50,
-      "reachLeakPercent": 0
+      "missChancePercent": 7,
+      "partialHitChancePercent": 28,
+      "partialDamagePercent": 48,
+      "spreadSpatialEfficiencyPercent": 56,
+      "reachLeakPercent": 10
     },
     "adMultiplier": 2,
     "missionsPerPlayerLevel": 6,

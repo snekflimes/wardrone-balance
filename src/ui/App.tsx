@@ -1299,7 +1299,8 @@ export const App: React.FC = () => {
               <div>Монеты всего: {combatResult.rewardSoft.toFixed(0)}</div>
             </div>
             <p className="ui-hint" style={{ marginTop: 10, marginBottom: 0 }}>
-              Скилл (исх. урон): {(combatResult.outgoingSkillDamageMultiplier ?? 1).toFixed(3)} — «Формулы → Бой и референсные волны».
+              Реализм исх. урона стволов: {(combatResult.outgoingCombatRealismMultiplier ?? 1).toFixed(3)} (промахи/слабые:{' '}
+              {(combatResult.outgoingSkillDamageMultiplier ?? 1).toFixed(3)}) — «Формулы → Бой и волны».
             </p>
           </section>
         </>

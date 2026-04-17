@@ -287,6 +287,24 @@ export function getOutgoingSkillDamageMultiplier(economy: EconomyConfig): number
   return Math.max(0.01, Math.min(1, hit * avgOnHit));
 }
 
+/** Доля урона стволов, уходящая в эффективное снятие HP при разнесённых целях (не в пул «один босс»). */
+export function getSpreadSpatialDamageMultiplier(economy: EconomyConfig): number {
+  const skill = economy.combatSkill ?? {};
+  const p = skill.spreadSpatialEfficiencyPercent;
+  if (p == null || !Number.isFinite(p)) return 1;
+  return Math.max(0.05, Math.min(1, p / 100));
+}
+
+/**
+ * Полный множитель «реализма» исходящего урона стволов в симуляции: промахи/слабые попадания × разброс целей.
+ */
+export function getOutgoingCombatRealismMultiplier(economy: EconomyConfig): number {
+  return Math.max(
+    0.02,
+    Math.min(1, getOutgoingSkillDamageMultiplier(economy) * getSpreadSpatialDamageMultiplier(economy))
+  );
+}
+
 export function getWeaponLevelStats(
   constants: BalanceConstants,
   weaponId: WeaponId,
@@ -438,6 +456,7 @@ export function simulateCombat(
       waveRewardSoft: 0,
       rewardSoft: 0,
       outgoingSkillDamageMultiplier: getOutgoingSkillDamageMultiplier(economy),
+      outgoingCombatRealismMultiplier: getOutgoingCombatRealismMultiplier(economy),
     };
   }
 
@@ -450,6 +469,7 @@ export function simulateCombat(
 
   const combatPowerMultiplier = Math.max(0.01, input.loadout.combatPowerMultiplier ?? 1);
   const outgoingSkillDamageMultiplier = getOutgoingSkillDamageMultiplier(economy);
+  const outgoingCombatRealismMultiplier = getOutgoingCombatRealismMultiplier(economy);
 
   let totalBlendHp = 0;
   const hpByEnemyType: Partial<Record<EnemyId, number>> = {};
@@ -494,7 +514,7 @@ export function simulateCombat(
       (isUnlocked('hellfire') ? hellfire.sustainedDps * hellfireAmmoFactor * hellfireMod : 0)) *
     combatPowerMultiplier *
     supportDamageFactor *
-    outgoingSkillDamageMultiplier;
+    outgoingCombatRealismMultiplier;
 
   const { sustainedSegments, reachBursts } = buildWaveThreat(constants, input.wave);
   const threatSegments =
@@ -514,6 +534,7 @@ export function simulateCombat(
     vipMaxHp: playerHp,
     supportCardLevels,
     combatPowerMultiplier,
+    outgoingCombatRealism: outgoingCombatRealismMultiplier,
     mg,
     hydra,
     hellfire,
@@ -562,6 +583,7 @@ export function simulateCombat(
     waveRewardSoft,
     rewardSoft,
     outgoingSkillDamageMultiplier,
+    outgoingCombatRealismMultiplier,
   };
 }
 

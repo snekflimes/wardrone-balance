@@ -98,6 +98,8 @@ export interface CombatSimulationResult {
   rewardSoft: number;
   /** Ожидаемый множитель исходящего DPS из-за промахов/слабых попаданий (economy.combatSkill). */
   outgoingSkillDamageMultiplier?: number;
+  /** Промахи/слабые попадания × эффективность урона по разнесённым целям (полный множитель, применённый в симуляции). */
+  outgoingCombatRealismMultiplier?: number;
 }
 
 export type WeaponsIndex = Record<WeaponId, WeaponConfig>;

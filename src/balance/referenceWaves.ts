@@ -46,6 +46,13 @@ function legacyTankCountWave2(L: number): number {
 
 function createReferenceWaveEnemies(levelIndex: number, waveIndex: number): Partial<Record<EnemyId, number>> {
   const L = Math.max(1, levelIndex);
+  /** Уровень 1: мягче референс, чтобы VIP и патронов хватало при «реалистичном» множителе урона в симуляции. */
+  if (L === 1) {
+    if (waveIndex === 1) {
+      return { infantry: 4, jeep: 1 };
+    }
+    return { infantry: 2, jeep: 2 };
+  }
   if (waveIndex === 1) {
     const oldT = legacyTankCountWave1(L);
     return {

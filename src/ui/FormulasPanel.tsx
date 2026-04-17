@@ -1,6 +1,9 @@
 import React from 'react';
 import type { BalanceConstants } from '../balance/model';
-import { getOutgoingSkillDamageMultiplier } from '../balance/simulator';
+import {
+  getOutgoingCombatRealismMultiplier,
+  getOutgoingSkillDamageMultiplier,
+} from '../balance/simulator';
 import { FormulaConstructor } from './FormulaConstructor';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
@@ -37,6 +40,7 @@ function updateCombatSkill(
     | 'missChancePercent'
     | 'partialHitChancePercent'
     | 'partialDamagePercent'
+    | 'spreadSpatialEfficiencyPercent'
     | 'reachLeakPercent',
   value: number
 ) {
@@ -78,6 +82,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
   const { meta, player, economy, weapons } = balance;
   const skill = economy.combatSkill ?? {};
   const outgoingSkillMult = getOutgoingSkillDamageMultiplier(economy);
+  const outgoingCombatRealismMult = getOutgoingCombatRealismMultiplier(economy);
 
   return (
     <div className="ui-stack">
@@ -336,11 +341,13 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
       <section className="ui-block">
         <h4 style={{ marginBottom: 10 }}>Бой и волны</h4>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, lineHeight: 1.4 }}>
-          Состав и численность врагов задаются в конструкторе волн (и референсом CreateSheets). Параметры юнитов в бою не
-          масштабируются от номера уровня или волны. Скилл: ожидаемый множитель исходящего DPS = (1 − промах%) ×
-          ((доля слабых × сила слабого) + (1 − доля слабых)). Сейчас:{' '}
-          <strong style={{ color: '#e2e8f0' }}>{outgoingSkillMult.toFixed(4)}</strong>. У reach-угроз (бензовоз): разовый
-          урон в момент подъезда; «утечка» — доля взрыва, если волну уже снесли, но игрок не идеален.
+          Состав волн — конструктор / референс. Параметры юнитов не масштабируются от номера уровня.{' '}
+          <strong style={{ color: '#e2e8f0' }}>Промахи/слабые попадания</strong>: множитель{' '}
+          <strong style={{ color: '#e2e8f0' }}>{outgoingSkillMult.toFixed(4)}</strong>.{' '}
+          <strong style={{ color: '#e2e8f0' }}>Разброс целей</strong> (доля урона стволов в эффективное снятие HP): ещё ×
+          (разброс&nbsp;% / 100). <strong style={{ color: '#e2e8f0' }}>Итого реализм стволов</strong>:{' '}
+          <strong style={{ color: '#e2e8f0' }}>{outgoingCombatRealismMult.toFixed(4)}</strong> — такой множитель в симуляции
+          боя и прогнозе. У reach: «утечка» при уже мёртвой волне.
         </div>
         <div className="ui-field">
           <span style={labelStyle}>Промах (нет урона), %</span>
@@ -370,6 +377,18 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             max={100}
             value={skill.partialDamagePercent ?? 50}
             onChange={(e) => updateCombatSkill(setBalance, 'partialDamagePercent', num(e.target.value))}
+          />
+        </div>
+        <div className="ui-field">
+          <span style={labelStyle}>Эффективность урона по разнесённым целям, %</span>
+          <input
+            type="number"
+            min={5}
+            max={100}
+            value={skill.spreadSpatialEfficiencyPercent ?? 100}
+            onChange={(e) =>
+              updateCombatSkill(setBalance, 'spreadSpatialEfficiencyPercent', num(e.target.value))
+            }
           />
         </div>
         <div className="ui-field">
