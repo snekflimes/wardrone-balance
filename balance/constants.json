@@ -29,18 +29,13 @@
   "weapons": {
     "machineGun": {
       "id": "machineGun",
-      "displayName": "Пулемёт (реф. War Drone: 25-mm пушка)",
+      "displayName": "Пулемёт",
       "baseDamage": 15,
       "baseFireRatePerMin": 600,
       "baseAmmo": 200,
       "upgradeBaseSoft": 300,
       "upgradeCostMultiplier": 0.8,
-      "reloadTimeSec": 2,
-      "growth": {
-        "damageMultiplierPerLevel": 0.05384615384615385,
-        "fireRateMultiplierPerLevel": 1.05,
-        "ammoMultiplierPerLevel": -0.017692307692307692
-      }
+      "reloadTimeSec": 2
     },
     "hydra70": {
       "id": "hydra70",
