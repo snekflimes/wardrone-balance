@@ -266,6 +266,15 @@
       "speed": 70,
       "reward": 10
     },
+    "infantryL1": {
+      "id": "infantryL1",
+      "displayName": "Пехотинец (ур.1)",
+      "baseHp": 16,
+      "baseDamage": 4,
+      "range": 50,
+      "speed": 65,
+      "reward": 10
+    },
     "rpgInfantry": {
       "id": "rpgInfantry",
       "displayName": "Пехота с РПГ",
@@ -284,6 +293,15 @@
       "baseDamage": 15,
       "range": 60,
       "speed": 90,
+      "reward": 30
+    },
+    "jeepL1": {
+      "id": "jeepL1",
+      "displayName": "Джип (ур.1)",
+      "baseHp": 60,
+      "baseDamage": 12,
+      "range": 60,
+      "speed": 85,
       "reward": 30
     },
     "apc": {

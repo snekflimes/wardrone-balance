@@ -49,9 +49,9 @@ function createReferenceWaveEnemies(levelIndex: number, waveIndex: number): Part
   /** Уровень 1: мягче референс, чтобы VIP и патронов хватало при «реалистичном» множителе урона в симуляции. */
   if (L === 1) {
     if (waveIndex === 1) {
-      return { infantry: 4, jeep: 1 };
+      return { infantryL1: 4, jeepL1: 1 };
     }
-    return { infantry: 2, jeep: 2 };
+    return { infantryL1: 2, jeepL1: 2 };
   }
   if (waveIndex === 1) {
     const oldT = legacyTankCountWave1(L);
@@ -81,8 +81,10 @@ function createReferenceWaveEnemies(levelIndex: number, waveIndex: number): Part
 
 const EMPTY_ENEMY_TOTALS: Record<EnemyId, number> = {
   infantry: 0,
+  infantryL1: 0,
   rpgInfantry: 0,
   jeep: 0,
+  jeepL1: 0,
   apc: 0,
   lightTank: 0,
   heavyTank: 0,
