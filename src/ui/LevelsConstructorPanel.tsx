@@ -320,9 +320,18 @@ export const LevelsConstructorPanel: React.FC<{
   };
 
   const forbiddenEnemyIds = new Set<EnemyId>(['heli', 'plane', 'heavyInfantry']);
+  const level1OnlyEnemyIds = new Set<EnemyId>(['infantryL1', 'jeepL1']);
   const enemyIds = useMemo(
     () => (Object.keys(balance.enemies) as EnemyId[]).filter((id) => !forbiddenEnemyIds.has(id)),
     [balance.enemies]
+  );
+  const level1EnemyIds = useMemo(
+    () => enemyIds.filter((id) => level1OnlyEnemyIds.has(id)),
+    [enemyIds]
+  );
+  const commonEnemyIds = useMemo(
+    () => enemyIds.filter((id) => !level1OnlyEnemyIds.has(id)),
+    [enemyIds]
   );
   const gameLevels = balance.meta.gameLevels;
   const wavesPerLevel = getWavesPerLevel(balance);
@@ -522,7 +531,25 @@ export const LevelsConstructorPanel: React.FC<{
                 </tr>
               </thead>
               <tbody>
-                {enemyIds.map((enemyId) => {
+                {level1EnemyIds.length > 0 && (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      style={{
+                        ...tdStyle,
+                        padding: '8px 10px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: '#fde68a',
+                        background: 'rgba(120, 53, 15, 0.35)',
+                        border: '1px solid rgba(251, 191, 36, 0.35)',
+                      }}
+                    >
+                      Только уровень 1 (можно ослаблять, не ломая остальные уровни)
+                    </td>
+                  </tr>
+                )}
+                {level1EnemyIds.map((enemyId) => {
                   const enemy = balance.enemies[enemyId];
                   const { survivabilityPressure, threat, power } = getEnemyLevelPowerBreakdownPerUnit(
                     balance,
@@ -600,6 +627,103 @@ export const LevelsConstructorPanel: React.FC<{
                           min={0}
                           value={enemy.reward}
                           onChange={(e) => setEnemyField(enemyId, 'reward', Math.max(0, Number(e.target.value) || 0))}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+                {level1EnemyIds.length > 0 && commonEnemyIds.length > 0 && (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      style={{
+                        ...tdStyle,
+                        padding: '8px 10px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: '#cbd5e1',
+                        background: 'rgba(30, 41, 59, 0.55)',
+                      }}
+                    >
+                      Остальные враги (все уровни)
+                    </td>
+                  </tr>
+                )}
+                {commonEnemyIds.map((enemyId) => {
+                  const enemy = balance.enemies[enemyId];
+                  const { survivabilityPressure, threat, power } = getEnemyLevelPowerBreakdownPerUnit(
+                    balance,
+                    enemy
+                  );
+                  const tClose = getEnemyApproachTimeSec(balance, enemy);
+                  const reach = (enemy.threatDelivery ?? 'sustained') === 'reach';
+                  return (
+                    <tr key={enemyId}>
+                      <td style={tdStyle}>{enemy.displayName}</td>
+                      <td style={tdStyle}>
+                        <input
+                          style={inputStyle}
+                          type="number"
+                          min={0}
+                          value={enemy.baseHp}
+                          onChange={(e) =>
+                            setEnemyField(enemyId, 'baseHp', Math.max(0, Number(e.target.value) || 0))
+                          }
+                        />
+                      </td>
+                      <td style={tdStyle}>
+                        <input
+                          style={inputStyle}
+                          type="number"
+                          min={0}
+                          value={enemy.baseDamage}
+                          onChange={(e) =>
+                            setEnemyField(enemyId, 'baseDamage', Math.max(0, Number(e.target.value) || 0))
+                          }
+                        />
+                      </td>
+                      <td style={tdStyle}>
+                        <select
+                          style={inputStyle}
+                          value={enemy.threatDelivery ?? 'sustained'}
+                          onChange={(e) => setEnemyThreatDelivery(enemyId, e.target.value as 'sustained' | 'reach')}
+                        >
+                          <option value="sustained">sustained</option>
+                          <option value="reach">reach</option>
+                        </select>
+                      </td>
+                      <td style={tdStyle}>
+                        <input
+                          style={{ ...inputStyle, opacity: reach ? 0.4 : 1 }}
+                          type="number"
+                          min={0}
+                          disabled={reach}
+                          value={enemy.baseFireRatePerMin ?? 0}
+                          onChange={(e) =>
+                            setEnemyField(enemyId, 'baseFireRatePerMin', Math.max(0, Number(e.target.value) || 0))
+                          }
+                        />
+                      </td>
+                      <td style={tdStyle}>
+                        <div style={{ display: 'grid', gap: 2 }}>
+                          <div style={{ fontWeight: 700, color: '#e2e8f0' }}>{power.toFixed(2)}</div>
+                          <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                            surv {survivabilityPressure.toFixed(1)} / thr {threat.toFixed(1)}
+                          </div>
+                          <div style={{ fontSize: 10, color: '#64748b' }}>
+                            t≈{tClose.toFixed(2)}s
+                          </div>
+                        </div>
+                      </td>
+                      <td style={tdStyle}>
+                        <input
+                          style={inputStyle}
+                          type="number"
+                          min={0}
+                          value={enemy.reward}
+                          onChange={(e) =>
+                            setEnemyField(enemyId, 'reward', Math.max(0, Number(e.target.value) || 0))
+                          }
                         />
                       </td>
                     </tr>
