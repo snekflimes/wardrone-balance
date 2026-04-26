@@ -196,7 +196,7 @@
       { "id": "shop_energy_full", "name": "Энергия (полная)", "type": "energy", "quantity": 100, "priceSoft": 200, "priceHard": 0 },
       { "id": "shop_vip", "name": "VIP подписка (7 дней)", "type": "vip", "quantity": 1, "priceSoft": 0, "priceHard": 500 },
       { "id": "shop_battle_pass", "name": "Боевой пропуск", "type": "battle_pass", "quantity": 1, "priceSoft": 0, "priceHard": 1000 },
-      { "id": "shop_starter_pack", "name": "Набор новичка", "type": "pack", "quantity": 1, "priceSoft": 0, "priceHard": 300 },
+      { "id": "shop_starter_pack", "name": "Набор новичка", "type": "pack", "quantity": 1, "priceSoft": 0, "priceHard": 1080 },
       { "id": "shop_advanced_pack", "name": "Продвинутый набор", "type": "pack", "quantity": 1, "priceSoft": 0, "priceHard": 800 },
       { "id": "shop_pro_pack", "name": "Профессиональный набор", "type": "pack", "quantity": 1, "priceSoft": 0, "priceHard": 1500 },
       { "id": "shop_piggy_small", "name": "Копилка (малая)", "type": "piggy", "quantity": 1, "priceSoft": 0, "priceHard": 100 },
@@ -247,10 +247,10 @@
         "gold": { "usd": 3.00, "cards": 5, "priceGold": 600, "kit50Gold": 6000 }
       },
       "starterPack": {
-        "priceGold": 300,
-        "soft": 9000,
-        "chestBronze": 3,
-        "chestSilver": 1,
+        "priceGold": 1080,
+        "soft": 22000,
+        "chestBronze": 0,
+        "chestSilver": 0,
         "chestGold": 0
       }
     },
