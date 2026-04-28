@@ -167,6 +167,186 @@
         "blueprintDropWeights": { "common": 0.1, "uncommon": 0.3, "rare": 0.6, "epic": 1, "legendary": 1.5 }
       }
     ],
+    "questChestsByLevel": [
+      {
+        "levelIndex": 1,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l01",
+          "name": "Квестовый сундук ур.1",
+          "packIds": ["soft_small", "soft_medium", "hard_small"],
+          "packWeights": { "soft_small": 1.2, "soft_medium": 0.9, "hard_small": 0.6 },
+          "blueprintRarities": ["common"],
+          "blueprintDropWeights": { "common": 0.35 }
+        }
+      },
+      {
+        "levelIndex": 2,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l02",
+          "name": "Квестовый сундук ур.2",
+          "packIds": ["soft_small", "soft_medium", "hard_small"],
+          "packWeights": { "soft_small": 1.1, "soft_medium": 0.95, "hard_small": 0.65 },
+          "blueprintRarities": ["common", "uncommon"],
+          "blueprintDropWeights": { "common": 0.35, "uncommon": 0.2 }
+        }
+      },
+      {
+        "levelIndex": 3,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l03",
+          "name": "Квестовый сундук ур.3",
+          "packIds": ["soft_small", "soft_medium", "hard_small", "hard_medium"],
+          "packWeights": { "soft_small": 0.9, "soft_medium": 1.0, "hard_small": 0.65, "hard_medium": 0.45 },
+          "blueprintRarities": ["common", "uncommon"],
+          "blueprintDropWeights": { "common": 0.4, "uncommon": 0.3 }
+        }
+      },
+      {
+        "levelIndex": 4,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l04",
+          "name": "Квестовый сундук ур.4",
+          "packIds": ["soft_medium", "soft_big", "hard_small", "hard_medium"],
+          "packWeights": { "soft_medium": 0.9, "soft_big": 0.6, "hard_small": 0.55, "hard_medium": 0.5 },
+          "blueprintRarities": ["common", "uncommon", "rare"],
+          "blueprintDropWeights": { "common": 0.3, "uncommon": 0.4, "rare": 0.2 }
+        }
+      },
+      {
+        "levelIndex": 5,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l05",
+          "name": "Квестовый сундук ур.5",
+          "packIds": ["soft_medium", "soft_big", "hard_small", "hard_medium"],
+          "packWeights": { "soft_medium": 0.75, "soft_big": 0.7, "hard_small": 0.5, "hard_medium": 0.55 },
+          "blueprintRarities": ["uncommon", "rare"],
+          "blueprintDropWeights": { "uncommon": 0.55, "rare": 0.35 }
+        }
+      },
+      {
+        "levelIndex": 6,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l06",
+          "name": "Квестовый сундук ур.6",
+          "packIds": ["soft_medium", "soft_big", "hard_medium"],
+          "packWeights": { "soft_medium": 0.6, "soft_big": 0.8, "hard_medium": 0.6 },
+          "blueprintRarities": ["uncommon", "rare"],
+          "blueprintDropWeights": { "uncommon": 0.55, "rare": 0.45 }
+        }
+      },
+      {
+        "levelIndex": 7,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l07",
+          "name": "Квестовый сундук ур.7",
+          "packIds": ["soft_big", "hard_medium", "hard_big"],
+          "packWeights": { "soft_big": 0.7, "hard_medium": 0.65, "hard_big": 0.35 },
+          "blueprintRarities": ["rare", "epic"],
+          "blueprintDropWeights": { "rare": 0.65, "epic": 0.25 }
+        }
+      },
+      {
+        "levelIndex": 8,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l08",
+          "name": "Квестовый сундук ур.8",
+          "packIds": ["soft_big", "hard_medium", "hard_big"],
+          "packWeights": { "soft_big": 0.55, "hard_medium": 0.65, "hard_big": 0.45 },
+          "blueprintRarities": ["rare", "epic"],
+          "blueprintDropWeights": { "rare": 0.6, "epic": 0.35 }
+        }
+      },
+      {
+        "levelIndex": 9,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l09",
+          "name": "Квестовый сундук ур.9",
+          "packIds": ["soft_big", "hard_big"],
+          "packWeights": { "soft_big": 0.45, "hard_big": 0.55 },
+          "blueprintRarities": ["rare", "epic"],
+          "blueprintDropWeights": { "rare": 0.55, "epic": 0.5 }
+        }
+      },
+      {
+        "levelIndex": 10,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l10",
+          "name": "Квестовый сундук ур.10",
+          "packIds": ["hard_medium", "hard_big"],
+          "packWeights": { "hard_medium": 0.6, "hard_big": 0.6 },
+          "blueprintRarities": ["rare", "epic"],
+          "blueprintDropWeights": { "rare": 0.45, "epic": 0.65 }
+        }
+      },
+      {
+        "levelIndex": 11,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l11",
+          "name": "Квестовый сундук ур.11",
+          "packIds": ["hard_medium", "hard_big"],
+          "packWeights": { "hard_medium": 0.5, "hard_big": 0.65 },
+          "blueprintRarities": ["rare", "epic", "legendary"],
+          "blueprintDropWeights": { "rare": 0.35, "epic": 0.75, "legendary": 0.15 }
+        }
+      },
+      {
+        "levelIndex": 12,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l12",
+          "name": "Квестовый сундук ур.12",
+          "packIds": ["hard_big"],
+          "packWeights": { "hard_big": 0.65 },
+          "blueprintRarities": ["epic", "legendary"],
+          "blueprintDropWeights": { "epic": 0.85, "legendary": 0.25 }
+        }
+      },
+      {
+        "levelIndex": 13,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l13",
+          "name": "Квестовый сундук ур.13",
+          "packIds": ["hard_big"],
+          "packWeights": { "hard_big": 0.5 },
+          "blueprintRarities": ["epic", "legendary"],
+          "blueprintDropWeights": { "epic": 0.95, "legendary": 0.35 }
+        }
+      },
+      {
+        "levelIndex": 14,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l14",
+          "name": "Квестовый сундук ур.14",
+          "packIds": [],
+          "blueprintRarities": ["epic", "legendary"],
+          "blueprintDropWeights": { "epic": 1.0, "legendary": 0.5 }
+        }
+      },
+      {
+        "levelIndex": 15,
+        "opensPerLevel": 3,
+        "chest": {
+          "id": "quest_l15",
+          "name": "Квестовый сундук ур.15",
+          "packIds": [],
+          "blueprintRarities": ["rare", "epic", "legendary"],
+          "blueprintDropWeights": { "rare": 0.2, "epic": 1.0, "legendary": 0.7 }
+        }
+      }
+    ],
     "vip": {
       "priceHard": 500
     },

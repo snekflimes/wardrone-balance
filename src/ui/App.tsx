@@ -478,6 +478,14 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
     ...defaultFreeChests.filter((c) => !freeChestIds.has(c.id)),
   ];
 
+  const defaultQuestChests = BALANCE_CONSTANTS.economy.questChestsByLevel ?? [];
+  const storedQuestChests = merged.economy.questChestsByLevel ?? [];
+  const questLevels = new Set(storedQuestChests.map((c) => c.levelIndex));
+  merged.economy.questChestsByLevel = [
+    ...storedQuestChests,
+    ...defaultQuestChests.filter((c) => !questLevels.has(c.levelIndex)),
+  ];
+
   // Миграция: новые блоки экономики могли "пропасть", если когда-то сохранённый economy
   // целиком перезаписал дефолты. Подмешиваем дефолты точечно.
   if (!merged.economy.rocketUnlock && BALANCE_CONSTANTS.economy.rocketUnlock) {

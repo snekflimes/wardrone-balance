@@ -115,6 +115,11 @@ export interface ProgressionForecastResult {
    * Считается по ключам: победа/поражение за попытку уровня, цикл сундуков по порядку в freeChests.
    */
   expectedFreeChestOpensById?: Record<string, number>;
+  /**
+   * Ожидаемое число открытий квестовых сундуков за прогон (ключ = id сундука из economy.questChestsByLevel[].chest).
+   * Обычно 3 открытия на каждый пройденный уровень.
+   */
+  expectedQuestChestOpensById?: Record<string, number>;
   /** Агрегат прогноза по ключам бесплатных сундуков (попытка = один заход на уровень). */
   freeChestKeyForecast?: {
     attempts: number;

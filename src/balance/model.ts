@@ -219,6 +219,11 @@ export interface EconomyConfig {
   currencyPacks?: CurrencyPackConfig[];
   /** Бесплатные сундуки: пул дропа (ровно 1 дроп за сундук). Порядок в списке = цикл 1★ → 2★ → 3★ → снова 1★. */
   freeChests?: FreeChestConfig[];
+  /**
+   * Квестовые сундуки по уровням: на каждый игровой уровень — свой сундук и число открытий за уровень.
+   * Используется в прогнозе (ожидаемые валюты/чертежи), и в будущем может стать частью наград в бою.
+   */
+  questChestsByLevel?: QuestChestByLevelConfig[];
   /** Ключи за попытку уровня (победа/поражение). Если не задано — в прогнозе 1 / 0.5 / 3 ключей. */
   freeChestKeyProgression?: FreeChestKeyProgressionConfig;
   vip: {
@@ -321,6 +326,18 @@ export interface FreeChestConfig {
   blueprintDropWeights?: Partial<Record<CardRarity, number>>;
   /** Переопределение веса пака в пуле (иначе — pack.baseWeight из currencyPacks). */
   packWeights?: Partial<Record<string, number>>;
+}
+
+/**
+ * Квестовый сундук уровня: выдаётся за квесты этого уровня (обычно 3 раза — по одному за квест).
+ * По механике идентичен FreeChestConfig: один дроп за открытие (пак валюты или 1 чертёж нужной редкости).
+ */
+export interface QuestChestByLevelConfig {
+  levelIndex: number;
+  /** Конфиг одного открытия сундука (пул дропа как у freeChests). */
+  chest: FreeChestConfig;
+  /** Сколько сундуков выдаётся за уровень (по умолчанию 3 — по одному за квест). */
+  opensPerLevel?: number;
 }
 
 /** Бесплатные сундуки по прогрессу ключей: победа/поражение за попытку, N ключей → открытие следующего сундука в цикле. */

@@ -619,6 +619,7 @@ export const ProgressionForecastPanel: React.FC<{
 
   const chestOpenSummary = useMemo(() => {
     const freeMap = forecast.expectedFreeChestOpensById ?? {};
+    const questMap = forecast.expectedQuestChestOpensById ?? {};
     const paidMap = forecast.expectedPaidChestOpensById ?? {};
     const cycleChests = getFreeChestsForKeyCycle(balance.economy.freeChests);
     const freeRows = cycleChests
@@ -633,9 +634,14 @@ export const ProgressionForecastPanel: React.FC<{
       .map(([id, count]) => ({ id, name: id, count }))
       .sort((a, b) => b.count - a.count);
     const freeOpensSum = freeRows.reduce((s, r) => s + r.count, 0);
+    const questRows = Object.entries(questMap)
+      .filter(([, n]) => n > 0.0005)
+      .map(([id, count]) => ({ id, name: id, count }))
+      .sort((a, b) => b.count - a.count);
     const configuredFreeChestCount = cycleChests.length;
     return {
       freeRows,
+      questRows,
       paidRows,
       waitHoursTotal: forecast.progressionElapsedHours ?? 0,
       calendarHoursTotal: forecast.progressionElapsedCalendarHours ?? 0,
@@ -645,6 +651,7 @@ export const ProgressionForecastPanel: React.FC<{
     };
   }, [
     forecast.expectedFreeChestOpensById,
+    forecast.expectedQuestChestOpensById,
     forecast.expectedPaidChestOpensById,
     forecast.progressionElapsedHours,
     forecast.progressionElapsedCalendarHours,
@@ -1198,6 +1205,7 @@ export const ProgressionForecastPanel: React.FC<{
       </div>
       {(supportProgressRows.length > 0 ||
         chestOpenSummary.freeRows.length > 0 ||
+        chestOpenSummary.questRows.length > 0 ||
         chestOpenSummary.paidRows.length > 0) && (
         <div style={{ marginTop: 10 }}>
           <h4 style={{ margin: '0 0 6px 0' }}>Прокачка карточек поддержки</h4>
@@ -1244,7 +1252,9 @@ export const ProgressionForecastPanel: React.FC<{
               </div>
             </div>
           )}
-          {(chestOpenSummary.freeRows.length > 0 || chestOpenSummary.paidRows.length > 0) && (
+          {(chestOpenSummary.freeRows.length > 0 ||
+            chestOpenSummary.questRows.length > 0 ||
+            chestOpenSummary.paidRows.length > 0) && (
             <div style={{ marginBottom: 12, display: 'flex', flexWrap: 'wrap', gap: 16 }}>
               {chestOpenSummary.freeRows.length > 0 && (
                 <div style={{ minWidth: 220 }}>
@@ -1285,6 +1295,31 @@ export const ProgressionForecastPanel: React.FC<{
                       .
                     </div>
                   )}
+                </div>
+              )}
+              {chestOpenSummary.questRows.length > 0 && (
+                <div style={{ minWidth: 220 }}>
+                  <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                    Квестовые сундуки (3 на уровень, EV за прогон)
+                  </div>
+                  <table style={tableStyle}>
+                    <thead>
+                      <tr>
+                        <th style={thStyle}>ID сундука</th>
+                        <th style={thStyle}>Открытий (EV)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {chestOpenSummary.questRows.map((r) => (
+                        <tr key={r.id}>
+                          <td style={tdStyle}>
+                            <code style={{ color: '#cbd5e1' }}>{r.name}</code>
+                          </td>
+                          <td style={tdStyle}>{Math.round(r.count * 100) / 100}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
               {chestOpenSummary.paidRows.length > 0 && (

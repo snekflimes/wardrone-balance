@@ -1,5 +1,12 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import type { BalanceConstants, CardRarity, ChestConfig, RefStarterPack, ShopItemConfig } from '../balance/model';
+import type {
+  BalanceConstants,
+  CardRarity,
+  ChestConfig,
+  QuestChestByLevelConfig,
+  RefStarterPack,
+  ShopItemConfig,
+} from '../balance/model';
 import { resolveStarterPackGrants } from '../balance/starterPack';
 import {
   getEconomyUsdRates,
@@ -248,6 +255,134 @@ export const ShopPanel: React.FC<{
     const raw = balance.economy.freeChests ?? [];
     return raw.length > getFreeChestsForKeyCycle(raw).length;
   }, [balance.economy.freeChests]);
+
+  const questChestsByLevel = balance.economy.questChestsByLevel ?? [];
+  const questChestForLevel = useCallback(
+    (levelIndex: number): QuestChestByLevelConfig | null =>
+      (questChestsByLevel.find((x) => x.levelIndex === levelIndex) as QuestChestByLevelConfig | undefined) ?? null,
+    [questChestsByLevel]
+  );
+
+  const ensureQuestChestLevelRow = useCallback(
+    (levelIndex: number) => {
+      setBalance((prev) => {
+        const list = prev.economy.questChestsByLevel ?? [];
+        if (list.some((x) => x.levelIndex === levelIndex)) return prev;
+        const fallback = list
+          .filter((x) => x.levelIndex < levelIndex)
+          .sort((a, b) => b.levelIndex - a.levelIndex)[0];
+        const ch = fallback?.chest ?? {
+          id: `quest_l${String(levelIndex).padStart(2, '0')}`,
+          name: `Квестовый сундук ур.${levelIndex}`,
+          packIds: [],
+          blueprintRarities: ['common'] as CardRarity[],
+        };
+        const row: QuestChestByLevelConfig = {
+          levelIndex,
+          opensPerLevel: 3,
+          chest: {
+            ...ch,
+            id: ch.id || `quest_l${String(levelIndex).padStart(2, '0')}`,
+            name: ch.name || `Квестовый сундук ур.${levelIndex}`,
+            packIds: [...(ch.packIds ?? [])],
+            blueprintRarities: [...(ch.blueprintRarities ?? [])],
+          },
+        };
+        return {
+          ...prev,
+          economy: {
+            ...prev.economy,
+            questChestsByLevel: [...list, row].sort((a, b) => a.levelIndex - b.levelIndex),
+          },
+        };
+      });
+    },
+    [setBalance]
+  );
+
+  const updateQuestChestRow = useCallback(
+    (levelIndex: number, patch: Partial<QuestChestByLevelConfig>) => {
+      setBalance((prev) => {
+        const list = prev.economy.questChestsByLevel ?? [];
+        const exists = list.some((x) => x.levelIndex === levelIndex);
+        const nextList = (exists ? list : [...list, {
+          levelIndex,
+          opensPerLevel: 3,
+          chest: {
+            id: `quest_l${String(levelIndex).padStart(2, '0')}`,
+            name: `Квестовый сундук ур.${levelIndex}`,
+            packIds: [],
+            blueprintRarities: ['common'] as CardRarity[],
+          },
+        }]).map((x) => {
+          if (x.levelIndex !== levelIndex) return x;
+          return {
+            ...x,
+            ...patch,
+            chest: { ...x.chest, ...(patch as any).chest },
+          };
+        }).sort((a, b) => a.levelIndex - b.levelIndex);
+        return {
+          ...prev,
+          economy: {
+            ...prev.economy,
+            questChestsByLevel: nextList,
+          },
+        };
+      });
+    },
+    [setBalance]
+  );
+
+  const toggleQuestChestPack = useCallback(
+    (levelIndex: number, packId: string) => {
+      ensureQuestChestLevelRow(levelIndex);
+      setBalance((prev) => ({
+        ...prev,
+        economy: {
+          ...prev.economy,
+          questChestsByLevel: (prev.economy.questChestsByLevel ?? []).map((row) => {
+            if (row.levelIndex !== levelIndex) return row;
+            const exists = row.chest.packIds.includes(packId);
+            return {
+              ...row,
+              chest: {
+                ...row.chest,
+                packIds: exists ? row.chest.packIds.filter((x) => x !== packId) : [...row.chest.packIds, packId],
+              },
+            };
+          }),
+        },
+      }));
+    },
+    [ensureQuestChestLevelRow, setBalance]
+  );
+
+  const toggleQuestChestRarity = useCallback(
+    (levelIndex: number, rarity: CardRarity) => {
+      ensureQuestChestLevelRow(levelIndex);
+      setBalance((prev) => ({
+        ...prev,
+        economy: {
+          ...prev.economy,
+          questChestsByLevel: (prev.economy.questChestsByLevel ?? []).map((row) => {
+            if (row.levelIndex !== levelIndex) return row;
+            const exists = row.chest.blueprintRarities.includes(rarity);
+            return {
+              ...row,
+              chest: {
+                ...row.chest,
+                blueprintRarities: exists
+                  ? row.chest.blueprintRarities.filter((x) => x !== rarity)
+                  : [...row.chest.blueprintRarities, rarity],
+              },
+            };
+          }),
+        },
+      }));
+    },
+    [ensureQuestChestLevelRow, setBalance]
+  );
 
   const stripLegacyFreeChestsFromBalance = useCallback(() => {
     setBalance((prev) => ({
@@ -1292,6 +1427,180 @@ export const ShopPanel: React.FC<{
                 </table>
               </div>
             )}
+
+            <div style={{ marginTop: 14, overflowX: 'auto' }}>
+              <table style={{ ...tableStyle, minWidth: 760 }}>
+                <caption
+                  style={{
+                    captionSide: 'top',
+                    textAlign: 'left',
+                    color: '#cbd5e1',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    paddingBottom: 8,
+                  }}
+                >
+                  Квестовые сундуки по уровням — 1 сундук на уровень, открывается по квестам (обычно 3 раза)
+                </caption>
+                <thead>
+                  <tr>
+                    <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, minWidth: 140 }}>
+                      Уровень · открытий
+                    </th>
+                    {(balance.economy.currencyPacks ?? []).map((pack) => (
+                      <th
+                        key={`quest_th_pack_${pack.id}`}
+                        style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, fontSize: 10, maxWidth: 96 }}
+                        title={pack.name}
+                      >
+                        {pack.name}
+                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 400 }}>вкл · вес</div>
+                      </th>
+                    ))}
+                    {(['common', 'uncommon', 'rare', 'epic', 'legendary'] as const).map((rarity) => (
+                      <th
+                        key={`quest_th_bp_${rarity}`}
+                        style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, fontSize: 10 }}
+                      >
+                        {rarity}
+                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 400 }}>вкл · вес</div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: Math.min(15, balance.meta.gameLevels ?? 15) }, (_, i) => i + 1).map((levelIndex) => {
+                    const row = questChestForLevel(levelIndex);
+                    const ch = row?.chest ?? {
+                      id: `quest_l${String(levelIndex).padStart(2, '0')}`,
+                      name: `Квестовый сундук ур.${levelIndex}`,
+                      packIds: [],
+                      blueprintRarities: ['common'] as CardRarity[],
+                    };
+                    const opens = row?.opensPerLevel ?? 3;
+                    return (
+                      <tr key={`quest_chest_row_${levelIndex}`} style={{ background: 'rgba(15, 23, 42, 0.35)' }}>
+                        <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 6, verticalAlign: 'top' }}>
+                          <div style={{ color: '#e2e8f0', fontWeight: 700 }}>Ур. {levelIndex}</div>
+                          <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>{ch.id}</div>
+                          <div style={{ marginTop: 6, display: 'grid', gap: 4 }}>
+                            <input
+                              style={freeChestTableCellInput}
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={opens}
+                              title="Сколько сундуков выдаётся за уровень (по одному за квест)."
+                              onChange={(e) =>
+                                updateQuestChestRow(levelIndex, {
+                                  opensPerLevel: Math.max(0, Math.floor(Number(e.target.value) || 0)),
+                                })
+                              }
+                            />
+                          </div>
+                        </td>
+                        {(balance.economy.currencyPacks ?? []).map((pack) => {
+                          const on = (ch.packIds ?? []).includes(pack.id);
+                          return (
+                            <td
+                              key={`quest_${levelIndex}_pack_${pack.id}`}
+                              style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, verticalAlign: 'top' }}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  onChange={() => toggleQuestChestPack(levelIndex, pack.id)}
+                                  title="Пак в пуле дропа"
+                                />
+                                <input
+                                  style={{ ...freeChestTableCellInput, opacity: on ? 1 : 0.35 }}
+                                  type="number"
+                                  disabled={!on}
+                                  min={0}
+                                  step={0.05}
+                                  value={
+                                    (row?.chest.packWeights?.[pack.id] !== undefined && row?.chest.packWeights?.[pack.id] !== null)
+                                      ? String(row?.chest.packWeights?.[pack.id])
+                                      : ''
+                                  }
+                                  placeholder={on ? String(getEffectiveFreeChestPackWeight(balance, ch as any, pack.id)) : '—'}
+                                  onChange={(e) => {
+                                    const v = e.target.value.trim();
+                                    updateQuestChestRow(levelIndex, {
+                                      chest: {
+                                        ...ch,
+                                        packWeights: (() => {
+                                          const next = { ...(row?.chest.packWeights ?? {}) } as any;
+                                          if (v === '') delete next[pack.id];
+                                          else next[pack.id] = Math.max(0, Number(v) || 0);
+                                          return Object.keys(next).length > 0 ? next : undefined;
+                                        })(),
+                                      } as any,
+                                    });
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          );
+                        })}
+                        {(['common', 'uncommon', 'rare', 'epic', 'legendary'] as const).map((rarity) => {
+                          const on = (ch.blueprintRarities ?? []).includes(rarity);
+                          return (
+                            <td
+                              key={`quest_${levelIndex}_bp_${rarity}`}
+                              style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, verticalAlign: 'top' }}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  onChange={() => toggleQuestChestRarity(levelIndex, rarity as CardRarity)}
+                                  title="Чертёж этой редкости в пуле"
+                                />
+                                <input
+                                  style={{ ...freeChestTableCellInput, opacity: on ? 1 : 0.35 }}
+                                  type="number"
+                                  disabled={!on}
+                                  min={0}
+                                  step={0.05}
+                                  value={
+                                    (row?.chest.blueprintDropWeights?.[rarity] !== undefined && row?.chest.blueprintDropWeights?.[rarity] !== null)
+                                      ? String(row?.chest.blueprintDropWeights?.[rarity])
+                                      : ''
+                                  }
+                                  placeholder={
+                                    on ? String(getEffectiveFreeChestBlueprintWeight(balance, ch as any, rarity as CardRarity)) : '—'
+                                  }
+                                  onChange={(e) => {
+                                    const v = e.target.value.trim();
+                                    updateQuestChestRow(levelIndex, {
+                                      chest: {
+                                        ...ch,
+                                        blueprintDropWeights: (() => {
+                                          const next = { ...(row?.chest.blueprintDropWeights ?? {}) } as any;
+                                          if (v === '') delete next[rarity];
+                                          else next[rarity] = Math.max(0, Number(v) || 0);
+                                          return Object.keys(next).length > 0 ? next : undefined;
+                                        })(),
+                                      } as any,
+                                    });
+                                  }}
+                                />
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <div style={{ marginTop: 6, fontSize: 11, color: '#64748b', lineHeight: 1.45 }}>
+                Подсказка: это тот же механизм, что и у <code style={{ color: '#cbd5e1' }}>freeChests</code> — один дроп за открытие.
+                Чтобы усилить валюту на ранних уровнях, повышайте веса паков; чтобы усилить чертежи на поздних — веса редкостей.
+              </div>
+            </div>
             <div style={{ marginTop: 12, borderTop: '1px solid rgba(148, 163, 184, 0.24)', paddingTop: 10 }}>
               <h5 style={{ marginTop: 0, marginBottom: 8 }}>Симулятор сундуков (как в скриптах)</h5>
               <div style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>

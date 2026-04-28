@@ -214,6 +214,7 @@ export function simulateProgressionForecast(
   const segmentHardPerDay = segmentHardPerWeek > 0 ? segmentHardPerWeek / 7 : 0;
 
   const freeChestOpensById: Record<string, number> = {};
+  const questChestOpensById: Record<string, number> = {};
   let freeChestKeyBank = 0;
   let freeChestCycleSlot = 0;
   let freeChestAttemptWins = 0;
@@ -236,6 +237,27 @@ export function simulateProgressionForecast(
       const perOpen = getExpectedBlueprintCopiesOfSingleCardPerFreeChestFromConfig(constants, chest, card.rarity);
       if (perOpen <= 0) continue;
       supportCardBlueprints[card.id] = (supportCardBlueprints[card.id] ?? 0) + perOpen;
+    }
+  };
+
+  const applyQuestChestOpensForLevel = (levelIndex: number) => {
+    const list = constants.economy.questChestsByLevel ?? [];
+    const row = list.find((x) => x.levelIndex === levelIndex);
+    if (!row) return;
+    const opens = Math.max(0, Math.floor(row.opensPerLevel ?? 3));
+    if (opens <= 0) return;
+    const ch = row.chest;
+    if (!ch || !ch.id) return;
+    for (let i = 0; i < opens; i += 1) {
+      questChestOpensById[ch.id] = (questChestOpensById[ch.id] ?? 0) + 1;
+      const expectedCurrency = getExpectedFreeChestCurrencyPerOpenFromConfig(constants, ch);
+      softBalance += expectedCurrency.soft;
+      hardBalance += expectedCurrency.hard;
+      for (const card of constants.supportCards) {
+        const perOpen = getExpectedBlueprintCopiesOfSingleCardPerFreeChestFromConfig(constants, ch, card.rarity);
+        if (perOpen <= 0) continue;
+        supportCardBlueprints[card.id] = (supportCardBlueprints[card.id] ?? 0) + perOpen;
+      }
     }
   };
 
@@ -582,6 +604,8 @@ export function simulateProgressionForecast(
 
       if (attemptVictory) {
         levelPassed = true;
+        // Квестовые сундуки уровня: 1 сундук (конфиг) × N открытий (по умолчанию 3 — по одному за квест).
+        applyQuestChestOpensForLevel(levelIndex);
         break;
       }
 
@@ -659,6 +683,7 @@ export function simulateProgressionForecast(
       forecastStarterPackPurchased,
     },
     expectedFreeChestOpensById: { ...freeChestOpensById },
+    expectedQuestChestOpensById: { ...questChestOpensById },
     freeChestKeyForecast:
       freeChestsKeyCycle.length > 0
         ? {
