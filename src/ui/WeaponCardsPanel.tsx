@@ -358,6 +358,7 @@ function WeaponGameLevelTable({
       weaponLevel: number;
       wave: string;
       requiredDps: number;
+      requiredDpsLabel: string;
       sustainedDps: number;
       margin: number;
       pass: boolean;
@@ -371,8 +372,19 @@ function WeaponGameLevelTable({
       const waveStatsList = waveDefs.map((w) => getWaveStats(balance, w));
       // Для "проходит оружием" логичнее брать худшую волну уровня (макс requiredDps),
       // иначе суммирование искажает смысл (волны не идут параллельно).
-      const requiredDps =
-        waveStatsList.length > 0 ? Math.max(...waveStatsList.map((s) => s.requiredDps)) : 0;
+      let requiredDps = 0;
+      let requiredDpsLabel = '—';
+      if (waveStatsList.length > 0) {
+        let maxIdx = 0;
+        for (let i = 0; i < waveStatsList.length; i += 1) {
+          if (waveStatsList[i]!.requiredDps >= requiredDps) {
+            requiredDps = waveStatsList[i]!.requiredDps;
+            maxIdx = i;
+          }
+        }
+        const worstWaveIndex = waveDefs[maxIdx]?.waveIndex ?? (maxIdx + 1);
+        requiredDpsLabel = waveStatsList.length > 1 ? `волна ${worstWaveIndex}` : `волна ${worstWaveIndex}`;
+      }
       const weaponLevel = Math.min(gameLevel, weaponCap);
       const weaponStats = getWeaponLevelStats(balance, weaponId, weaponLevel);
       const waveText =
@@ -401,6 +413,7 @@ function WeaponGameLevelTable({
         weaponLevel,
         wave: waveText,
         requiredDps,
+        requiredDpsLabel,
         sustainedDps: weaponStats.sustainedDps,
         margin: weaponStats.sustainedDps - requiredDps,
         pass: weaponStats.sustainedDps >= requiredDps,
@@ -417,6 +430,7 @@ function WeaponGameLevelTable({
           <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Игровой ур.</th>
           <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Волна</th>
           <PrecisionHeader label="Треб. DPS" keyName={`${prefix}.requiredDps`} precision={precision} onToggle={onTogglePrecision} />
+          <th style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>Худшая волна</th>
           <PrecisionHeader label="Ур. оружия" keyName={`${prefix}.weaponLevel`} precision={precision} onToggle={onTogglePrecision} />
           <PrecisionHeader label="DPS оружия" keyName={`${prefix}.sustainedDps`} precision={precision} onToggle={onTogglePrecision} />
           <PrecisionHeader label="Запас" keyName={`${prefix}.margin`} precision={precision} onToggle={onTogglePrecision} />
@@ -429,6 +443,7 @@ function WeaponGameLevelTable({
             <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{row.gameLevel}</td>
             <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{row.wave}</td>
             <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{roundCell(row.requiredDps, precision[`${prefix}.requiredDps`])}</td>
+            <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, color: '#94a3b8' }}>{row.requiredDpsLabel}</td>
             <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{row.weaponLevel}</td>
             <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4 }}>{roundCell(row.sustainedDps, precision[`${prefix}.sustainedDps`])}</td>
             <td style={{ border: '1px solid rgba(148, 163, 184, 0.24)', padding: 4, color: row.pass ? '#86efac' : '#fca5a5' }}>
