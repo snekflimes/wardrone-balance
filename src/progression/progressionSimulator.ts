@@ -358,9 +358,10 @@ export function simulateProgressionForecast(
     let levelPassed = false;
     let noProgressAttemptsInLevel = 0;
     let retryPowerMultiplier = 1;
-    // IMPORTANT: дефолт = 0. В реальной игре игрок не получает гарантированный +10% “силы” на каждую попытку.
-    // Если нужна модель "обучения на ретраях" — задаётся параметром options.retryPowerGainPerAttempt из UI.
-    const retryPowerGain = Math.max(0, options.retryPowerGainPerAttempt ?? 0);
+    // Модель "обучения на ретраях": игрок адаптируется и чуть повышает эффективность на каждой попытке.
+    // Дефолт делаем маленьким (не +10%), и ограничиваем cap'ом, чтобы прогноз не "читерил".
+    const retryPowerGain = Math.max(0, options.retryPowerGainPerAttempt ?? 0.025);
+    const retryPowerCap = Math.max(1, (options as any).retryPowerCap ?? 1.6);
     const maxAttemptsPerLevel = options.maxAttemptsPerLevel ?? options.maxAttemptsPerWave ?? 200;
     const deadlockRetryCap = Math.max(1, options.deadlockRetryCapPerWave ?? 5);
     const levelWaves: WaveDefinition[] = [];
@@ -628,7 +629,7 @@ export function simulateProgressionForecast(
       }
 
       if (retryPowerGain <= 0 && noProgressAttemptsInLevel >= deadlockRetryCap) break;
-      retryPowerMultiplier *= (1 + retryPowerGain);
+      retryPowerMultiplier = Math.min(retryPowerCap, retryPowerMultiplier * (1 + retryPowerGain));
     }
 
     const passed = levelPassed;
