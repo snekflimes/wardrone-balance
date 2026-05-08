@@ -308,10 +308,14 @@ export const LevelsConstructorPanel: React.FC<{
         maxLevelIndex: capped,
       });
       setSimResult(result);
+      const levelRow = result.levels.find((r) => r.levelIndex === capped) ?? null;
       const totalAttempts = result.levels.reduce((s, r) => s + r.attemptsTotal, 0);
       const passed = result.levels.filter((r) => r.passed).length;
       setSimMessage(
-        `Готово (уровни 1–${capped}): пройдено ${passed} / ${result.levels.length}, всего попыток (сумма): ${totalAttempts}`
+        levelRow
+          ? `Уровень ${capped}: ${levelRow.passed ? 'пройден' : 'не пройден'} · попыток: ${levelRow.attemptsTotal}. ` +
+              `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}`
+          : `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}`
       );
     } catch (e) {
       setSimResult(null);
