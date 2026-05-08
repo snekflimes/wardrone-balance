@@ -7,6 +7,7 @@ import type {
 } from '../balance/model';
 import { getWeaponLevelStats, getWaveStats } from '../balance/simulator';
 import { getReferenceWaveFromConfig, type ReferenceWavesConfig } from '../balance/referenceWaves';
+import { getWavesPerLevel } from '../balance/economy';
 import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import { getWeaponUpgradeSoftCost } from '../progression/upgradeCosts';
 import {
@@ -362,25 +363,47 @@ function WeaponGameLevelTable({
       pass: boolean;
     }> = [];
     const weaponCap = getMaxWeaponLevelForWeapon(balance, weaponId);
+    const wavesPerLevel = getWavesPerLevel(balance);
     for (let gameLevel = 1; gameLevel <= balance.meta.gameLevels; gameLevel += 1) {
-      const wave = getReferenceWaveFromConfig(referenceWavesConfig, gameLevel, 1);
-      const waveStats = getWaveStats(balance, wave);
+      const waveDefs = Array.from({ length: wavesPerLevel }, (_, i) =>
+        getReferenceWaveFromConfig(referenceWavesConfig, gameLevel, i + 1)
+      ).filter((w) => (w.enemies ?? []).length > 0);
+      const waveStatsList = waveDefs.map((w) => getWaveStats(balance, w));
+      // Для "проходит оружием" логичнее брать худшую волну уровня (макс requiredDps),
+      // иначе суммирование искажает смысл (волны не идут параллельно).
+      const requiredDps =
+        waveStatsList.length > 0 ? Math.max(...waveStatsList.map((s) => s.requiredDps)) : 0;
       const weaponLevel = Math.min(gameLevel, weaponCap);
       const weaponStats = getWeaponLevelStats(balance, weaponId, weaponLevel);
+      const waveText =
+        waveDefs.length <= 1
+          ? (waveDefs[0]?.enemies ?? [])
+              .map((group) => {
+                const e = balance.enemies[group.enemyId as keyof typeof balance.enemies];
+                const name = e?.displayName ?? group.enemyId;
+                return `${name} × ${group.count}`;
+              })
+              .join(', ')
+          : waveDefs
+              .map((w) => {
+                const items = (w.enemies ?? [])
+                  .map((group) => {
+                    const e = balance.enemies[group.enemyId as keyof typeof balance.enemies];
+                    const name = e?.displayName ?? group.enemyId;
+                    return `${name} × ${group.count}`;
+                  })
+                  .join(', ');
+                return `Волна ${w.waveIndex}: ${items}`;
+              })
+              .join(' · ');
       result.push({
         gameLevel,
         weaponLevel,
-        wave: wave.enemies
-          .map((group) => {
-            const e = balance.enemies[group.enemyId as keyof typeof balance.enemies];
-            const name = e?.displayName ?? group.enemyId;
-            return `${name} × ${group.count}`;
-          })
-          .join(', '),
-        requiredDps: waveStats.requiredDps,
+        wave: waveText,
+        requiredDps,
         sustainedDps: weaponStats.sustainedDps,
-        margin: weaponStats.sustainedDps - waveStats.requiredDps,
-        pass: weaponStats.sustainedDps >= waveStats.requiredDps,
+        margin: weaponStats.sustainedDps - requiredDps,
+        pass: weaponStats.sustainedDps >= requiredDps,
       });
     }
     return result;
