@@ -319,7 +319,7 @@ export const LevelsConstructorPanel: React.FC<{
     }
   };
 
-  const forbiddenEnemyIds = new Set<EnemyId>(['heli', 'plane', 'heavyInfantry']);
+  const forbiddenEnemyIds = new Set<EnemyId>(['plane', 'heavyInfantry']);
   const level1OnlyEnemyIds = new Set<EnemyId>(['infantryL1', 'jeepL1']);
   const enemyIds = useMemo(
     () => (Object.keys(balance.enemies) as EnemyId[]).filter((id) => !forbiddenEnemyIds.has(id)),

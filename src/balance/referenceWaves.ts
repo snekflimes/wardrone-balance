@@ -64,6 +64,8 @@ function createReferenceWaveEnemies(levelIndex: number, waveIndex: number): Part
       lightTank: oldT <= 0 ? 0 : Math.floor(oldT * 0.45) + (L >= 3 ? 1 : 0),
       mlrs: L >= 5 ? Math.max(0, L - 4) : 0,
       fuelTruck: L >= 7 ? 1 + (L >= 12 ? 1 : 0) : L >= 5 ? 1 : 0,
+      // Вертолёт врага появляется ближе к мидгейму: даёт давление и “разнообразие угроз”.
+      heli: L >= 6 ? Math.max(0, Math.floor((L - 6) / 3) + 1) : 0,
     };
   }
   const oldT2 = legacyTankCountWave2(L);
@@ -76,6 +78,7 @@ function createReferenceWaveEnemies(levelIndex: number, waveIndex: number): Part
     lightTank: oldT2 <= 0 ? 0 : Math.floor(oldT2 * 0.45) + (L >= 2 ? 1 : 0),
     mlrs: Math.max(0, L - 3),
     fuelTruck: L >= 6 ? 1 + (L >= 11 ? 1 : 0) : L >= 4 ? 1 : 0,
+    heli: L >= 5 ? Math.max(0, Math.floor((L - 5) / 3) + 1) : 0,
   };
 }
 
