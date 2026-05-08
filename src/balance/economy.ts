@@ -125,6 +125,11 @@ export function getVictoryBonusMultiplier(economy: BalanceConstants['economy']):
   return v != null && Number.isFinite(v) && v >= 0 ? v : 0.75;
 }
 
+export function getLossRewardMultiplier(economy: BalanceConstants['economy']): number {
+  const v = economy.lossRewardMultiplier;
+  return v != null && Number.isFinite(v) && v >= 0 ? v : 0.25;
+}
+
 /** Сумма enemy.reward × count по составу противников в бою. */
 export function getKillRewardSoftForWave(constants: BalanceConstants, wave: WaveDefinition): number {
   return wave.enemies.reduce((sum, group) => {

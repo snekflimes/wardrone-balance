@@ -15,6 +15,7 @@ import {
   getMissionRewardSoft,
   getVictoryBonusMultiplier,
   getPremiumRewardMultiplier,
+  getLossRewardMultiplier,
 } from './economy';
 import type {
   WeaponLevelStats,
@@ -566,10 +567,11 @@ export function simulateCombat(
   // Поражение: база×премиум + убийства, без бонуса за победу. Победа: + бонус от суммы базы и убийств.
   const killRewardSoft = killRewardBase;
   const vb = getVictoryBonusMultiplier(economy);
+  const lossMult = getLossRewardMultiplier(economy);
   const core = baseMissionWithPremiumSoft + killRewardSoft;
   const victoryBonusSoft = victory ? Math.round(vb * core) : 0;
-  const rewardSoft = core + victoryBonusSoft;
-  const waveRewardSoft = baseMissionWithPremiumSoft + victoryBonusSoft;
+  const rewardSoft = victory ? (core + victoryBonusSoft) : Math.round(core * lossMult);
+  const waveRewardSoft = victory ? (baseMissionWithPremiumSoft + victoryBonusSoft) : Math.round(baseMissionWithPremiumSoft * lossMult);
 
   return {
     timeToKillSec,

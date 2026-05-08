@@ -67,6 +67,7 @@
     "baseMissionReward": 200,
     "premiumRewardMultiplier": 2,
     "victoryBonusMultiplier": 0.75,
+    "lossRewardMultiplier": 0.25,
     "missionsPerSession": 3,
     "combatSkill": {
       "missChancePercent": 7,
