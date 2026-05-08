@@ -203,13 +203,6 @@ export interface EconomyConfig {
    * Доля от (база_с_премиумом + награда_за_убийства), начисляемая бонусом за победу. @default 0.75
    */
   victoryBonusMultiplier?: number;
-  /**
-   * Сколько от (baseMissionWithPremiumSoft + killRewardSoft) выдавать при поражении.
-   * 0 = награды нет (кроме “побочных” систем), 1 = как победа без victoryBonus.
-   * Важно для точности прогноза попыток: чем выше, тем быстрее игрок апается после провалов.
-   * @default 0.25
-   */
-  lossRewardMultiplier?: number;
   adMultiplier: number;
   missionsPerPlayerLevel: number;
   cardBaseCost: number;
