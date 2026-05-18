@@ -71,8 +71,10 @@ export interface CombatLoadout {
   supportCardLevels?: Record<number, number>;
   /** Учитывать premiumRewardMultiplier в базовой части награды (прогноз: payer/whale). */
   hasPremiumReward?: boolean;
-  /** Прогноз: применить forecastCombatRealismByLevel из economy.combatSkill. */
+  /** Прогноз: применить forecastCombatRealismByLevel из constants.json. */
   useForecastCombatCalibration?: boolean;
+  /** Прогноз: готовый множитель исходящего урона (из forecastCalibration.ts). */
+  forecastOutgoingRealismMultiplier?: number;
 }
 
 export interface CombatSimulationInput {

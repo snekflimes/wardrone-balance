@@ -4,6 +4,7 @@ import type { BalanceConstants, EnemyId } from '../balance/model';
 import { getEnemyApproachTimeSec, getEnemyLevelPowerBreakdownPerUnit } from '../balance/simulator';
 import type { ReferenceWavesConfig, ReferenceWaveEnemies } from '../balance/referenceWaves';
 import { getDefaultReferenceWavesConfig } from '../balance/referenceWaves';
+import { getForecastCalibrationSummary } from '../balance/forecastCalibration';
 import { simulateProgressionForecast } from '../progression/progressionSimulator';
 import { fullWeaponAndSupportUpgradePolicy } from '../progression/fullUpgradePolicy';
 import type { ProgressionForecastResult, SegmentId } from '../progression/types';
@@ -311,11 +312,13 @@ export const LevelsConstructorPanel: React.FC<{
       const levelRow = result.levels.find((r) => r.levelIndex === capped) ?? null;
       const totalAttempts = result.levels.reduce((s, r) => s + r.attemptsTotal, 0);
       const passed = result.levels.filter((r) => r.passed).length;
+      const calibHint = getForecastCalibrationSummary(capped);
       setSimMessage(
-        levelRow
+        (levelRow
           ? `Уровень ${capped}: ${levelRow.passed ? 'пройден' : 'не пройден'} · попыток: ${levelRow.attemptsTotal}. ` +
-              `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}`
-          : `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}`
+              `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}. `
+          : `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}. `) +
+          calibHint
       );
     } catch (e) {
       setSimResult(null);

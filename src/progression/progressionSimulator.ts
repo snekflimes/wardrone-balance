@@ -17,6 +17,7 @@ import {
   getUnitsPerLevelFromConfig,
 } from '../balance/referenceWaves';
 import { getWavesPerLevel } from '../balance/economy';
+import { resolveForecastOutgoingCombatRealism } from '../balance/forecastCalibration';
 import {
   getOutgoingSkillDamageMultiplier,
   getWaveLevelPowerContribution,
@@ -536,6 +537,7 @@ export function simulateProgressionForecast(
             combatPowerMultiplier: retryPowerMultiplier,
             hasPremiumReward,
             useForecastCombatCalibration: true,
+            forecastOutgoingRealismMultiplier: resolveForecastOutgoingCombatRealism(levelIndex),
           },
           wave,
         });
