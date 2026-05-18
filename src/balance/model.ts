@@ -303,6 +303,11 @@ export interface EconomyConfig {
      * если к моменту взрыва волна уже уничтожена (ошибки приоритета, разброс). 0–100.
      */
     reachLeakPercent?: number;
+    /**
+     * Прогноз попыток: доп. множитель исходящего урона по игровому уровню (индекс 0 = ур.1).
+     * Умножается на getOutgoingCombatRealismMultiplier при `useForecastCombatCalibration` в бою.
+     */
+    forecastCombatRealismByLevel?: number[];
   };
 }
 

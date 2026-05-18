@@ -305,6 +305,20 @@ export function getOutgoingCombatRealismMultiplier(economy: EconomyConfig): numb
   );
 }
 
+/** Прогноз: исходящий урон с калибровкой по уровню (плейтест попыток). */
+export function getForecastLevelOutgoingCombatRealism(
+  economy: EconomyConfig,
+  levelIndex: number
+): number {
+  const base = getOutgoingCombatRealismMultiplier(economy);
+  const table = economy.combatSkill?.forecastCombatRealismByLevel;
+  if (!table?.length) return base;
+  const idx = Math.max(0, Math.min(table.length - 1, levelIndex - 1));
+  const levelMult = table[idx];
+  if (levelMult == null || !Number.isFinite(levelMult)) return base;
+  return Math.max(0.02, Math.min(1, base * Math.max(0.02, Math.min(1, levelMult))));
+}
+
 export function getWeaponLevelStats(
   constants: BalanceConstants,
   weaponId: WeaponId,
@@ -469,7 +483,9 @@ export function simulateCombat(
 
   const combatPowerMultiplier = Math.max(0.01, input.loadout.combatPowerMultiplier ?? 1);
   const outgoingSkillDamageMultiplier = getOutgoingSkillDamageMultiplier(economy);
-  const outgoingCombatRealismMultiplier = getOutgoingCombatRealismMultiplier(economy);
+  const outgoingCombatRealismMultiplier = input.loadout.useForecastCombatCalibration
+    ? getForecastLevelOutgoingCombatRealism(economy, input.wave.levelIndex)
+    : getOutgoingCombatRealismMultiplier(economy);
 
   let totalBlendHp = 0;
   const hpByEnemyType: Partial<Record<EnemyId, number>> = {};

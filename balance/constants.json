@@ -73,7 +73,24 @@
       "partialHitChancePercent": 28,
       "partialDamagePercent": 48,
       "spreadSpatialEfficiencyPercent": 56,
-      "reachLeakPercent": 10
+      "reachLeakPercent": 10,
+      "forecastCombatRealismByLevel": [
+        0.14,
+        0.055,
+        0.35,
+        0.42,
+        0.48,
+        0.52,
+        0.56,
+        0.6,
+        0.64,
+        0.68,
+        0.72,
+        0.76,
+        0.8,
+        0.86,
+        0.92
+      ]
     },
     "adMultiplier": 2,
     "missionsPerPlayerLevel": 6,

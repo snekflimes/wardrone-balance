@@ -341,7 +341,7 @@ export function simulateProgressionForecast(
   tryBuyDeckSlots();
 
   for (let levelIndex = 1; levelIndex <= lastSimulatedLevel; levelIndex += 1) {
-    if (levelIndex >= 3 && !starterCardsGranted) {
+    if (levelIndex >= 2 && !starterCardsGranted) {
       // Стартовый набор: рой дронов, мины, десант, патроны МГ/Hydra, пехота с РПГ (6 слотов деки).
       for (const cardId of [1, 2, 7, 8, 10, 16]) {
         supportCardLevels[cardId] = Math.max(1, supportCardLevels[cardId] ?? 0);
@@ -360,8 +360,8 @@ export function simulateProgressionForecast(
     let retryPowerMultiplier = 1;
     // Модель "обучения на ретраях": игрок адаптируется и чуть повышает эффективность на каждой попытке.
     // Дефолт делаем маленьким (не +10%), и ограничиваем cap'ом, чтобы прогноз не "читерил".
-    const retryPowerGain = Math.max(0, options.retryPowerGainPerAttempt ?? 0.055);
-    const retryPowerCap = Math.max(1, (options as any).retryPowerCap ?? 2.05);
+    const retryPowerGain = Math.max(0, options.retryPowerGainPerAttempt ?? 0.028);
+    const retryPowerCap = Math.max(1, (options as any).retryPowerCap ?? 1.28);
     const maxAttemptsPerLevel = options.maxAttemptsPerLevel ?? options.maxAttemptsPerWave ?? 200;
     const deadlockRetryCap = Math.max(1, options.deadlockRetryCapPerWave ?? 5);
     const levelWaves: WaveDefinition[] = [];
@@ -535,6 +535,7 @@ export function simulateProgressionForecast(
             supportCardLevels: filterSupportCardsByDeckSlots(supportCardLevels),
             combatPowerMultiplier: retryPowerMultiplier,
             hasPremiumReward,
+            useForecastCombatCalibration: true,
           },
           wave,
         });
