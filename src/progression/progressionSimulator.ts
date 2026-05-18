@@ -5,7 +5,6 @@ import type {
   ProgressionAttemptPowerPoint,
   ProgressionForecastResult,
   ProgressionSimulatorOptions,
-  UpgradePolicy,
   WeaponLevels,
 } from './types';
 import { resolveEnergyRegenPerHour } from './energyRegenForecast';
@@ -46,11 +45,6 @@ function sumRewards(stateRewardSoft: number, rewardSoft: number): number {
   const next = stateRewardSoft + rewardSoft;
   if (!Number.isFinite(next)) return stateRewardSoft;
   return next;
-}
-
-/** Прогноз: апгрейд только после победной волны (как в плейтесте, без «докачки» на провале той же попытки). */
-function forecastUpgradePolicy(policy: UpgradePolicy): UpgradePolicy {
-  return (args) => (args.outcome.victory ? policy(args) : args.state);
 }
 
 function sumEditorUnitsRow(row: Record<EnemyId, number> | null | undefined): number | undefined {
@@ -366,8 +360,8 @@ export function simulateProgressionForecast(
     let retryPowerMultiplier = 1;
     // Модель "обучения на ретраях": игрок адаптируется и чуть повышает эффективность на каждой попытке.
     // Дефолт делаем маленьким (не +10%), и ограничиваем cap'ом, чтобы прогноз не "читерил".
-    const retryPowerGain = Math.max(0, options.retryPowerGainPerAttempt ?? 0.018);
-    const retryPowerCap = Math.max(1, (options as any).retryPowerCap ?? 1.18);
+    const retryPowerGain = Math.max(0, options.retryPowerGainPerAttempt ?? 0.028);
+    const retryPowerCap = Math.max(1, (options as any).retryPowerCap ?? 1.28);
     const maxAttemptsPerLevel = options.maxAttemptsPerLevel ?? options.maxAttemptsPerWave ?? 200;
     const deadlockRetryCap = Math.max(1, options.deadlockRetryCapPerWave ?? 5);
     const levelWaves: WaveDefinition[] = [];
@@ -546,24 +540,15 @@ export function simulateProgressionForecast(
           wave,
         });
 
-        const rewardScaleTable = constants.economy.combatSkill?.forecastRewardSoftScaleByLevel;
-        const rewardScale =
-          rewardScaleTable?.length
-            ? rewardScaleTable[Math.max(0, Math.min(rewardScaleTable.length - 1, levelIndex - 1))] ?? 1
-            : 1;
-        const effectiveRewardSoft = Math.round(
-          combat.rewardSoft * Math.max(0, Math.min(1, Number.isFinite(rewardScale) ? rewardScale : 1))
-        );
-
         const outcome: CombatOutcome = {
           victory: combat.victory,
           stars: combat.stars,
-          rewardSoft: effectiveRewardSoft,
+          rewardSoft: combat.rewardSoft,
         };
 
-        attemptReward = sumRewards(attemptReward, effectiveRewardSoft);
-        rewardTotal = sumRewards(rewardTotal, effectiveRewardSoft);
-        softBalance = sumRewards(softBalance, effectiveRewardSoft);
+        attemptReward = sumRewards(attemptReward, combat.rewardSoft);
+        rewardTotal = sumRewards(rewardTotal, combat.rewardSoft);
+        softBalance = sumRewards(softBalance, combat.rewardSoft);
 
         const prevState = {
           segmentId: options.segmentId,
@@ -576,7 +561,7 @@ export function simulateProgressionForecast(
           supportCardBlueprints,
         };
 
-        const nextState = forecastUpgradePolicy(options.upgradePolicy)({
+        const nextState = options.upgradePolicy({
           constants,
           state: prevState,
           outcome,

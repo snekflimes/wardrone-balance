@@ -308,14 +308,6 @@ export interface EconomyConfig {
      * Умножается на getOutgoingCombatRealismMultiplier при `useForecastCombatCalibration` в бою.
      */
     forecastCombatRealismByLevel?: number[];
-    /**
-     * Прогноз: множитель входящей угрозы по уровню (индекс 0 = ур.1). Только с `useForecastCombatCalibration`.
-     */
-    forecastIncomingThreatScaleByLevel?: number[];
-    /**
-     * Прогноз: множитель софта с волн (только прогноз, базовая экономика не меняется).
-     */
-    forecastRewardSoftScaleByLevel?: number[];
   };
 }
 

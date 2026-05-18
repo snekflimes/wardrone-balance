@@ -103,7 +103,7 @@ function createDefaultForecastUiState(gameLevels = 15): ForecastUiState {
     tuneAttemptRanges[level] = level <= 3 ? { min: 2, max: 2 } : { min: 3 + (level - 4), max: 5 + (level - 4) * 2 };
   }
   return {
-    maxAttemptsPerLevel: 250,
+    maxAttemptsPerLevel: 200,
     energyPerLevel: 100,
     energyStart: 100,
     energyPerAttempt: 1,
@@ -458,16 +458,8 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
     ...(merged.economy.combatSkill ?? {}),
   };
   const defaultForecastRealism = BALANCE_CONSTANTS.economy.combatSkill?.forecastCombatRealismByLevel;
-  const defaultForecastThreat = BALANCE_CONSTANTS.economy.combatSkill?.forecastIncomingThreatScaleByLevel;
-  const defaultForecastRewardScale = BALANCE_CONSTANTS.economy.combatSkill?.forecastRewardSoftScaleByLevel;
   if (!merged.economy.combatSkill.forecastCombatRealismByLevel?.length && defaultForecastRealism?.length) {
     merged.economy.combatSkill.forecastCombatRealismByLevel = [...defaultForecastRealism];
-  }
-  if (!merged.economy.combatSkill.forecastIncomingThreatScaleByLevel?.length && defaultForecastThreat?.length) {
-    merged.economy.combatSkill.forecastIncomingThreatScaleByLevel = [...defaultForecastThreat];
-  }
-  if (!merged.economy.combatSkill.forecastRewardSoftScaleByLevel?.length && defaultForecastRewardScale?.length) {
-    merged.economy.combatSkill.forecastRewardSoftScaleByLevel = [...defaultForecastRewardScale];
   }
   if (merged.economy.referenceAvgRewardPerAttemptSoft == null) {
     merged.economy.referenceAvgRewardPerAttemptSoft =
