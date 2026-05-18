@@ -14,7 +14,13 @@ export function getForecastLevelRealismMult(levelIndex: number): number {
   const idx = Math.max(0, Math.min(table.length - 1, levelIndex - 1));
   const v = table[idx];
   if (v == null || !Number.isFinite(v)) return 1;
-  return Math.max(0.02, Math.min(1, v));
+  const byLevel = bundledEconomy.combatSkill?.forecastPlaytestOutgoingBiasByLevel;
+  const biasRaw =
+    byLevel?.length && byLevel[idx] != null && Number.isFinite(byLevel[idx])
+      ? byLevel[idx]
+      : bundledEconomy.combatSkill?.forecastPlaytestOutgoingBias;
+  const bias = biasRaw != null && Number.isFinite(biasRaw) ? biasRaw : 1;
+  return Math.max(0.02, Math.min(1, v * bias));
 }
 
 /**

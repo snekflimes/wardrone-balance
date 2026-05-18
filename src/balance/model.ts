@@ -310,6 +310,13 @@ export interface EconomyConfig {
     forecastCombatRealismByLevel?: number[];
     /** Увеличивайте при смене калибровки в constants.json — сбросит устаревшие значения из localStorage. */
     forecastCalibrationVersion?: number;
+    /**
+     * Доп. множитель исходящего урона в прогнозе попыток (ур.1–2 ≈ 1.35: сим был на ~30–40% выше плейтеста).
+     * Умножается на forecastCombatRealismByLevel, cap 1.
+     */
+    forecastPlaytestOutgoingBias?: number;
+    /** По уровням (индекс 0 = ур.1); перекрывает forecastPlaytestOutgoingBias. */
+    forecastPlaytestOutgoingBiasByLevel?: number[];
   };
 }
 

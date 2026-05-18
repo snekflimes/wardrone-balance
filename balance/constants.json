@@ -74,7 +74,9 @@
       "partialDamagePercent": 48,
       "spreadSpatialEfficiencyPercent": 56,
       "reachLeakPercent": 10,
-      "forecastCalibrationVersion": 6,
+      "forecastCalibrationVersion": 7,
+      "forecastPlaytestOutgoingBias": 1.35,
+      "forecastPlaytestOutgoingBiasByLevel": [1, 1.38],
       "forecastCombatRealismByLevel": [
         0.14,
         0.055,
