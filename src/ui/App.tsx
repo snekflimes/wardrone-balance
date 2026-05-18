@@ -459,11 +459,7 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
   };
   const defaultForecastRealism = BALANCE_CONSTANTS.economy.combatSkill?.forecastCombatRealismByLevel;
   const defaultCalibVersion = BALANCE_CONSTANTS.economy.combatSkill?.forecastCalibrationVersion ?? 0;
-  const storedCalibVersion = merged.economy.combatSkill.forecastCalibrationVersion ?? 0;
-  if (storedCalibVersion !== defaultCalibVersion && defaultForecastRealism?.length) {
-    merged.economy.combatSkill.forecastCombatRealismByLevel = [...defaultForecastRealism];
-    merged.economy.combatSkill.forecastCalibrationVersion = defaultCalibVersion;
-  } else if (!merged.economy.combatSkill.forecastCombatRealismByLevel?.length && defaultForecastRealism?.length) {
+  if (defaultForecastRealism?.length) {
     merged.economy.combatSkill.forecastCombatRealismByLevel = [...defaultForecastRealism];
     merged.economy.combatSkill.forecastCalibrationVersion = defaultCalibVersion;
   }

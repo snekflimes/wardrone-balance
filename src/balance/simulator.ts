@@ -27,6 +27,13 @@ import type {
   ThreatReachBurst,
 } from './schema';
 import { simulateCombatWithManaAndSupport } from './supportCardManaCombat';
+import constantsBundled from '../../balance/constants.json';
+
+/** Калибровка прогноза попыток — только из репозитория, не из localStorage/API. */
+function getForecastCombatRealismByLevelTable(): number[] {
+  const table = constantsBundled.economy?.combatSkill?.forecastCombatRealismByLevel;
+  return Array.isArray(table) ? table : [];
+}
 
 /** Базовая дистанция спавна: больше → сильнее разводим типы по скорости подхода перед нормализацией в 3–6 с. */
 const DEFAULT_SPAWN_DISTANCE_FROM_VIP = 512;
@@ -311,8 +318,8 @@ export function getForecastLevelOutgoingCombatRealism(
   levelIndex: number
 ): number {
   const base = getOutgoingCombatRealismMultiplier(economy);
-  const table = economy.combatSkill?.forecastCombatRealismByLevel;
-  if (!table?.length) return base;
+  const table = getForecastCombatRealismByLevelTable();
+  if (!table.length) return base;
   const idx = Math.max(0, Math.min(table.length - 1, levelIndex - 1));
   const levelMult = table[idx];
   if (levelMult == null || !Number.isFinite(levelMult)) return base;
