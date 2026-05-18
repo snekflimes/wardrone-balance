@@ -319,6 +319,15 @@ export function getForecastLevelOutgoingCombatRealism(
   return Math.max(0.02, Math.min(1, base * Math.max(0.02, Math.min(1, levelMult))));
 }
 
+export function getForecastIncomingThreatScale(economy: EconomyConfig, levelIndex: number): number {
+  const table = economy.combatSkill?.forecastIncomingThreatScaleByLevel;
+  if (!table?.length) return 1;
+  const idx = Math.max(0, Math.min(table.length - 1, levelIndex - 1));
+  const v = table[idx];
+  if (v == null || !Number.isFinite(v)) return 1;
+  return Math.max(0.5, Math.min(8, v));
+}
+
 export function getWeaponLevelStats(
   constants: BalanceConstants,
   weaponId: WeaponId,
@@ -533,11 +542,22 @@ export function simulateCombat(
     outgoingCombatRealismMultiplier;
 
   const { sustainedSegments, reachBursts } = buildWaveThreat(constants, input.wave);
-  const threatSegments =
-    sustainedSegments.length > 0
+  const incomingThreatScale = input.loadout.useForecastCombatCalibration
+    ? getForecastIncomingThreatScale(economy, input.wave.levelIndex)
+    : 1;
+  const scaledSustained =
+    incomingThreatScale === 1
       ? sustainedSegments
-      : waveStats.totalEnemyDps > 0 && reachBursts.length === 0
-        ? [{ engageAfterSec: 0, dps: waveStats.totalEnemyDps }]
+      : sustainedSegments.map((s) => ({ ...s, dps: s.dps * incomingThreatScale }));
+  const scaledReach =
+    incomingThreatScale === 1
+      ? reachBursts
+      : reachBursts.map((b) => ({ ...b, damage: b.damage * incomingThreatScale }));
+  const threatSegments =
+    scaledSustained.length > 0
+      ? scaledSustained
+      : waveStats.totalEnemyDps > 0 && scaledReach.length === 0
+        ? [{ engageAfterSec: 0, dps: waveStats.totalEnemyDps * incomingThreatScale }]
         : [];
 
   const mc = simulateCombatWithManaAndSupport({
@@ -546,7 +566,7 @@ export function simulateCombat(
     playerWeaponDps,
     totalEnemyHp: waveStats.totalEnemyHp,
     threatSegments,
-    reachBursts,
+    reachBursts: scaledReach,
     vipMaxHp: playerHp,
     supportCardLevels,
     combatPowerMultiplier,

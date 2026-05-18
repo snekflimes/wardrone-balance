@@ -289,7 +289,7 @@ export const LevelsConstructorPanel: React.FC<{
     setSimUpToLevel(maxLevelIndex);
     try {
       const capped = Math.min(Math.max(1, maxLevelIndex), balance.meta.gameLevels);
-      const maxAttemptsPerLevel = Math.max(1, forecastUiState.maxAttemptsPerLevel ?? 200);
+      const maxAttemptsPerLevel = Math.max(1, forecastUiState.maxAttemptsPerLevel ?? 250);
       const energyPerLevel = Math.max(0, forecastUiState.energyPerLevel ?? 100);
       const energyPerAttempt = Math.max(1, forecastUiState.energyPerAttempt ?? 1);
       const energyStart = Math.max(0, forecastUiState.energyStart ?? energyPerLevel);
@@ -444,7 +444,7 @@ export const LevelsConstructorPanel: React.FC<{
               min={1}
               value={forecastUiState.maxAttemptsPerLevel}
               onChange={(e) =>
-                patchForecastUi({ maxAttemptsPerLevel: Math.max(1, Number(e.target.value) || 200) })
+                patchForecastUi({ maxAttemptsPerLevel: Math.max(1, Number(e.target.value) || 250) })
               }
             />
           </label>
