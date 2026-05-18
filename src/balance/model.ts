@@ -308,6 +308,8 @@ export interface EconomyConfig {
      * Умножается на getOutgoingCombatRealismMultiplier при `useForecastCombatCalibration` в бою.
      */
     forecastCombatRealismByLevel?: number[];
+    /** Увеличивайте при смене калибровки в constants.json — сбросит устаревшие значения из localStorage. */
+    forecastCalibrationVersion?: number;
   };
 }
 

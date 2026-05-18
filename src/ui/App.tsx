@@ -458,9 +458,18 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
     ...(merged.economy.combatSkill ?? {}),
   };
   const defaultForecastRealism = BALANCE_CONSTANTS.economy.combatSkill?.forecastCombatRealismByLevel;
-  if (!merged.economy.combatSkill.forecastCombatRealismByLevel?.length && defaultForecastRealism?.length) {
+  const defaultCalibVersion = BALANCE_CONSTANTS.economy.combatSkill?.forecastCalibrationVersion ?? 0;
+  const storedCalibVersion = merged.economy.combatSkill.forecastCalibrationVersion ?? 0;
+  if (storedCalibVersion !== defaultCalibVersion && defaultForecastRealism?.length) {
     merged.economy.combatSkill.forecastCombatRealismByLevel = [...defaultForecastRealism];
+    merged.economy.combatSkill.forecastCalibrationVersion = defaultCalibVersion;
+  } else if (!merged.economy.combatSkill.forecastCombatRealismByLevel?.length && defaultForecastRealism?.length) {
+    merged.economy.combatSkill.forecastCombatRealismByLevel = [...defaultForecastRealism];
+    merged.economy.combatSkill.forecastCalibrationVersion = defaultCalibVersion;
   }
+  const cs = merged.economy.combatSkill as Record<string, unknown>;
+  delete cs.forecastIncomingThreatScaleByLevel;
+  delete cs.forecastRewardSoftScaleByLevel;
   if (merged.economy.referenceAvgRewardPerAttemptSoft == null) {
     merged.economy.referenceAvgRewardPerAttemptSoft =
       BALANCE_CONSTANTS.economy.referenceAvgRewardPerAttemptSoft ?? 0;
