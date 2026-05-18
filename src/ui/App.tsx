@@ -463,9 +463,14 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
     merged.economy.combatSkill.forecastCombatRealismByLevel = [...defaultForecastRealism];
     merged.economy.combatSkill.forecastCalibrationVersion = defaultCalibVersion;
   }
+  const defaultPlaytestBias = BALANCE_CONSTANTS.economy.combatSkill?.forecastPlaytestOutgoingBias;
+  if (defaultPlaytestBias != null && Number.isFinite(defaultPlaytestBias)) {
+    merged.economy.combatSkill.forecastPlaytestOutgoingBias = defaultPlaytestBias;
+  }
   const cs = merged.economy.combatSkill as Record<string, unknown>;
   delete cs.forecastIncomingThreatScaleByLevel;
   delete cs.forecastRewardSoftScaleByLevel;
+  delete cs.forecastPlaytestOutgoingBiasByLevel;
   if (merged.economy.referenceAvgRewardPerAttemptSoft == null) {
     merged.economy.referenceAvgRewardPerAttemptSoft =
       BALANCE_CONSTANTS.economy.referenceAvgRewardPerAttemptSoft ?? 0;

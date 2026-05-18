@@ -14,6 +14,7 @@ import {
   Bar,
 } from 'recharts';
 import type { BalanceConstants } from '../balance/model';
+import { balanceForForecastSimulation } from '../balance/balanceForForecastSimulation';
 import type { SegmentId } from '../progression/types';
 import type { ReferenceWavesConfig } from '../balance/referenceWaves';
 import { fullWeaponAndSupportUpgradePolicy } from '../progression/fullUpgradePolicy';
@@ -561,8 +562,10 @@ export const ProgressionForecastPanel: React.FC<{
     [segmentId, energyRegenIntervalSec, energyRegenIntervalSecPremium]
   );
 
+  const forecastBalance = useMemo(() => balanceForForecastSimulation(balance), [balance]);
+
   const forecast = useMemo(() => {
-    return simulateProgressionForecast(balance, {
+    return simulateProgressionForecast(forecastBalance, {
       segmentId,
       playerLevel,
       initialSoft: computedInitialSoft,
@@ -576,7 +579,7 @@ export const ProgressionForecastPanel: React.FC<{
       referenceWavesConfig,
     });
   }, [
-    balance,
+    forecastBalance,
     segmentId,
     playerLevel,
     computedInitialSoft,
@@ -720,7 +723,7 @@ export const ProgressionForecastPanel: React.FC<{
     const effectiveTargets = override?.targetsByLevel ?? tuneTargets;
     const effectiveRanges = override?.attemptRangesByLevel ?? tuneAttemptRanges;
     const normalizedRanges = effectiveRanges;
-    const result = autoTuneReferenceWaves(balance, referenceWavesConfig, {
+    const result = autoTuneReferenceWaves(forecastBalance, referenceWavesConfig, {
       segmentId,
       playerLevel,
       initialSoft: computedInitialSoft,
@@ -738,7 +741,7 @@ export const ProgressionForecastPanel: React.FC<{
 
     // Повторно прогоняем прогноз на уже подобранных волнах, чтобы статус автоподбора
     // отражал фактическую проходимость, а не только число попыток.
-    const tunedForecast = simulateProgressionForecast(balance, {
+    const tunedForecast = simulateProgressionForecast(forecastBalance, {
       segmentId,
       playerLevel,
       initialSoft: computedInitialSoft,

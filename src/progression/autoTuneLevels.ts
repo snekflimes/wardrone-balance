@@ -1,3 +1,4 @@
+import { balanceForForecastSimulation } from '../balance/balanceForForecastSimulation';
 import { getWavesPerLevel } from '../balance/economy';
 import type { BalanceConstants, EnemyId } from '../balance/model';
 import type { ReferenceWavesConfig } from '../balance/referenceWaves';
@@ -146,6 +147,7 @@ export function autoTuneReferenceWaves(
   initialConfig: ReferenceWavesConfig,
   options: AutoTuneOptions
 ): AutoTuneResult {
+  const forecastConstants = balanceForForecastSimulation(constants);
   let working = deepCloneConfig(initialConfig);
   const scoreByLevel: Record<number, number> = {};
 
@@ -178,7 +180,7 @@ export function autoTuneReferenceWaves(
     if (mode === 'attempt_range') {
       const maxExpands = 6;
       for (let i = 0; i < maxExpands; i += 1) {
-        const hiProbe = getLevelResult(constants, scaleLevelWaves(working, levelIndex, hi), options, levelIndex);
+        const hiProbe = getLevelResult(forecastConstants, scaleLevelWaves(working, levelIndex, hi), options, levelIndex);
         if (hiProbe.passed && hiProbe.attempts < targetRange.min) {
           lo = hi;
           hi *= 2;
@@ -200,7 +202,7 @@ export function autoTuneReferenceWaves(
     for (let iter = 0; iter < 12; iter += 1) {
       const mid = (lo + hi) / 2;
       const candidate = scaleLevelWaves(working, levelIndex, mid);
-      const result = getLevelResult(constants, candidate, options, levelIndex);
+      const result = getLevelResult(forecastConstants, candidate, options, levelIndex);
       const score = result.score;
       const attempts = result.attempts;
 

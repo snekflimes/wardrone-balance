@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { BalanceConstants } from '../balance/model';
+import { balanceForForecastSimulation } from '../balance/balanceForForecastSimulation';
 import {
   getAverageRewardPerLevel,
   getAverageRewardPerSession,
@@ -129,7 +130,8 @@ export const EconomyPanel: React.FC<{
   const progressionForecastInitialSoft = 0;
 
   const progressionForecastMetrics = useMemo(() => {
-    const forecast = simulateProgressionForecast(balance, {
+    const forecastBalance = balanceForForecastSimulation(balance);
+    const forecast = simulateProgressionForecast(forecastBalance, {
       segmentId: forecastSegmentId,
       playerLevel: 1,
       initialSoft: progressionForecastInitialSoft,
