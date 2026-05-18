@@ -4,7 +4,7 @@ import type { BalanceConstants, EnemyId } from '../balance/model';
 import { getEnemyApproachTimeSec, getEnemyLevelPowerBreakdownPerUnit } from '../balance/simulator';
 import type { ReferenceWavesConfig, ReferenceWaveEnemies } from '../balance/referenceWaves';
 import { getDefaultReferenceWavesConfig } from '../balance/referenceWaves';
-import { getForecastCalibrationSummary } from '../balance/forecastCalibration';
+import { balanceForForecastSimulation } from '../balance/balanceForForecastSimulation';
 import { simulateProgressionForecast } from '../progression/progressionSimulator';
 import { fullWeaponAndSupportUpgradePolicy } from '../progression/fullUpgradePolicy';
 import type { ProgressionForecastResult, SegmentId } from '../progression/types';
@@ -294,7 +294,7 @@ export const LevelsConstructorPanel: React.FC<{
       const energyPerLevel = Math.max(0, forecastUiState.energyPerLevel ?? 100);
       const energyPerAttempt = Math.max(1, forecastUiState.energyPerAttempt ?? 1);
       const energyStart = Math.max(0, forecastUiState.energyStart ?? energyPerLevel);
-      const result = simulateProgressionForecast(balance, {
+      const result = simulateProgressionForecast(balanceForForecastSimulation(balance), {
         segmentId,
         playerLevel: Math.max(1, playerLevel),
         initialSoft: 0,
@@ -312,13 +312,11 @@ export const LevelsConstructorPanel: React.FC<{
       const levelRow = result.levels.find((r) => r.levelIndex === capped) ?? null;
       const totalAttempts = result.levels.reduce((s, r) => s + r.attemptsTotal, 0);
       const passed = result.levels.filter((r) => r.passed).length;
-      const calibHint = getForecastCalibrationSummary(capped);
       setSimMessage(
-        (levelRow
+        levelRow
           ? `Уровень ${capped}: ${levelRow.passed ? 'пройден' : 'не пройден'} · попыток: ${levelRow.attemptsTotal}. ` +
-              `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}. `
-          : `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}. `) +
-          calibHint
+              `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}`
+          : `Итого (1–${capped}): пройдено ${passed} / ${result.levels.length}, попыток (сумма): ${totalAttempts}`
       );
     } catch (e) {
       setSimResult(null);
@@ -381,8 +379,8 @@ export const LevelsConstructorPanel: React.FC<{
         <div>
           <h3>Конструктор уровней</h3>
           <p className="ui-hint" style={{ maxWidth: 640, marginBottom: 0 }}>
-            Состав врагов по уровню и волне — те же данные в бою и «Прогнозе». Сложность — состав и таблица врагов, не HP/DPS
-            «на уровень».
+            Состав врагов по уровню и волне — те же данные в бою и «Прогнозе». Кнопка «Симулировать» считает попытки по составу волн
+            здесь и базовым статам врагов из constants.json (правки HP/урона в таблице ниже на попытки не влияют).
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
