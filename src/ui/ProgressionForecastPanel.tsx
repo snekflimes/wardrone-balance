@@ -23,6 +23,12 @@ import { autoTuneReferenceWaves } from '../progression/autoTuneLevels';
 import { effectiveEnergyRegenIntervalSec, resolveEnergyRegenPerHour } from '../progression/energyRegenForecast';
 import { rocketWeaponLevelDisplay, showRocketLevelsInSummary } from '../progression/weaponLevelDisplay';
 import { getFreeChestsForKeyCycle } from '../progression/iapAndChestsModel';
+import {
+  getForecastCalibrationSummary,
+  resolveForecastOutgoingCombatRealism,
+} from '../balance/forecastCalibration';
+import { getOutgoingCombatRealismMultiplier } from '../balance/simulator';
+import { ForecastCombatCalibrationControls } from './ForecastCombatCalibrationControls';
 
 export type TuneMode = 'pass_rate' | 'attempt_range';
 export type PresetKind = 'onboarding' | 'midcore' | 'hardcore';
@@ -915,15 +921,55 @@ export const ProgressionForecastPanel: React.FC<{
     return [min, max];
   }, [attemptPowerYMin, attemptPowerYMax]);
 
+  const combatSkill = balance.economy.combatSkill ?? {};
+  const forecastBaseRealismMult = useMemo(
+    () => getOutgoingCombatRealismMultiplier(balance.economy),
+    [balance.economy]
+  );
+  const forecastEffectiveRealismMult = useMemo(
+    () => resolveForecastOutgoingCombatRealism(1, balance.economy),
+    [balance.economy]
+  );
+  const forecastCalibrationHint = useMemo(
+    () => getForecastCalibrationSummary(3, balance.economy),
+    [balance.economy]
+  );
+
+  const patchCombatSkill = (
+    key: 'forecastOutgoingRealismGlobal' | 'forecastRetryPowerGainPerAttempt',
+    value: number
+  ) => {
+    if (!setBalance) return;
+    setBalance((prev) => ({
+      ...prev,
+      economy: {
+        ...prev.economy,
+        combatSkill: {
+          ...(prev.economy.combatSkill ?? {}),
+          [key]: value,
+        },
+      },
+    }));
+  };
+
   return (
     <section>
       <div className="ui-toolbar" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
           <h3>Прогноз прогрессии</h3>
+          <ForecastCombatCalibrationControls
+            balance={balance}
+            setBalance={setBalance}
+            forecastBaseRealismMult={forecastBaseRealismMult}
+            forecastEffectiveRealismMult={forecastEffectiveRealismMult}
+            forecastCalibrationHint={forecastCalibrationHint}
+            patchCombatSkill={patchCombatSkill}
+            inputStyle={inputStyle}
+          />
           <p className="ui-hint" style={{ maxWidth: 640, marginBottom: 0 }}>
             Попытки, награды и прокачка по референсным волнам. Сегмент, энергия и лимит попыток —{' '}
-            <strong style={{ color: '#e2e8f0' }}>как на «Уровни»</strong> (строка K = «Симулировать 1–K»). Ранние уровни
-            усиливаются множителями из «Формулы → Бой и референсные волны».
+            <strong style={{ color: '#e2e8f0' }}>как на «Уровни»</strong>. Сложность боя в прогнозе — блок{' '}
+            <strong style={{ color: '#e2e8f0' }}>«Калибровка боя (плейтест)»</strong> ниже (одинаково на всех уровнях).
           </p>
         </div>
         <div style={{ display: 'grid', gap: 8, justifyItems: 'end' }}>
@@ -1044,6 +1090,10 @@ export const ProgressionForecastPanel: React.FC<{
         <div>
           - Ежедневные награды (login): дней в календаре = <strong>{(balance.economy.loginRewards ?? []).length}</strong> (вкладка{' '}
           <strong>«Экономика»</strong>).
+        </div>
+        <div>
+          - Сложность боя в прогнозе: <strong>блок «Калибровка боя (плейтест)»</strong> вверху этой вкладки (
+          <code style={{ color: '#cbd5e1' }}>forecastOutgoingRealismGlobal</code>).
         </div>
       </div>
 
