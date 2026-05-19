@@ -25,7 +25,10 @@ export function balanceForForecastSimulation(runtime: BalanceConstants): Balance
     economy: {
       ...baseEconomy,
       ...runtime.economy,
-      combatSkill: baseEconomy.combatSkill,
+      combatSkill: {
+        ...baseEconomy.combatSkill,
+        ...runtime.economy.combatSkill,
+      },
     },
     cardUpgradeCosts: BALANCE_CONSTANTS.cardUpgradeCosts,
     // Карты из json (не SUPPORT_CARD_REFERENCE), иначе L2 проходится за ~5 попыток.

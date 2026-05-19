@@ -304,18 +304,24 @@ export interface EconomyConfig {
      */
     reachLeakPercent?: number;
     /**
-     * @deprecated Не используется в прогнозе с v11+: единый реализм урона на всех уровнях.
-     * Оставлено в JSON для совместимости сохранений / автотюна.
+     * @deprecated Не используется в прогнозе с v11+ (см. forecastOutgoingRealismGlobal).
      */
     forecastCombatRealismByLevel?: number[];
     /** Увеличивайте при смене калибровки в constants.json — сбросит устаревшие значения из localStorage. */
     forecastCalibrationVersion?: number;
     /**
-     * @deprecated Не используется в прогнозе с v11+.
+     * Единый множитель исходящего урона в прогнозе попыток (0.02–1), одинаковый на всех уровнях.
+     * Умножается на промахи/разброс. Подстройте под плейтест (раньше ≈0.15 на ур.1 давало ~5 попыток на L2).
+     */
+    forecastOutgoingRealismGlobal?: number;
+    /**
+     * @deprecated Заменён на forecastOutgoingRealismGlobal.
      */
     forecastPlaytestOutgoingBias?: number;
     /** @deprecated Не используется в прогнозе с v11+. */
     forecastPlaytestOutgoingBiasByLevel?: number[];
+    /** Прирост «обучения на ретраях» за попытку в прогнозе (0 = без читерского роста силы). */
+    forecastRetryPowerGainPerAttempt?: number;
   };
 }
 

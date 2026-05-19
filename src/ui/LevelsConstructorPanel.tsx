@@ -175,7 +175,8 @@ const ProgressionSimResultBlock: React.FC<{
     </div>
     <p style={{ margin: 0, fontSize: 11, color: '#94a3b8', lineHeight: 1.5, maxWidth: 920 }}>
       Σ HP — сумма baseHp×N по волнам; Σ мощь — Σ (0,7×HP/T волны + 0,3×DPS угрозы×N) по волнам, без масштаба по номеру уровня.
-      Реализм урона (промахи/разброс) одинаков на всех уровнях — без таблицы forecastCombatRealismByLevel. С ур. 2 в бою
+      Реализм урона в прогнозе одинаков на всех уровнях: промахи/разброс × forecastOutgoingRealismGlobal (вкладка «Формулы»).
+      С ур. 2 в бою
       доступны купленные Гидра/Hellfire; на строке ур. 1 их уровни в таблице «—».
     </p>
     <div>

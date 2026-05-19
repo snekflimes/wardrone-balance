@@ -365,7 +365,12 @@ export function simulateProgressionForecast(
     let retryPowerMultiplier = 1;
     // Модель "обучения на ретраях": игрок адаптируется и чуть повышает эффективность на каждой попытке.
     // Дефолт делаем маленьким (не +10%), и ограничиваем cap'ом, чтобы прогноз не "читерил".
-    const retryPowerGain = Math.max(0, options.retryPowerGainPerAttempt ?? 0.028);
+    const retryPowerGain = Math.max(
+      0,
+      options.retryPowerGainPerAttempt ??
+        constants.economy.combatSkill?.forecastRetryPowerGainPerAttempt ??
+        0.028
+    );
     const retryPowerCap = Math.max(1, (options as any).retryPowerCap ?? 1.28);
     const maxAttemptsPerLevel = options.maxAttemptsPerLevel ?? options.maxAttemptsPerWave ?? 200;
     const deadlockRetryCap = Math.max(1, options.deadlockRetryCapPerWave ?? 5);
@@ -541,7 +546,10 @@ export function simulateProgressionForecast(
             combatPowerMultiplier: retryPowerMultiplier,
             hasPremiumReward,
             useForecastCombatCalibration: true,
-            forecastOutgoingRealismMultiplier: resolveForecastOutgoingCombatRealism(levelIndex),
+            forecastOutgoingRealismMultiplier: resolveForecastOutgoingCombatRealism(
+              levelIndex,
+              constants.economy
+            ),
           },
           wave,
         });

@@ -308,10 +308,10 @@ export function getOutgoingCombatRealismMultiplier(economy: EconomyConfig): numb
 
 /** @deprecated Используйте resolveForecastOutgoingCombatRealism — не зависит от сохранённого economy. */
 export function getForecastLevelOutgoingCombatRealism(
-  _economy: EconomyConfig,
+  economy: EconomyConfig,
   levelIndex: number
 ): number {
-  return resolveForecastOutgoingCombatRealism(levelIndex);
+  return resolveForecastOutgoingCombatRealism(levelIndex, economy);
 }
 
 export function getWeaponLevelStats(
@@ -481,7 +481,7 @@ export function simulateCombat(
   const outgoingCombatRealismMultiplier =
     input.loadout.forecastOutgoingRealismMultiplier ??
     (input.loadout.useForecastCombatCalibration
-      ? resolveForecastOutgoingCombatRealism(input.wave.levelIndex)
+      ? resolveForecastOutgoingCombatRealism(input.wave.levelIndex, economy)
       : getOutgoingCombatRealismMultiplier(economy));
 
   let totalBlendHp = 0;

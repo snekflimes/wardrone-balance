@@ -4,6 +4,7 @@ import {
   getOutgoingCombatRealismMultiplier,
   getOutgoingSkillDamageMultiplier,
 } from '../balance/simulator';
+import { resolveForecastOutgoingCombatRealism } from '../balance/forecastCalibration';
 import { FormulaConstructor } from './FormulaConstructor';
 
 type SetBalance = React.Dispatch<React.SetStateAction<BalanceConstants>>;
@@ -41,7 +42,9 @@ function updateCombatSkill(
     | 'partialHitChancePercent'
     | 'partialDamagePercent'
     | 'spreadSpatialEfficiencyPercent'
-    | 'reachLeakPercent',
+    | 'reachLeakPercent'
+    | 'forecastOutgoingRealismGlobal'
+    | 'forecastRetryPowerGainPerAttempt',
   value: number
 ) {
   setBalance((prev) => ({
@@ -83,6 +86,7 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
   const skill = economy.combatSkill ?? {};
   const outgoingSkillMult = getOutgoingSkillDamageMultiplier(economy);
   const outgoingCombatRealismMult = getOutgoingCombatRealismMultiplier(economy);
+  const forecastCombatRealismMult = resolveForecastOutgoingCombatRealism(1, economy);
 
   return (
     <div className="ui-stack">
@@ -346,8 +350,10 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
           <strong style={{ color: '#e2e8f0' }}>{outgoingSkillMult.toFixed(4)}</strong>.{' '}
           <strong style={{ color: '#e2e8f0' }}>Разброс целей</strong> (доля урона стволов в эффективное снятие HP): ещё ×
           (разброс&nbsp;% / 100). <strong style={{ color: '#e2e8f0' }}>Итого реализм стволов</strong>:{' '}
-          <strong style={{ color: '#e2e8f0' }}>{outgoingCombatRealismMult.toFixed(4)}</strong> — такой множитель в симуляции
-          боя и прогнозе. У reach: «утечка» при уже мёртвой волне.
+          <strong style={{ color: '#e2e8f0' }}>{outgoingCombatRealismMult.toFixed(4)}</strong> — песочница боя.{' '}
+          <strong style={{ color: '#e2e8f0' }}>Прогноз</strong>: ×{' '}
+          <strong style={{ color: '#e2e8f0' }}>{forecastCombatRealismMult.toFixed(4)}</strong> (база × global, все уровни
+          одинаково). У reach: «утечка» при уже мёртвой волне.
         </div>
         <div className="ui-field">
           <span style={labelStyle}>Промах (нет урона), %</span>
@@ -399,6 +405,44 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
             max={100}
             value={skill.reachLeakPercent ?? 0}
             onChange={(e) => updateCombatSkill(setBalance, 'reachLeakPercent', num(e.target.value))}
+          />
+        </div>
+        <div className="ui-field">
+          <span style={labelStyle}>
+            Прогноз: global к плейтесту (forecastOutgoingRealismGlobal, 0.02–1)
+          </span>
+          <input
+            type="number"
+            min={0.02}
+            max={1}
+            step={0.01}
+            value={skill.forecastOutgoingRealismGlobal ?? 0.15}
+            onChange={(e) =>
+              updateCombatSkill(
+                setBalance,
+                'forecastOutgoingRealismGlobal',
+                Math.max(0.02, Math.min(1, num(e.target.value) || 0.15))
+              )
+            }
+          />
+        </div>
+        <div className="ui-field">
+          <span style={labelStyle}>
+            Прогноз: рост силы за ретрай попытки (forecastRetryPowerGainPerAttempt)
+          </span>
+          <input
+            type="number"
+            min={0}
+            max={0.2}
+            step={0.005}
+            value={skill.forecastRetryPowerGainPerAttempt ?? 0.01}
+            onChange={(e) =>
+              updateCombatSkill(
+                setBalance,
+                'forecastRetryPowerGainPerAttempt',
+                Math.max(0, Math.min(0.2, num(e.target.value)))
+              )
+            }
           />
         </div>
       </section>
