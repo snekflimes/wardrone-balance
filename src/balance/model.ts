@@ -304,18 +304,17 @@ export interface EconomyConfig {
      */
     reachLeakPercent?: number;
     /**
-     * Прогноз попыток: доп. множитель исходящего урона по игровому уровню (индекс 0 = ур.1).
-     * Умножается на getOutgoingCombatRealismMultiplier при `useForecastCombatCalibration` в бою.
+     * @deprecated Не используется в прогнозе с v11+: единый реализм урона на всех уровнях.
+     * Оставлено в JSON для совместимости сохранений / автотюна.
      */
     forecastCombatRealismByLevel?: number[];
     /** Увеличивайте при смене калибровки в constants.json — сбросит устаревшие значения из localStorage. */
     forecastCalibrationVersion?: number;
     /**
-     * Доп. множитель исходящего урона в прогнозе попыток (ур.1–2 ≈ 1.35: сим был на ~30–40% выше плейтеста).
-     * Умножается на forecastCombatRealismByLevel, cap 1.
+     * @deprecated Не используется в прогнозе с v11+.
      */
     forecastPlaytestOutgoingBias?: number;
-    /** По уровням (индекс 0 = ур.1); перекрывает forecastPlaytestOutgoingBias. */
+    /** @deprecated Не используется в прогнозе с v11+. */
     forecastPlaytestOutgoingBiasByLevel?: number[];
   };
 }

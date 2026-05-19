@@ -71,7 +71,7 @@ export interface CombatLoadout {
   supportCardLevels?: Record<number, number>;
   /** Учитывать premiumRewardMultiplier в базовой части награды (прогноз: payer/whale). */
   hasPremiumReward?: boolean;
-  /** Прогноз: применить forecastCombatRealismByLevel из constants.json. */
+  /** Прогноз: единый реализм урона (промахи/разброс) из constants.json, без поуровневой таблицы. */
   useForecastCombatCalibration?: boolean;
   /** Прогноз: готовый множитель исходящего урона (из forecastCalibration.ts). */
   forecastOutgoingRealismMultiplier?: number;

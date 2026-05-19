@@ -92,13 +92,8 @@ export const weaponOnlyUpgradePolicy: UpgradePolicy = ({ constants, state, ctx }
     for (const weaponId of ids) {
       if (weaponId === 'hydra70' && !unlocked.hydra70) continue;
       if (weaponId === 'hellfire' && !unlocked.hellfire) continue;
-      // Прогрессия открытия/апгрейда оружия:
-      // - ур.1: только пулемёт;
-      // - ур.2: ракеты в бою, но апгрейд ракет — только после завершения 2-го уровня;
-      // - ур.3+: ракеты можно качать, но не между волнами одной попытки: иначе EV «лучшего»
-      //   апгрейда по суммарному DPS отдаёт Гидру/Hellfire, а следующая волна плотная по пехоте
-      //   — пулемёт недокачан, первая попытка падает, вторая проходит за счёт retryPower (артефакт).
-      if (weaponId !== 'machineGun' && ctx.levelIndex <= 2) continue;
+      // Не качаем ракеты между волнами одной попытки: иначе EV «лучшего» апгрейда по суммарному DPS
+      // отдаёт Гидру/Hellfire, а следующая волна плотная по пехоте — пулемёт недокачан (артефакт).
       if (
         weaponId !== 'machineGun' &&
         ctx.waveIndex >= 1 &&
