@@ -14,7 +14,10 @@ import {
   Bar,
 } from 'recharts';
 import type { BalanceConstants } from '../balance/model';
-import { balanceForForecastSimulation } from '../balance/balanceForForecastSimulation';
+import {
+  balanceForForecastSimulation,
+  FORECAST_BALANCE_INPUT_HINTS,
+} from '../balance/balanceForForecastSimulation';
 import type { SegmentId } from '../progression/types';
 import type { ReferenceWavesConfig } from '../balance/referenceWaves';
 import { fullWeaponAndSupportUpgradePolicy } from '../progression/fullUpgradePolicy';
@@ -1078,6 +1081,16 @@ export const ProgressionForecastPanel: React.FC<{
         }}
       >
         <div style={{ fontWeight: 700, color: '#e2e8f0', marginBottom: 6 }}>Что влияет на прогноз (где редактировать)</div>
+        <div style={{ marginBottom: 8, color: '#94a3b8' }}>
+          Прогноз попыток читает текущий баланс из редактора (после сохранения на сайте), не зашитый JSON в репозитории.
+        </div>
+        <ul style={{ margin: '0 0 8px 0', paddingLeft: 18, color: '#cbd5e1' }}>
+          {FORECAST_BALANCE_INPUT_HINTS.map((row) => (
+            <li key={row.label} style={{ marginBottom: 4 }}>
+              <strong style={{ color: '#e2e8f0' }}>{row.label}</strong> — {row.source}
+            </li>
+          ))}
+        </ul>
         <div>
           - Покупка ракетниц: Hydra = <strong>{balance.economy.rocketUnlock?.hydra70Soft ?? 0}</strong> soft, Hellfire ={' '}
           <strong>{balance.economy.rocketUnlock?.hellfireSoft ?? 0}</strong> soft (вкладка <strong>«Экономика»</strong>).

@@ -118,7 +118,7 @@ function getLevelResult(
   options: AutoTuneOptions,
   levelIndex: number
 ): { score: number; attempts: number; passed: boolean } {
-  const forecast = simulateProgressionForecast(constants, {
+  const forecast = simulateProgressionForecast(balanceForForecastSimulation(constants), {
     segmentId: options.segmentId,
     playerLevel: options.playerLevel,
     initialSoft: options.initialSoft,

@@ -457,15 +457,34 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
     ...(BALANCE_CONSTANTS.economy.combatSkill ?? {}),
     ...(merged.economy.combatSkill ?? {}),
   };
-  const defaultForecastRealism = BALANCE_CONSTANTS.economy.combatSkill?.forecastCombatRealismByLevel;
-  const defaultCalibVersion = BALANCE_CONSTANTS.economy.combatSkill?.forecastCalibrationVersion ?? 0;
-  if (defaultForecastRealism?.length) {
-    merged.economy.combatSkill.forecastCombatRealismByLevel = [...defaultForecastRealism];
-    merged.economy.combatSkill.forecastCalibrationVersion = defaultCalibVersion;
+  const defaultCombatSkill = BALANCE_CONSTANTS.economy.combatSkill ?? {};
+  if (merged.economy.combatSkill.forecastCalibrationVersion == null) {
+    merged.economy.combatSkill.forecastCalibrationVersion =
+      defaultCombatSkill.forecastCalibrationVersion ?? 0;
   }
-  const defaultPlaytestBias = BALANCE_CONSTANTS.economy.combatSkill?.forecastPlaytestOutgoingBias;
-  if (defaultPlaytestBias != null && Number.isFinite(defaultPlaytestBias)) {
-    merged.economy.combatSkill.forecastPlaytestOutgoingBias = defaultPlaytestBias;
+  if (merged.economy.combatSkill.forecastOutgoingRealismGlobal == null) {
+    merged.economy.combatSkill.forecastOutgoingRealismGlobal =
+      defaultCombatSkill.forecastOutgoingRealismGlobal ?? 0.147;
+  }
+  if (merged.economy.combatSkill.forecastRetryPowerGainPerAttempt == null) {
+    merged.economy.combatSkill.forecastRetryPowerGainPerAttempt =
+      defaultCombatSkill.forecastRetryPowerGainPerAttempt ?? 0.01;
+  }
+  if (
+    merged.economy.combatSkill.forecastCombatRealismByLevel == null &&
+    defaultCombatSkill.forecastCombatRealismByLevel?.length
+  ) {
+    merged.economy.combatSkill.forecastCombatRealismByLevel = [
+      ...defaultCombatSkill.forecastCombatRealismByLevel,
+    ];
+  }
+  if (
+    merged.economy.combatSkill.forecastPlaytestOutgoingBias == null &&
+    defaultCombatSkill.forecastPlaytestOutgoingBias != null &&
+    Number.isFinite(defaultCombatSkill.forecastPlaytestOutgoingBias)
+  ) {
+    merged.economy.combatSkill.forecastPlaytestOutgoingBias =
+      defaultCombatSkill.forecastPlaytestOutgoingBias;
   }
   const cs = merged.economy.combatSkill as Record<string, unknown>;
   delete cs.forecastIncomingThreatScaleByLevel;

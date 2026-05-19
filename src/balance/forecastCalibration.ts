@@ -10,6 +10,11 @@ export const FORECAST_CALIBRATION_VERSION =
 
 /** Значение по умолчанию: якорь старой калибровки ур.1 (0.109 × playtest bias 1.35). */
 export function getDefaultForecastOutgoingRealismGlobal(): number {
+  const global = bundledEconomy.combatSkill?.forecastOutgoingRealismGlobal;
+  if (global != null && Number.isFinite(global) && global > 0) {
+    return Math.max(0.02, Math.min(1, global));
+  }
+
   const table = bundledEconomy.combatSkill?.forecastCombatRealismByLevel ?? [];
   const bias = bundledEconomy.combatSkill?.forecastPlaytestOutgoingBias;
   const b = bias != null && Number.isFinite(bias) && bias > 0 ? bias : 1;
@@ -17,8 +22,6 @@ export function getDefaultForecastOutgoingRealismGlobal(): number {
   if (l1 != null && Number.isFinite(l1) && l1 > 0) {
     return Math.max(0.02, Math.min(1, l1 * b));
   }
-  const legacy = bundledEconomy.combatSkill?.forecastOutgoingRealismGlobal;
-  if (legacy != null && Number.isFinite(legacy) && legacy > 0) return legacy;
   return 0.15;
 }
 

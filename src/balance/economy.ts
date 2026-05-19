@@ -164,6 +164,11 @@ export function getWinRewardSoftForWaveDef(
   return Math.round(core + vb * core);
 }
 
+/** Опции агрегатов по награде: передать состав волн из конструктора «Уровни», иначе — встроенный REFERENCE_WAVES. */
+export type EconomyWaveRewardAggOptions = {
+  referenceWavesConfig?: ReferenceWavesConfig;
+};
+
 /** Суммарная награда за уровень при победе во всех боях уровня (референсный состав противников). */
 export function getLevelRewardSoft(
   constants: BalanceConstants,
@@ -184,23 +189,33 @@ export function getLevelRewardSoft(
 }
 
 /** Средняя награда за полный игровой уровень (все бои уровня) по всем уровням 1..gameLevels */
-export function getAverageRewardPerLevel(constants: BalanceConstants): number {
+export function getAverageRewardPerLevel(
+  constants: BalanceConstants,
+  opts?: EconomyWaveRewardAggOptions
+): number {
+  const cfg = opts?.referenceWavesConfig;
   const levels = constants.meta.gameLevels;
   let sum = 0;
   for (let l = 1; l <= levels; l++) {
-    sum += getLevelRewardSoft(constants, l);
+    sum += getLevelRewardSoft(constants, l, { referenceWavesConfig: cfg });
   }
   return levels > 0 ? sum / levels : 0;
 }
 
 /** Средняя награда за один бой по всем уровням и этапам (победа, без премиума, референсный состав). */
-function getAverageWaveRewardSoft(constants: BalanceConstants): number {
+export function getAverageWaveRewardSoft(
+  constants: BalanceConstants,
+  opts?: EconomyWaveRewardAggOptions
+): number {
+  const cfg = opts?.referenceWavesConfig;
   const levels = constants.meta.gameLevels;
   const wavesPerLevel = getWavesPerLevel(constants);
   let sum = 0;
   for (let l = 1; l <= levels; l++) {
     for (let w = 1; w <= wavesPerLevel; w++) {
-      const wave = getReferenceWave(l, w);
+      const wave = cfg
+        ? getReferenceWaveFromConfig(cfg, l, w)
+        : getReferenceWave(l, w);
       sum += getWinRewardSoftForWaveDef(constants, wave, false);
     }
   }
@@ -211,17 +226,21 @@ function getAverageWaveRewardSoft(constants: BalanceConstants): number {
 /** Средняя награда за одну игровую сессию. Сессия = economy.missionsPerSession боёв. */
 export function getAverageRewardPerSession(
   constants: BalanceConstants,
-  missionsPerSession?: number
+  missionsPerSession?: number,
+  aggOpts?: EconomyWaveRewardAggOptions
 ): number {
   const n = missionsPerSession ?? constants.economy.missionsPerSession ?? 3;
-  return getAverageWaveRewardSoft(constants) * n;
+  return getAverageWaveRewardSoft(constants, aggOpts) * n;
 }
 
 /** Средняя награда за попытку (1 попытка = 1 уровень) в нашем проекте. */
-export function getAverageAttemptRewardSoft(constants: BalanceConstants): number {
+export function getAverageAttemptRewardSoft(
+  constants: BalanceConstants,
+  opts?: EconomyWaveRewardAggOptions
+): number {
   const override = constants.economy.ourAvgRewardPerAttemptSoftOverride;
   if (override != null && Number.isFinite(override) && override > 0) return override;
-  return getAverageRewardPerLevel(constants);
+  return getAverageRewardPerLevel(constants, opts);
 }
 
 /**
@@ -254,7 +273,7 @@ export function getOurIapSoftPerUsd(constants: BalanceConstants): number | null 
  */
 export function getRewardEconomyComparison(
   constants: BalanceConstants,
-  opts?: { ourAvgRewardPerAttemptSoft?: number }
+  opts?: { ourAvgRewardPerAttemptSoft?: number } & EconomyWaveRewardAggOptions
 ): RewardEconomyComparison | null {
   const rates = getEconomyUsdRates(constants);
   const refSoftPerUsd = constants.economy.referencePacks?.softPerUsd;
@@ -271,7 +290,7 @@ export function getRewardEconomyComparison(
     Number.isFinite(opts.ourAvgRewardPerAttemptSoft) &&
     opts.ourAvgRewardPerAttemptSoft > 0
       ? opts.ourAvgRewardPerAttemptSoft
-      : getAverageAttemptRewardSoft(constants);
+      : getAverageAttemptRewardSoft(constants, opts);
   if (ourSoftPerUsd <= 0 || ourAvgReward <= 0) return null;
 
   const refAttemptsPerUsd = refSoftPerUsd / refAvgReward;

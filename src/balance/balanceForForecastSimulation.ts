@@ -1,7 +1,7 @@
-import constantsJson from '../../balance/constants.json';
-import { BALANCE_CONSTANTS, type BalanceConstants, type EnemyConfig, type EnemyId } from './model';
+import type { BalanceConstants, EnemyConfig, EnemyId, GameFormulas } from './model';
+import { BALANCE_CONSTANTS } from './model';
 
-/** Параметры врагов из редактора/runtime поверх бандла (награды, HP, урон). */
+/** На случай неполного runtime: дополняем врагов дефолтами. */
 function mergeEnemiesForForecast(
   base: BalanceConstants['enemies'],
   runtime: BalanceConstants['enemies'] | undefined
@@ -17,25 +17,80 @@ function mergeEnemiesForForecast(
   return out;
 }
 
+function mergeWeaponsForForecast(
+  base: BalanceConstants['weapons'],
+  runtime: BalanceConstants['weapons'] | undefined
+): BalanceConstants['weapons'] {
+  if (!runtime) return base;
+  return {
+    ...base,
+    ...runtime,
+    machineGun: { ...base.machineGun, ...(runtime.machineGun ?? {}) },
+    hydra70: { ...base.hydra70, ...(runtime.hydra70 ?? {}) },
+    hellfire: { ...base.hellfire, ...(runtime.hellfire ?? {}) },
+    growth: runtime.growth ?? base.growth,
+  };
+}
+
+function mergeWeaponVsEnemyModifiersForForecast(
+  base: BalanceConstants['weaponVsEnemyModifiers'],
+  runtime: BalanceConstants['weaponVsEnemyModifiers'] | undefined
+): BalanceConstants['weaponVsEnemyModifiers'] {
+  if (!runtime) return base;
+  return {
+    machineGun: { ...base.machineGun, ...(runtime.machineGun ?? {}) },
+    hydra70: { ...base.hydra70, ...(runtime.hydra70 ?? {}) },
+    hellfire: { ...base.hellfire, ...(runtime.hellfire ?? {}) },
+  };
+}
+
 /**
- * Прогноз попыток в конструкторе уровней:
- * - состав волн — из редактора (referenceWavesConfig);
- * - враги и экономика наград — из runtime (конструктор / «Экономика»);
- * - combatSkill.forecast* — база из constants.json (калибровка плейтеста).
+ * Масштабирование урона оружия — дефолтные формулы; числа (baseDamage, рост) — из вкладки «Оружие и карты».
+ * Экономика (baseMissionReward и т.д.) — из сохранённого конструктора формул.
+ */
+function mergeFormulasForForecast(
+  base: GameFormulas | undefined,
+  runtime: GameFormulas | undefined
+): GameFormulas | undefined {
+  if (!runtime && !base) return undefined;
+  const b = base ?? {};
+  const r = runtime ?? {};
+  return {
+    ...b,
+    ...r,
+    economy: r.economy ?? b.economy,
+    builders: {
+      ...b.builders,
+      ...r.builders,
+      economy: r.builders?.economy ?? b.builders?.economy,
+      weapons: b.builders?.weapons,
+    },
+    weapons: b.weapons,
+  };
+}
+
+/**
+ * Баланс для прогноза попыток: state из редактора после сохранения, без отката к урезанному бандлу.
+ *
+ * Отдельно от balance передаются в simulateProgressionForecast:
+ * - referenceWavesConfig — «Уровни»;
+ * - segmentId, energy*, maxAttemptsPerLevel — «Прогноз»;
+ * - playerLevel — шапка приложения.
  */
 export function balanceForForecastSimulation(runtime: BalanceConstants): BalanceConstants {
-  const bundled = constantsJson as unknown as BalanceConstants;
-  const baseEconomy = BALANCE_CONSTANTS.economy;
+  const base = BALANCE_CONSTANTS;
+  const baseEconomy = base.economy;
+
   return {
-    ...bundled,
-    meta: {
-      ...bundled.meta,
-      gameLevels: runtime.meta.gameLevels,
-    },
-    enemies: mergeEnemiesForForecast(BALANCE_CONSTANTS.enemies, runtime.enemies),
-    player: BALANCE_CONSTANTS.player,
-    weapons: BALANCE_CONSTANTS.weapons,
-    weaponVsEnemyModifiers: BALANCE_CONSTANTS.weaponVsEnemyModifiers,
+    ...runtime,
+    meta: { ...base.meta, ...runtime.meta },
+    player: { ...base.player, ...runtime.player },
+    weapons: mergeWeaponsForForecast(base.weapons, runtime.weapons),
+    enemies: mergeEnemiesForForecast(base.enemies, runtime.enemies),
+    weaponVsEnemyModifiers: mergeWeaponVsEnemyModifiersForForecast(
+      base.weaponVsEnemyModifiers,
+      runtime.weaponVsEnemyModifiers
+    ),
     economy: {
       ...baseEconomy,
       ...runtime.economy,
@@ -44,8 +99,27 @@ export function balanceForForecastSimulation(runtime: BalanceConstants): Balance
         ...runtime.economy.combatSkill,
       },
     },
-    cardUpgradeCosts: BALANCE_CONSTANTS.cardUpgradeCosts,
-    // Карты из json (не SUPPORT_CARD_REFERENCE), иначе L2 проходится за ~5 попыток.
-    supportCards: bundled.supportCards,
+    cardUpgradeCosts: {
+      ...base.cardUpgradeCosts,
+      ...runtime.cardUpgradeCosts,
+    },
+    supportCards: runtime.supportCards ?? base.supportCards,
+    formulas: mergeFormulasForForecast(base.formulas, runtime.formulas),
   };
 }
+
+/** Краткая сводка для подсказок в UI прогноза. */
+export const FORECAST_BALANCE_INPUT_HINTS: { label: string; source: string }[] = [
+  { label: 'Состав волн', source: '«Уровни» (referenceWavesConfig)' },
+  { label: 'Враги: HP, урон, награда', source: '«Уровни» → таблица юнитов' },
+  { label: 'Оружие: урон, патроны, рост, цены апгрейда', source: '«Оружие и карты»' },
+  { label: 'Карты поддержки (урон, мана, таблицы уровней)', source: '«Оружие и карты»' },
+  { label: 'База миссии, бонус победы, сундуки, логин, магазин', source: '«Экономика»' },
+  { label: 'Цена VIP / премиум (донат, не HP в бою)', source: '«Экономика»' },
+  { label: 'HP вертолёта / пехоты в бою', source: '«Формулы» → Игрок / вертолёт (player.*)' },
+  { label: 'Формула baseMissionReward', source: '«Формулы» → экономика' },
+  { label: 'Промахи, разброс, global плейтеста', source: '«Прогноз» / «Формулы» → бой' },
+  { label: 'Волн на уровень, длительность волны', source: '«Формулы» → meta' },
+  { label: 'Энергия, лимит попыток/день', source: '«Прогноз» и meta.forecastMaxAttemptsPerDay' },
+  { label: 'Сегмент (free/payer/whale)', source: '«Прогноз»' },
+];
