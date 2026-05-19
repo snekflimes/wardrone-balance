@@ -78,7 +78,10 @@ export interface ProgressionLevelForecast {
   totalEnemyLevelPowerScaled?: number;
   attemptsTotal: number;
   avgRewardPerAttempt: number;
+  /** Софт только из боёв (база + убийства + бонус победы), без сундуков и логина. */
   totalRewardSoft: number;
+  /** Ожидаемый софт из квестовых сундуков при прохождении уровня (economy.questChestsByLevel). */
+  questChestSoftOnLevel?: number;
   endingSoftBalance: number;
   /** Софт на апгрейд оружия, потраченный за прохождение этого игрового уровня. */
   weaponUpgradeSoftSpentOnLevel: number;

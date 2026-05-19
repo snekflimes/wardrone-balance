@@ -241,17 +241,19 @@ export function simulateProgressionForecast(
     }
   };
 
-  const applyQuestChestOpensForLevel = (levelIndex: number) => {
+  const applyQuestChestOpensForLevel = (levelIndex: number): number => {
     const list = constants.economy.questChestsByLevel ?? [];
     const row = list.find((x) => x.levelIndex === levelIndex);
-    if (!row) return;
+    if (!row) return 0;
     const opens = Math.max(0, Math.floor(row.opensPerLevel ?? 3));
-    if (opens <= 0) return;
+    if (opens <= 0) return 0;
     const ch = row.chest;
-    if (!ch || !ch.id) return;
+    if (!ch || !ch.id) return 0;
+    let questSoft = 0;
     for (let i = 0; i < opens; i += 1) {
       questChestOpensById[ch.id] = (questChestOpensById[ch.id] ?? 0) + 1;
       const expectedCurrency = getExpectedFreeChestCurrencyPerOpenFromConfig(constants, ch);
+      questSoft += expectedCurrency.soft;
       softBalance += expectedCurrency.soft;
       hardBalance += expectedCurrency.hard;
       for (const card of constants.supportCards) {
@@ -260,6 +262,7 @@ export function simulateProgressionForecast(
         supportCardBlueprints[card.id] = (supportCardBlueprints[card.id] ?? 0) + perOpen;
       }
     }
+    return questSoft;
   };
 
   const applyLoginRewardForDay = (day: number) => {
@@ -356,6 +359,7 @@ export function simulateProgressionForecast(
 
     let attemptsTotal = 0;
     let rewardTotal = 0;
+    let questChestSoftOnLevel = 0;
     let levelPassed = false;
     let noProgressAttemptsInLevel = 0;
     let retryPowerMultiplier = 1;
@@ -609,7 +613,7 @@ export function simulateProgressionForecast(
       if (attemptVictory) {
         levelPassed = true;
         // Квестовые сундуки уровня: 1 сундук (конфиг) × N открытий (по умолчанию 3 — по одному за квест).
-        applyQuestChestOpensForLevel(levelIndex);
+        questChestSoftOnLevel += applyQuestChestOpensForLevel(levelIndex);
         break;
       }
 
@@ -650,6 +654,7 @@ export function simulateProgressionForecast(
       attemptsTotal,
       avgRewardPerAttempt,
       totalRewardSoft: rewardTotal,
+      questChestSoftOnLevel,
       endingSoftBalance: softBalance,
       weaponUpgradeSoftSpentOnLevel: lifetimeWeaponUpgradeSoftSpent - weaponSpendAtLevelStart,
       weaponUpgradeSoftSpentCumulative: lifetimeWeaponUpgradeSoftSpent,

@@ -467,6 +467,14 @@ export const EconomyPanel: React.FC<{
 
           <div className="ui-subcard">
             <h4>Формулы и базовые значения</h4>
+            <p style={{ margin: '0 0 10px 0', fontSize: 12, color: '#94a3b8', lineHeight: 1.45, maxWidth: 720 }}>
+              Эти поля — только награда за <strong style={{ color: '#e2e8f0' }}>бой</strong> (база × премиум +{' '}
+              <strong style={{ color: '#e2e8f0' }}>enemy.reward</strong> за состав волны + бонус победы). Отдельной
+              «награды за волну» нет: база начисляется за каждый бой в попытке. В прогнозе дополнительно идут{' '}
+              <strong style={{ color: '#e2e8f0' }}>квест-сундуки</strong> при прохождении уровня (
+              <code style={{ fontSize: 11 }}>questChestsByLevel</code>, ~3 открытия × EV паков) и логин — колонка «Остаток
+              софта», не «Сумма награды (бои)».
+            </p>
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
               {[
                 ['baseMissionReward', 'База награды за бой'],

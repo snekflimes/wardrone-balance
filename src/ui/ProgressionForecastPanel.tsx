@@ -692,6 +692,7 @@ export const ProgressionForecastPanel: React.FC<{
           attemptsTotal: row.attemptsTotal,
           avgRewardPerAttempt: row.avgRewardPerAttempt,
           totalRewardSoft: row.totalRewardSoft,
+          questChestSoftOnLevel: row.questChestSoftOnLevel ?? 0,
           endingSoftBalance: row.endingSoftBalance,
           weaponUpgradeSoftSpentOnLevel: row.weaponUpgradeSoftSpentOnLevel,
           weaponUpgradeSoftSpentCumulative: row.weaponUpgradeSoftSpentCumulative,
@@ -2039,14 +2040,21 @@ export const ProgressionForecastPanel: React.FC<{
                   </th>
                   <th style={thStyle}>Пыток (итого)</th>
                   <th style={thStyle}>Средняя награда за попытку</th>
-                  <th style={thStyle}>Сумма награды</th>
+                  <th style={thStyle} title="Только бои: база + убийства + бонус победы">
+                    Сумма награды (бои)
+                  </th>
+                  <th style={thStyle} title="EV софта из questChestsByLevel при прохождении уровня">
+                    Квест-сундуки
+                  </th>
                   <th style={thStyle}>Траты на оружие (уровень)</th>
                   <th style={thStyle}>Траты на оружие (кум.)</th>
                   <th style={thStyle}>Покупка ракет (ур.)</th>
                   <th style={thStyle}>Покупка ракет (кум.)</th>
                   <th style={thStyle}>Слоты деки (ур.)</th>
                   <th style={thStyle}>Слоты деки (кум.)</th>
-                  <th style={thStyle}>Остаток софта</th>
+                  <th style={thStyle} title="Кумулятивный баланс: бои + квест-сундуки + логин + ключи + траты">
+                    Остаток софта
+                  </th>
                   <th
                     style={thStyle}
                     title="День прогноза по лимиту meta.forecastMaxAttemptsPerDay попыток в календарный день (по умолч. 10). Сундуки только от ожидания энергии."
@@ -2091,6 +2099,9 @@ export const ProgressionForecastPanel: React.FC<{
                     <td style={tdStyle}>{r.unitsTotal > 0 ? r.attemptsTotal : '—'}</td>
                     <td style={tdStyle}>{r.unitsTotal > 0 ? r.avgRewardPerAttempt.toFixed(1) : '—'}</td>
                     <td style={tdStyle}>{r.unitsTotal > 0 ? Math.round(r.totalRewardSoft) : '—'}</td>
+                    <td style={tdStyle}>
+                      {r.unitsTotal > 0 && r.passed ? Math.round(r.questChestSoftOnLevel) : '—'}
+                    </td>
                     <td style={tdStyle}>{r.unitsTotal > 0 ? Math.round(r.weaponUpgradeSoftSpentOnLevel) : '—'}</td>
                     <td style={tdStyle}>{Math.round(r.weaponUpgradeSoftSpentCumulative)}</td>
                     <td style={tdStyle}>{r.unitsTotal > 0 ? Math.round(r.rocketUnlockSoftSpentOnLevel) : '—'}</td>
