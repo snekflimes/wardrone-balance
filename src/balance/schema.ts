@@ -65,10 +65,14 @@ export interface CombatLoadout {
    */
   combatPowerMultiplier?: number;
   /**
-   * Уровни support-карт (ключ = cardId).
-   * Опционально: в бою могут учитываться эффекты карт (например защита).
+   * Уровни support-карт в активной деке (слоты) — розыгрыш в бою.
    */
   supportCardLevels?: Record<number, number>;
+  /**
+   * Все прокачанные карты, в т.ч. вне деки. Пассивы (карта №17) читаются отсюда.
+   * Если не задано — используется supportCardLevels.
+   */
+  allSupportCardLevels?: Record<number, number>;
   /** Учитывать premiumRewardMultiplier в базовой части награды (прогноз: payer/whale). */
   hasPremiumReward?: boolean;
   /** Прогноз: единый реализм урона (промахи/разброс) из constants.json, без поуровневой таблицы. */

@@ -308,7 +308,7 @@ export const SUPPORT_CARD_BATTLE_PARAMETER_PRESETS: SupportCardBattleParameterPr
     group: 'Пассив (база)',
     label: 'Бонус HP цели',
     columnTitle: 'Бонус HP цели',
-    effectHint: 'Карта №17: навсегда добавляет max HP защищаемой цели на этом уровне карты',
+    effectHint: 'Прибавка к базовому HP из «Формулы» на этом уровне карты; работает без слота в деке',
   },
   {
     id: 'econ_cards',

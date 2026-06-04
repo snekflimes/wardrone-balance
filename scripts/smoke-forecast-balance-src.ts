@@ -46,7 +46,8 @@ function runSmoke(): void {
       machineGunLevel: 1,
       hydraLevel: 1,
       hellfireLevel: 1,
-      supportCardLevels: { 17: 2 },
+      supportCardLevels: {},
+      allSupportCardLevels: { 17: 2 },
     },
     wave,
   });
@@ -57,11 +58,12 @@ function runSmoke(): void {
       hydraLevel: 1,
       hellfireLevel: 1,
       supportCardLevels: {},
+      allSupportCardLevels: {},
     },
     wave,
   });
-  if (weak.playerHp <= strong.playerHp) {
-    throw new Error('card 17 must increase protected target max HP in combat');
+  if (weak.playerHp !== 320) {
+    throw new Error(`expected max HP 320 with card 17 out of deck, got ${weak.playerHp}`);
   }
 
   runtime.weapons.machineGun.baseDamage = 1;

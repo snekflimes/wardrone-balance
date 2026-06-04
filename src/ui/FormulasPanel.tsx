@@ -253,7 +253,8 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
         <h4 style={{ marginBottom: 10 }}>Защищаемая цель</h4>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, lineHeight: 1.45 }}>
           Объект на карте, который нельзя потерять: враги бьют по нему, при 0 HP — поражение. Дополнительный max HP даёт
-          пассивная карта №17 «Укрепление базы» (вкладка «Оружие и карты»).
+          пассивная карта №17 «Укрепление базы» (вкладка «Оружие и карты»): значение колонки «Бонус HP цели»
+          <strong> прибавляется </strong> к базе (база 175 + бонус 50 = 225). Карта действует, даже если не в слотах деки.
         </div>
         <div className="ui-field">
           <span style={labelStyle}>Базовое HP защищаемой цели</span>

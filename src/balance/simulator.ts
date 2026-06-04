@@ -438,6 +438,7 @@ export function simulateCombat(
   const { player, meta, economy } = constants;
 
   const supportCardLevels = input.loadout.supportCardLevels ?? {};
+  const allSupportCardLevels = input.loadout.allSupportCardLevels ?? supportCardLevels;
 
   const getCardValue = (cardId: number, fallbackColumn: string): number => {
     const lvl = supportCardLevels[cardId] ?? 0;
@@ -454,8 +455,8 @@ export function simulateCombat(
   // Если по референсу волна пустая (нет данных/состав скрыт) — считаем, что бой не состоялся:
   // победы/звёзд и награды не выдаём.
   if (!input.wave.enemies || input.wave.enemies.length === 0) {
-    const vipMaxHp = resolveProtectedTargetMaxHp(constants, supportCardLevels);
-    const cardBonus = getProtectedTargetHpCardBonus(constants, supportCardLevels);
+    const vipMaxHp = resolveProtectedTargetMaxHp(constants, allSupportCardLevels);
+    const cardBonus = getProtectedTargetHpCardBonus(constants, allSupportCardLevels);
     return {
       timeToKillSec: Number.POSITIVE_INFINITY,
       playerHp: vipMaxHp,
@@ -515,8 +516,8 @@ export function simulateCombat(
   const hellfireMod = weaponModifierBlend('hellfire');
 
   const waveStats = getWaveStats(constants, input.wave);
-  const vipMaxHp = resolveProtectedTargetMaxHp(constants, supportCardLevels);
-  const protectedTargetHpCardBonus = getProtectedTargetHpCardBonus(constants, supportCardLevels);
+  const vipMaxHp = resolveProtectedTargetMaxHp(constants, allSupportCardLevels);
+  const protectedTargetHpCardBonus = getProtectedTargetHpCardBonus(constants, allSupportCardLevels);
   const protectedTargetBaseHp = getProtectedTargetBaseHp(player);
 
   const mgAmmoBonus = getCardValue(10, 'Количество патронов');

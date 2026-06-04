@@ -543,6 +543,7 @@ export function simulateProgressionForecast(
               hellfire: unlockedWeapons.hellfire,
             },
             supportCardLevels: filterSupportCardsByDeckSlots(supportCardLevels),
+            allSupportCardLevels: supportCardLevels,
             combatPowerMultiplier: retryPowerMultiplier,
             hasPremiumReward,
             useForecastCombatCalibration: true,

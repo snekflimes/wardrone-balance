@@ -42,12 +42,12 @@ export function getProtectedTargetBaseHp(player: PlayerBlock): number {
   return 175;
 }
 
-/** Пассивный бонус от карты #17 на текущем уровне (если карта в деке и прокачана). */
+/** Пассивный бонус от карты #17: прибавка к базе (не замена), даже если карта не в деке. */
 export function getProtectedTargetHpCardBonus(
   constants: BalanceConstants,
-  supportCardLevels: Record<number, number> | undefined
+  allSupportCardLevels: Record<number, number> | undefined
 ): number {
-  const lvl = supportCardLevels?.[PROTECTED_TARGET_HP_CARD_ID] ?? 0;
+  const lvl = allSupportCardLevels?.[PROTECTED_TARGET_HP_CARD_ID] ?? 0;
   return getSupportCardNumericAtLevel(
     constants,
     PROTECTED_TARGET_HP_CARD_ID,
@@ -56,13 +56,13 @@ export function getProtectedTargetHpCardBonus(
   );
 }
 
-/** Итоговый max HP VIP в бою = база + бонус карты #17. */
+/** Итоговый max HP VIP в бою = база (Формулы) + бонус карты #17 (таблица уровня). */
 export function resolveProtectedTargetMaxHp(
   constants: BalanceConstants,
-  supportCardLevels?: Record<number, number>
+  allSupportCardLevels?: Record<number, number>
 ): number {
   return (
     getProtectedTargetBaseHp(constants.player) +
-    getProtectedTargetHpCardBonus(constants, supportCardLevels)
+    getProtectedTargetHpCardBonus(constants, allSupportCardLevels)
   );
 }
