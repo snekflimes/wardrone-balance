@@ -370,9 +370,14 @@ export interface FreeChestKeyProgressionConfig {
 }
 
 export interface PlayerBlock {
-  baseAllyHp: number;
-  baseAllyInfantryHp: number;
-  baseAllyInfantryDamage: number;
+  /** Базовое HP защищаемой цели на карте (до карт и баффов). */
+  protectedTargetBaseHp?: number;
+  /** @deprecated Используйте protectedTargetBaseHp */
+  baseAllyHp?: number;
+  /** @deprecated Используйте protectedTargetBaseHp */
+  baseAllyInfantryHp?: number;
+  /** @deprecated Не используется в симуляции */
+  baseAllyInfantryDamage?: number;
 }
 
 export type WeaponVsEnemyModifiers = Record<WeaponId, Partial<Record<EnemyId, number>>>;
@@ -547,11 +552,13 @@ const legacyWeaponGrowth = (constantsJson as any).weapons.growth as WeaponGrowth
 
 const supportCards = (constantsJson.supportCards as SupportCardConfig[]).map((card) => {
   const reference = SUPPORT_CARD_REFERENCE.find((item) => item.id === card.id);
+  const refLevels = reference?.manualLevels ?? [];
+  const refColumns = reference?.tableColumns ?? [];
   return {
     ...card,
     name: reference?.name ?? card.name,
-    tableColumns: reference?.tableColumns ?? [],
-    manualLevels: reference?.manualLevels ?? [],
+    tableColumns: refColumns.length > 0 ? refColumns : (card.tableColumns ?? []),
+    manualLevels: refLevels.length > 0 ? refLevels : (card.manualLevels ?? []),
   };
 });
 

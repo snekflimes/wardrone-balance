@@ -28,6 +28,7 @@ import type {
 } from './schema';
 import { simulateCombatWithManaAndSupport } from './supportCardManaCombat';
 import { resolveForecastOutgoingCombatRealism } from './forecastCalibration';
+import { resolveProtectedTargetMaxHp, getProtectedTargetHpCardBonus, getProtectedTargetBaseHp } from './protectedTargetHp';
 
 /** Базовая дистанция спавна: больше → сильнее разводим типы по скорости подхода перед нормализацией в 3–6 с. */
 const DEFAULT_SPAWN_DISTANCE_FROM_VIP = 512;
@@ -453,9 +454,13 @@ export function simulateCombat(
   // Если по референсу волна пустая (нет данных/состав скрыт) — считаем, что бой не состоялся:
   // победы/звёзд и награды не выдаём.
   if (!input.wave.enemies || input.wave.enemies.length === 0) {
+    const vipMaxHp = resolveProtectedTargetMaxHp(constants, supportCardLevels);
+    const cardBonus = getProtectedTargetHpCardBonus(constants, supportCardLevels);
     return {
       timeToKillSec: Number.POSITIVE_INFINITY,
-      playerHp: player.baseAllyHp,
+      playerHp: vipMaxHp,
+      protectedTargetBaseHp: getProtectedTargetBaseHp(player),
+      protectedTargetHpCardBonus: cardBonus,
       incomingDps: 0,
       victory: false,
       stars: 0,
@@ -510,7 +515,9 @@ export function simulateCombat(
   const hellfireMod = weaponModifierBlend('hellfire');
 
   const waveStats = getWaveStats(constants, input.wave);
-  const playerHp = player.baseAllyInfantryHp ?? player.baseAllyHp;
+  const vipMaxHp = resolveProtectedTargetMaxHp(constants, supportCardLevels);
+  const protectedTargetHpCardBonus = getProtectedTargetHpCardBonus(constants, supportCardLevels);
+  const protectedTargetBaseHp = getProtectedTargetBaseHp(player);
 
   const mgAmmoBonus = getCardValue(10, 'Количество патронов');
   const hydraAmmoBonus = getCardValue(8, 'Количество патронов');
@@ -544,7 +551,7 @@ export function simulateCombat(
     totalEnemyHp: waveStats.totalEnemyHp,
     threatSegments,
     reachBursts,
-    vipMaxHp: playerHp,
+    vipMaxHp,
     supportCardLevels,
     combatPowerMultiplier,
     outgoingCombatRealism: outgoingCombatRealismMultiplier,
@@ -586,7 +593,9 @@ export function simulateCombat(
 
   return {
     timeToKillSec,
-    playerHp,
+    playerHp: vipMaxHp,
+    protectedTargetBaseHp,
+    protectedTargetHpCardBonus,
     incomingDps,
     victory,
     stars,

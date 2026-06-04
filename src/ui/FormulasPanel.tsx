@@ -250,32 +250,20 @@ export const FormulasPanel: React.FC<FormulasPanelProps> = ({ balance, setBalanc
       </section>
 
       <section className="ui-block">
-        <h4 style={{ marginBottom: 10 }}>Игрок / вертолёт</h4>
+        <h4 style={{ marginBottom: 10 }}>Защищаемая цель</h4>
+        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10, lineHeight: 1.45 }}>
+          Объект на карте, который нельзя потерять: враги бьют по нему, при 0 HP — поражение. Дополнительный max HP даёт
+          пассивная карта №17 «Укрепление базы» (вкладка «Оружие и карты»).
+        </div>
         <div className="ui-field">
-          <span style={labelStyle}>Базовое HP вертолёта</span>
+          <span style={labelStyle}>Базовое HP защищаемой цели</span>
           <input
             type="number"
             min={1}
-            value={player.baseAllyHp}
-            onChange={(e) => updatePlayer(setBalance, 'baseAllyHp', num(e.target.value) || 1)}
-          />
-        </div>
-        <div className="ui-field">
-          <span style={labelStyle}>HP союзной пехоты</span>
-          <input
-            type="number"
-            min={1}
-            value={player.baseAllyInfantryHp}
-            onChange={(e) => updatePlayer(setBalance, 'baseAllyInfantryHp', num(e.target.value) || 1)}
-          />
-        </div>
-        <div className="ui-field">
-          <span style={labelStyle}>Урон союзной пехоты</span>
-          <input
-            type="number"
-            min={0}
-            value={player.baseAllyInfantryDamage}
-            onChange={(e) => updatePlayer(setBalance, 'baseAllyInfantryDamage', num(e.target.value))}
+            value={player.protectedTargetBaseHp ?? player.baseAllyInfantryHp ?? player.baseAllyHp ?? 175}
+            onChange={(e) =>
+              updatePlayer(setBalance, 'protectedTargetBaseHp', num(e.target.value) || 1)
+            }
           />
         </div>
       </section>

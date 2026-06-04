@@ -87,7 +87,10 @@ export interface CombatSimulationInput {
 
 export interface CombatSimulationResult {
   timeToKillSec: number;
+  /** Max HP защищаемой цели в бою (база + пассив карты #17). */
   playerHp: number;
+  protectedTargetBaseHp?: number;
+  protectedTargetHpCardBonus?: number;
   incomingDps: number;
   victory: boolean;
   stars: number;

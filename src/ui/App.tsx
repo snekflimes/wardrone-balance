@@ -9,6 +9,7 @@ import {
 } from '../balance/model';
 import { getWavesPerLevel } from '../balance/economy';
 import { getWeaponLevelStats, simulateCombat } from '../balance/simulator';
+import { resolveProtectedTargetMaxHp, getProtectedTargetBaseHp } from '../balance/protectedTargetHp';
 import { getReferenceWaveFromConfig } from '../balance/referenceWaves';
 import { getMaxWeaponLevelForWeapon } from '../balance/weaponMeta';
 import { Charts } from './Charts';
@@ -384,6 +385,18 @@ function hydrateBalance(raw?: Partial<BalanceConstants> | null): BalanceConstant
     BALANCE_CONSTANTS.weaponVsEnemyModifiers,
     raw?.weaponVsEnemyModifiers
   );
+
+  const rawPlayer = raw?.player ?? {};
+  merged.player = {
+    ...BALANCE_CONSTANTS.player,
+    ...rawPlayer,
+    protectedTargetBaseHp:
+      rawPlayer.protectedTargetBaseHp ??
+      rawPlayer.baseAllyInfantryHp ??
+      rawPlayer.baseAllyHp ??
+      BALANCE_CONSTANTS.player.protectedTargetBaseHp ??
+      175,
+  };
 
   // Миграция: после перехода на 3 сундука удаляем legacy legendary
   // из конфига сундуков и из позиций магазина, включая старый localStorage.
@@ -1225,7 +1238,10 @@ export const App: React.FC = () => {
                 />
               </div>
               <div className="ui-kv">
-                <span>HP вертолёта: {balance.player.baseAllyHp}</span>
+                <span>
+                  HP защищаемой цели: {resolveProtectedTargetMaxHp(balance)} (база{' '}
+                  {getProtectedTargetBaseHp(balance.player)})
+                </span>
               </div>
             </div>
 
@@ -1326,7 +1342,12 @@ export const App: React.FC = () => {
                   : '∞'}
               </div>
               <div>Входящий DPS: {combatResult.incomingDps.toFixed(1)}</div>
-              <div>HP вертолёта: {combatResult.playerHp}</div>
+              <div>
+                HP защищаемой цели: {combatResult.playerHp}
+                {(combatResult.protectedTargetHpCardBonus ?? 0) > 0
+                  ? ` (база ${combatResult.protectedTargetBaseHp ?? getProtectedTargetBaseHp(balance.player)} + карта ${combatResult.protectedTargetHpCardBonus})`
+                  : ''}
+              </div>
               <div>
                 Исход:{' '}
                 <strong style={{ color: combatResult.victory ? '#4ade80' : '#f87171' }}>
