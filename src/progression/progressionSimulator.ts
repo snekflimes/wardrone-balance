@@ -345,7 +345,7 @@ export function simulateProgressionForecast(
   tryBuyDeckSlots();
 
   for (let levelIndex = 1; levelIndex <= lastSimulatedLevel; levelIndex += 1) {
-    if (levelIndex >= 2 && !starterCardsGranted) {
+    if (levelIndex >= 3 && !starterCardsGranted) {
       // Стартовый набор: рой дронов, мины, десант, патроны МГ/Hydra, пехота с РПГ (6 слотов деки).
       for (const cardId of [1, 2, 7, 8, 10, 16]) {
         supportCardLevels[cardId] = Math.max(1, supportCardLevels[cardId] ?? 0);
