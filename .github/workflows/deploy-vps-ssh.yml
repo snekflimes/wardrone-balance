@@ -1,0 +1,66 @@
+name: Deploy to VPS (SSH)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p $SSH_PORT -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      # 1. Деплой игры: dist/ -> папка игры на сервере
+      - name: Deploy game (dist) via rsync
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          TARGET_DIR: ${{ secrets.SSH_GAME_DIR }}
+        run: |
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
+          rsync -avz --delete -e "ssh -p $SSH_PORT" dist/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
+
+      # 2. Деплой хаба: site-hub/ -> корень домена (без перезаписи data/projects.json)
+      - name: Deploy site hub via rsync
+        if: ${{ secrets.SSH_HUB_DIR != '' }}
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          TARGET_DIR: ${{ secrets.SSH_HUB_DIR }}
+        run: |
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
+          rsync -avz --exclude="data/projects.json" --exclude=".git*" -e "ssh -p $SSH_PORT" site-hub/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
