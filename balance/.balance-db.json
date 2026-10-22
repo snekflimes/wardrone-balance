@@ -29,53 +29,53 @@
     "weapons": {
       "machineGun": {
         "id": "machineGun",
-        "displayName": "Пулемёт",
-        "baseDamage": 10,
-        "baseFireRatePerMin": 600,
-        "baseAmmo": 50,
-        "upgradeBaseSoft": 250,
-        "upgradeCostMultiplier": 0.9,
+        "displayName": "30mm Пулемёт",
+        "baseDamage": 20,
+        "baseFireRatePerMin": 450,
+        "baseAmmo": 70,
+        "upgradeBaseSoft": 245,
+        "upgradeCostMultiplier": 0.0612,
         "reloadTimeSec": 2,
         "growth": {
-          "damageMultiplierPerLevel": 0.1,
-          "fireRateMultiplierPerLevel": 1.01,
-          "ammoMultiplierPerLevel": 0.05
+          "damageMultiplierPerLevel": 0.05,
+          "fireRateMultiplierPerLevel": 1,
+          "ammoMultiplierPerLevel": 0.0429
         }
       },
       "hydra70": {
         "id": "hydra70",
-        "displayName": "Гидра-70",
-        "baseDamage": 80,
-        "baseFireRatePerMin": 60,
-        "baseAmmo": 3,
+        "displayName": "105mm Гаубица",
+        "baseDamage": 100,
+        "baseFireRatePerMin": 30,
+        "baseAmmo": 2,
         "upgradeBaseSoft": 500,
-        "upgradeCostMultiplier": 1,
-        "reloadTimeSec": 4,
+        "upgradeCostMultiplier": 0.09,
+        "reloadTimeSec": 3.5,
         "growth": {
-          "damageMultiplierPerLevel": 0.15,
-          "fireRateMultiplierPerLevel": 1.02,
-          "ammoMultiplierPerLevel": 0.1
+          "damageMultiplierPerLevel": 0.06,
+          "fireRateMultiplierPerLevel": 1,
+          "ammoMultiplierPerLevel": 0.5
         }
       },
       "hellfire": {
         "id": "hellfire",
         "displayName": "Хеллфайр",
-        "baseDamage": 150,
-        "baseFireRatePerMin": 30,
+        "baseDamage": 500,
+        "baseFireRatePerMin": 20,
         "baseAmmo": 1,
-        "upgradeBaseSoft": 1000,
-        "upgradeCostMultiplier": 1.1,
-        "reloadTimeSec": 6,
+        "upgradeBaseSoft": 3000,
+        "upgradeCostMultiplier": 0.333,
+        "reloadTimeSec": 5,
         "growth": {
-          "damageMultiplierPerLevel": 0.2,
-          "fireRateMultiplierPerLevel": 1.03,
-          "ammoMultiplierPerLevel": 0.15
+          "damageMultiplierPerLevel": 0.1,
+          "fireRateMultiplierPerLevel": 1,
+          "ammoMultiplierPerLevel": 1
         }
       },
       "growth": {
-        "damageMultiplierPerLevel": 0.19999999999999996,
-        "fireRateMultiplierPerLevel": 1.05,
-        "ammoMultiplierPerLevel": 0.10000000000000009
+        "damageMultiplierPerLevel": 0.05,
+        "fireRateMultiplierPerLevel": 1,
+        "ammoMultiplierPerLevel": 0.0429
       }
     },
     "economy": {
@@ -651,104 +651,134 @@
       "infantry": {
         "id": "infantry",
         "displayName": "Пехотинец",
-        "baseHp": 45,
-        "baseDamage": 10,
+        "baseHp": 40,
+        "baseDamage": 5,
         "range": 50,
         "speed": 70,
-        "reward": 7,
+        "reward": 25,
         "baseFireRatePerMin": 60
       },
       "jeep": {
         "id": "jeep",
-        "displayName": "Джип",
-        "baseHp": 100,
-        "baseDamage": 20,
+        "displayName": "Хамви / Джип",
+        "baseHp": 160,
+        "baseDamage": 15,
         "range": 60,
         "speed": 90,
-        "reward": 15,
+        "reward": 100,
         "baseFireRatePerMin": 60
       },
       "apc": {
         "id": "apc",
-        "displayName": "БТР",
-        "baseHp": 250,
-        "baseDamage": 30,
+        "displayName": "Бумеранг / БТР",
+        "baseHp": 880,
+        "baseDamage": 25,
         "range": 70,
         "speed": 50,
-        "reward": 25,
+        "reward": 125,
         "baseFireRatePerMin": 60
       },
       "lightTank": {
         "id": "lightTank",
-        "displayName": "Лёгкий танк",
-        "baseHp": 350,
+        "displayName": "Скорпион (Лёгкий танк)",
+        "baseHp": 2400,
         "baseDamage": 40,
         "baseFireRatePerMin": 24,
         "range": 78,
         "speed": 52,
-        "reward": 35
+        "reward": 150
       },
       "heavyTank": {
         "id": "heavyTank",
-        "displayName": "Тяжёлый танк",
-        "baseHp": 500,
+        "displayName": "Абрамс (Тяжёлый танк)",
+        "baseHp": 5500,
         "baseDamage": 60,
-        "baseFireRatePerMin": 60,
+        "baseFireRatePerMin": 30,
         "range": 80,
         "speed": 35,
-        "reward": 50
+        "reward": 200
       },
       "mlrs": {
         "id": "mlrs",
-        "displayName": "РСЗО",
-        "baseHp": 150,
+        "displayName": "DF-26 / РСЗО",
+        "baseHp": 2700,
         "baseDamage": 125,
         "baseFireRatePerMin": 9,
         "range": 220,
         "speed": 22,
-        "reward": 45,
+        "reward": 120,
         "attackWindupFraction": 0.22
       },
       "fuelTruck": {
         "id": "fuelTruck",
         "displayName": "Бензовоз-камикадзе",
-        "baseHp": 75,
-        "baseDamage": 100,
+        "baseHp": 350,
+        "baseDamage": 500,
         "baseFireRatePerMin": 28,
         "range": 8,
         "speed": 110,
-        "reward": 40,
-        "objectivePressureMultiplier": 1.5
+        "reward": 80,
+        "objectivePressureMultiplier": 1.5,
+        "threatDelivery": "reach"
       },
       "heli": {
         "id": "heli",
-        "displayName": "Вертолёт",
-        "baseHp": 120,
+        "displayName": "Вертолёт (LittleBird)",
+        "baseHp": 2200,
         "baseDamage": 35,
         "range": 100,
         "speed": 80,
-        "reward": 80,
+        "reward": 100,
         "baseFireRatePerMin": 60
       },
       "plane": {
         "id": "plane",
-        "displayName": "Самолёт",
-        "baseHp": 250,
+        "displayName": "Самолёт (Cargo Plane)",
+        "baseHp": 3000,
         "baseDamage": 45,
         "range": 120,
         "speed": 120,
-        "reward": 120,
+        "reward": 100,
         "baseFireRatePerMin": 60
       },
       "heavyInfantry": {
         "id": "heavyInfantry",
-        "displayName": "Тяж.пехота",
+        "displayName": "Тяж.пехота / РПГ",
         "baseHp": 150,
         "baseDamage": 20,
         "range": 50,
         "speed": 70,
         "reward": 40,
         "baseFireRatePerMin": 60
+      },
+      "infantryL1": {
+        "id": "infantryL1",
+        "displayName": "Пехотинец (FTUE ур.1)",
+        "baseHp": 20,
+        "baseDamage": 3,
+        "range": 50,
+        "speed": 65,
+        "reward": 12
+      },
+      "jeepL1": {
+        "id": "jeepL1",
+        "displayName": "Хамви (FTUE ур.1)",
+        "baseHp": 80,
+        "baseDamage": 8,
+        "range": 60,
+        "speed": 85,
+        "reward": 50
+      },
+      "rpgInfantry": {
+        "id": "rpgInfantry",
+        "displayName": "Ракетчик (Rocketeer)",
+        "baseHp": 40,
+        "baseDamage": 25,
+        "baseFireRatePerMin": 20,
+        "range": 95,
+        "speed": 58,
+        "reward": 25,
+        "attackWindupFraction": 0.12
       }
     },
     "weaponVsEnemyModifiers": {
