@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
 
       - name: Install
@@ -34,10 +34,32 @@ jobs:
       - name: Configure SSH
         env:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_GAME_DIR: ${{ secrets.SSH_GAME_DIR }}
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          
+          if [ -z "$SSH_HOST" ]; then
+            echo "::error title=Missing Secret::Secret 'SSH_HOST' is not set in GitHub repository settings! (Expected: 62.133.60.55)"
+            exit 1
+          fi
+          if [ -z "$SSH_USER" ]; then
+            echo "::error title=Missing Secret::Secret 'SSH_USER' is not set in GitHub repository settings! (Expected: root)"
+            exit 1
+          fi
+          if [ -z "$SSH_GAME_DIR" ]; then
+            echo "::error title=Missing Secret::Secret 'SSH_GAME_DIR' is not set in GitHub repository settings! (Expected: /var/www/mysite/www/snek.su/wardrone)"
+            exit 1
+          fi
+          if [ -z "$SSH_KEY" ]; then
+            echo "::error title=Missing Secret::Secret 'SSH_PRIVATE_KEY' is not set in GitHub repository settings!"
+            exit 1
+          fi
+
+          printf "%s\n" "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          echo "SSH configured successfully. Key size: $(wc -c < ~/.ssh/id_rsa) bytes."
 
       # 1. Деплой игры: dist/ -> папка игры на сервере
       - name: Deploy game (dist) via rsync
@@ -47,8 +69,13 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
           TARGET_DIR: ${{ secrets.SSH_GAME_DIR }}
         run: |
-          ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
-          rsync -avz --delete -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" dist/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
+          echo "Connecting to $SSH_USER@$SSH_HOST:$SSH_PORT..."
+          ssh -p $SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR" || {
+            echo "::error title=SSH Connection Failed::Could not connect to $SSH_USER@$SSH_HOST via SSH key. Diagnostics below:"
+            ssh -vvv -p $SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
+            exit 1
+          }
+          rsync -avz --delete -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa" dist/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
 
       # 2. Деплой хаба: site-hub/ -> корень домена (без перезаписи data/projects.json)
       - name: Deploy site hub via rsync
@@ -59,8 +86,9 @@ jobs:
           TARGET_DIR: ${{ secrets.SSH_HUB_DIR }}
         run: |
           if [ -n "$TARGET_DIR" ]; then
-            ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
-            rsync -avz --exclude="data/projects.json" --exclude=".git*" -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" site-hub/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
+            echo "Deploying site hub to $TARGET_DIR..."
+            ssh -p $SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
+            rsync -avz --exclude="data/projects.json" --exclude=".git*" -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa" site-hub/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
           else
             echo "SSH_HUB_DIR is not set, skipping site hub deployment."
           fi
