@@ -782,7 +782,9 @@ export const App: React.FC = () => {
 
   const loadFromDb = async () => {
     const defaults = getDefaultReferenceWavesConfig();
-    const apiCandidates = [SAME_ORIGIN_API_URL];
+    const apiCandidates = isLocalhost
+      ? ['/api/storage/balance']
+      : [SAME_ORIGIN_API_URL, 'data/balance.json', REMOTE_API_URL];
 
     const applyLoaded = (
       balanceRaw: Partial<BalanceConstants> | undefined,
@@ -821,24 +823,7 @@ export const App: React.FC = () => {
     };
 
     try {
-      let response: Response | null = null;
-      for (const url of apiCandidates) {
-        try {
-          const r = await fetch(url, { method: 'GET' });
-          if (r.ok) {
-            response = r;
-            break;
-          }
-        } catch {
-          // try next candidate
-        }
-      }
-      if (!response) {
-        const local = readLocalPersistenceSnapshot();
-        applyLoaded(local?.balance, local?.referenceWavesConfig, local?.uiState);
-        return;
-      }
-      const json = (await response.json()) as {
+      let parsedJson: {
         balance?: Partial<BalanceConstants>;
         referenceWavesConfig?: ReferenceWavesConfig;
         uiState?: {
@@ -846,8 +831,30 @@ export const App: React.FC = () => {
           forecastSegmentId?: SegmentId;
           forecastUiState?: ForecastUiState;
         };
-      };
-      applyLoaded(json.balance, json.referenceWavesConfig, json.uiState);
+      } | null = null;
+
+      for (const url of apiCandidates) {
+        try {
+          const r = await fetch(url, { method: 'GET' });
+          if (r.ok) {
+            const rawText = await r.text();
+            // Защита: парсим только валидный JSON, игнорируем сырой PHP (<?php...) или HTML ошибки Nginx
+            if (rawText && rawText.trim().startsWith('{')) {
+              parsedJson = JSON.parse(rawText);
+              break;
+            }
+          }
+        } catch {
+          // try next candidate
+        }
+      }
+
+      if (!parsedJson) {
+        const local = readLocalPersistenceSnapshot();
+        applyLoaded(local?.balance, local?.referenceWavesConfig, local?.uiState);
+        return;
+      }
+      applyLoaded(parsedJson.balance, parsedJson.referenceWavesConfig, parsedJson.uiState);
     } catch {
       const local = readLocalPersistenceSnapshot();
       applyLoaded(local?.balance, local?.referenceWavesConfig, local?.uiState);
