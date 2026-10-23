@@ -52,12 +52,15 @@ jobs:
 
       # 2. Деплой хаба: site-hub/ -> корень домена (без перезаписи data/projects.json)
       - name: Deploy site hub via rsync
-        if: ${{ secrets.SSH_HUB_DIR != '' }}
         env:
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
           TARGET_DIR: ${{ secrets.SSH_HUB_DIR }}
         run: |
-          ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
-          rsync -avz --exclude="data/projects.json" --exclude=".git*" -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" site-hub/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
+          if [ -n "$TARGET_DIR" ]; then
+            ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
+            rsync -avz --exclude="data/projects.json" --exclude=".git*" -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" site-hub/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
+          else
+            echo "SSH_HUB_DIR is not set, skipping site hub deployment."
+          fi
