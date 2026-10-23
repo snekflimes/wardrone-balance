@@ -34,13 +34,10 @@ jobs:
       - name: Configure SSH
         env:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p $SSH_PORT -H "$SSH_HOST" >> ~/.ssh/known_hosts
 
       # 1. Деплой игры: dist/ -> папка игры на сервере
       - name: Deploy game (dist) via rsync
@@ -50,8 +47,8 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
           TARGET_DIR: ${{ secrets.SSH_GAME_DIR }}
         run: |
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
-          rsync -avz --delete -e "ssh -p $SSH_PORT" dist/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
+          ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
+          rsync -avz --delete -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" dist/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
 
       # 2. Деплой хаба: site-hub/ -> корень домена (без перезаписи data/projects.json)
       - name: Deploy site hub via rsync
@@ -62,5 +59,5 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
           TARGET_DIR: ${{ secrets.SSH_HUB_DIR }}
         run: |
-          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
-          rsync -avz --exclude="data/projects.json" --exclude=".git*" -e "ssh -p $SSH_PORT" site-hub/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
+          ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $SSH_USER@$SSH_HOST "mkdir -p $TARGET_DIR"
+          rsync -avz --exclude="data/projects.json" --exclude=".git*" -e "ssh -p $SSH_PORT -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" site-hub/ "$SSH_USER@$SSH_HOST:$TARGET_DIR/"
